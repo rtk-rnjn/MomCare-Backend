@@ -8,6 +8,12 @@ __all__ = ("FoodItem",)
 
 
 class FoodItem(BaseModel):
+    id: str = Field(
+        ...,
+        title="Food Item ID",
+        description="Unique identifier for the food item",
+        alias="_id",
+    )
     name: str = Field(..., title="Name", description="Name of the food item")
 
     calories: Optional[float] = Field(

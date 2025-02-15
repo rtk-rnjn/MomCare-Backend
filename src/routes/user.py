@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import secrets
-
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel, EmailStr
 from pymongo.results import InsertOneResult
 
@@ -49,7 +46,6 @@ async def create_user(request: Request, data: User) -> CreateResponse:
     """
     Create a new user and return the inserted ID.
     """
-    print("Creating user")
     if await user_exists(email=data.email_address):
         raise HTTPException(status_code=400, detail="User already exists")
 
@@ -106,10 +102,9 @@ async def update_user(request: Request, user: User) -> UpdateResponse:
     collection = mongo_client["MomCare"]["users"]
     try:
         user_dumped = user.model_dump(mode="json")
-        user_dumped.pop("_id", None)
 
         result = await collection.update_one(
-            {"_id": ObjectId(user.mongo_id)},
+            {"_id": ObjectId(user.id)},
             {"$set": user_dumped},
         )
         if result.modified_count == 0:

@@ -33,35 +33,35 @@ class DifficultyType(Enum):
 
 
 class PreExistingCondition(Enum):
-    DIABETES = "diabetes"
-    HYPERTENSION = "hypertension"
-    PCOS = "pcos"
-    ANEMIA = "anemia"
-    ASTHMA = "asthma"
-    HEART_DISEASE = "heartDisease"
-    KIDNEY_DISEASE = "kidneyDisease"
+    DIABETES = "Diabetes"
+    HYPERTENSION = "Hypertension"
+    PCOS = "PCOS"
+    ANEMIA = "Anemia"
+    ASTHMA = "Asthma"
+    HEART_DISEASE = "Heart Disease"
+    KIDNEY_DISEASE = "Kidney Disease"
 
 
 class Intolerance(Enum):
-    GLUTEN = "gluten"
-    LACTOSE = "lactose"
-    EGG = "egg"
-    SEAFOOD = "seafood"
-    SOY = "soy"
-    DAIRY = "dairy"
-    WHEAT = "wheat"
+    GLUTEN = "Gluten"
+    LACTOSE = "Lactose"
+    EGG = "Egg"
+    SEAFOOD = "Seafood"
+    SOY = "Soy"
+    DAIRY = "Dairy"
+    WHEAT = "Wheat"
 
 
 class DietaryPreference(Enum):
-    VEGETARIAN = "vegetarian"
-    NON_VEGETARIAN = "nonVegetarian"
-    VEGAN = "vegan"
-    PESCETARIAN = "pescetarian"
-    FLEXITARIAN = "flexitarian"
-    GLUTEN_FREE = "glutenFree"
-    KETOGENIC = "ketogenic"
-    HIGH_PROTEIN = "highProtein"
-    DAIRY_FREE = "dairyFree"
+    VEGETARIAN = "Vegetarian"
+    NON_VEGETARIAN = "Non-Vegetarian"
+    VEGAN = "Vegan"
+    PESCETARIAN = "Pescetarian"
+    FLEXITARIAN = "Flexitarian"
+    GLUTEN_FREE = "Gluten-Free"
+    KETOGENIC = "Ketogenic"
+    HIGH_PROTEIN = "High Protein"
+    DAIRY_FREE = "Dairy-Free"
 
 
 class Country(Enum):
