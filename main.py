@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import os
 
+from src import app
+
 if os.name == "nt":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 else:
@@ -20,4 +22,4 @@ PORT = int(os.getenv("PORT", 8000))
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("src:app", host=HOST, port=PORT, log_level="debug", reload=True)
+    uvicorn.run(app, host=HOST, port=PORT)
