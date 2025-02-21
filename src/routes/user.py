@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Optional
 
-from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from pymongo.results import InsertOneResult
@@ -108,18 +107,15 @@ async def update_user(request: Request, user: User) -> UpdateResponse:
     collection = mongo_client["MomCare"]["users"]
     try:
         user_dumped = user.model_dump(mode="json")
-
         result: UpdateResult = await collection.update_one(
             {"_id": user.id},
             {"$set": user_dumped},
         )
         if result.modified_count == 0:
-            return UpdateResponse(
-                success=False, modified_count=0, detail="User not found"
-            )
+            raise HTTPException(status_code=404, detail="User not found")
 
-    except Exception:
-        return UpdateResponse(success=False, modified_count=0)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid update operation")
 
     return UpdateResponse(success=True, modified_count=result.modified_count)
 

@@ -17,9 +17,12 @@ else:
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", 8000))
-
+DEVELOPMENT = os.getenv("DEVELOPMENT", "True").lower() == "true"
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host=HOST, port=PORT)
+    if DEVELOPMENT:
+        uvicorn.run("src:app", host=HOST, port=PORT, reload=True)
+    else:
+        uvicorn.run(app, host=HOST, port=PORT)
