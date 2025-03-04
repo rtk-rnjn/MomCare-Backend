@@ -45,10 +45,12 @@ async def user_exists(*, email: str) -> bool:
     response_model=CreateResponse,
     responses={400: {"description": "User already exists"}, 422: {}},
 )
-async def create_user(request: Request, data: User) -> CreateResponse:
+async def create_user(request: Request, data: dict) -> CreateResponse:
     """
     Create a new user and return the inserted ID.
     """
+    print(data)
+    data = User(**data)
     if await user_exists(email=data.email_address):
         return CreateResponse(success=False, inserted_id="")
 
@@ -107,6 +109,7 @@ async def update_user(request: Request, user: User) -> UpdateResponse:
     collection = mongo_client["MomCare"]["users"]
     try:
         user_dumped = user.model_dump(mode="json")
+        print(user_dumped)
         result: UpdateResult = await collection.update_one(
             {"_id": user.id},
             {"$set": user_dumped},

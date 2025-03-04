@@ -64,7 +64,6 @@ class User(BaseModel):
     created_at: datetime = Field(
         default_factory=datetime.utcnow, title="Account Creation Date"
     )
-    updated_at: Optional[datetime] = Field(None, title="Last Update Date")
 
 
 class UserMedical(BaseModel):

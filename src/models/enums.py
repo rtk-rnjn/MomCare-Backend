@@ -71,7 +71,7 @@ class Country(Enum):
 
 
 class MealType(Enum):
-    BREAKFAST = "Breakfast"
-    LUNCH = "Lunch"
-    SNACK = "Snack"
-    DINNER = "Dinner"
+    BREAKFAST = "breakfast"
+    LUNCH = "lunch"
+    SNACKS = "snacks"
+    DINNER = "dinner"
