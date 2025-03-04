@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List
 
 from pydantic import BaseModel, Field
 
-from .enums import MealType
 from .food_item import FoodItem
 
 __all__ = ("MyPlan",)
@@ -15,10 +14,15 @@ class MyPlan(BaseModel):
     Represents a user's nutrition and hydration tracking plan.
     """
 
-    current_water_intake: int = Field(
-        0, ge=0, description="Current amount of water consumed (milliliters)."
+    breakfast: List[FoodItem] = Field(
+        default_factory=list, title="Breakfast", description="List of breakfast items"
     )
-
-    meals: dict[MealType, list[FoodItem]] = Field(
-        {}, description="Dictionary of meals with their food items."
+    lunch: List[FoodItem] = Field(
+        default_factory=list, title="Lunch", description="List of lunch items"
+    )
+    dinner: List[FoodItem] = Field(
+        default_factory=list, title="Dinner", description="List of dinner items"
+    )
+    snacks: List[FoodItem] = Field(
+        default_factory=list, title="Snacks", description="List of snack items"
     )

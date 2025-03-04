@@ -45,12 +45,10 @@ async def user_exists(*, email: str) -> bool:
     response_model=CreateResponse,
     responses={400: {"description": "User already exists"}, 422: {}},
 )
-async def create_user(request: Request, data: dict) -> CreateResponse:
+async def create_user(request: Request, data: User) -> CreateResponse:
     """
     Create a new user and return the inserted ID.
     """
-    print(data)
-    data = User(**data)
     if await user_exists(email=data.email_address):
         return CreateResponse(success=False, inserted_id="")
 
