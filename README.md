@@ -28,9 +28,6 @@ $ python3 main.py
 
 - [x] Add user registration
 - [x] Add user update
-- [ ] MyPlan endpoints
-- [ ] Exercise endpoints
-- [ ] Diet endpoints
 - [ ] AI Models?
 - [ ] Add tests
 - [ ] Add CI/CD
