@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -10,9 +9,6 @@ from pydantic import BaseModel
 from src.app import app, database, limiter
 from src.models import User
 from src.utils import TokenHandler
-
-if TYPE_CHECKING:
-    pass
 
 
 class ServerResponse(BaseModel):
@@ -62,7 +58,7 @@ async def register_user(request: Request, user: User) -> ServerResponse:
 
 
 @router.post("/login", response_model=ServerResponse)
-@limiter.limit("15/minute")
+@limiter.limit("60/minute")
 async def login_user(request: Request, credentials: ClientRequest) -> ServerResponse:
     user = await database["users"].find_one(
         {"email_address": credentials.email_address}
@@ -107,7 +103,7 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
 
 
 @router.post("/refresh", response_model=ServerResponse)
-# @limiter.limit("1/hour")
+@limiter.limit("1/hour")
 async def refresh_token(request: Request, credentials: ClientRequest) -> ServerResponse:
     user = await database["users"].find_one(
         {"email_address": credentials.email_address, "password": credentials.password}
