@@ -5,6 +5,9 @@ on:
     branches:
       - "**"
 
+permissions:
+  contents: write
+
 jobs:
   lint-and-fix:
     runs-on: ubuntu-latest
