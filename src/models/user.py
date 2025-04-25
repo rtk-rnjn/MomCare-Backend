@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 
 from .enums import (
     Country,
@@ -18,66 +18,54 @@ from .myplan import MyPlan
 __all__ = ("User", "UserMedical", "History")
 
 
+class MoodHistory(BaseModel):
+    date: datetime = datetime.now(timezone.utc)
+    mood: MoodType
+
+
 class History(BaseModel):
-    date: datetime = Field(
-        default_factory=datetime.utcnow, title="Date", description="Date of record"
-    )
-    plan: Optional["MyPlan"] = Field(
-        None, title="Plan", description="User's assigned plan"
-    )
-    exercise: List[Exercise] = Field(
-        default_factory=list,
-        title="Exercises",
-        description="List of completed exercises",
-    )
+    date: datetime = datetime.now(timezone.utc)
+    plan: Optional[MyPlan] = None
+    exercise: List[Exercise] = []
+    moods: List[MoodHistory] = []
 
 
 class User(BaseModel):
-    id: str = Field(
-        ..., title="User ID", description="Unique identifier for the user", alias="_id"
-    )
-    first_name: str = Field(..., title="First Name", description="User's first name")
-    last_name: Optional[str] = Field(
-        None, title="Last Name", description="User's last name (surname). Optional."
-    )
-    email_address: EmailStr = Field(
-        ..., title="Email Address", description="User's email address"
-    )
-    password: str = Field(
-        ..., title="Password (Hashed)", description="User's hashed password"
-    )
+    id: str
+    first_name: str
+    last_name: Optional[str] = None
+    email_address: EmailStr
+    password: str
 
-    country_code: str = Field(default="+91", title="Country Code")
-    country: Country = Field(default=Country.INDIA, title="Country")
+    country_code: str = "+91"
+    country: Country = Country.INDIA
 
-    phone_number: str = Field(
-        ..., title="Phone Number", description="Phone number without country code"
-    )
+    phone_number: str
 
-    medical_data: Optional[UserMedical] = Field(None, title="Medical Data")
-    mood: Optional[MoodType] = Field(None, title="Mood")
+    medical_data: Optional[UserMedical] = None
+    mood: Optional[MoodType] = None
 
-    exercises: List[Exercise] = Field(default_factory=list, title="Active Exercises")
-    plan: Optional["MyPlan"] = Field(None, title="Current Plan")
-    history: List[History] = Field(default_factory=list, title="Exercise History")
+    exercises: List[Exercise] = []
+    plan: Optional[MyPlan] = None
+    history: List[History] = []
 
-    created_at: datetime = Field(
-        default_factory=datetime.utcnow, title="Account Creation Date"
-    )
+    created_at: datetime = datetime.now(timezone.utc)
+
+    # Server stuff
+    last_login: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    failed_login_attempts: int = 0
+    last_login_ip: Optional[str] = None
+    is_active: bool = True
+    is_verified: bool = False
 
 
 class UserMedical(BaseModel):
-    date_of_birth: datetime = Field(..., title="Date of Birth")
-    height: float = Field(..., gt=0, title="Height (cm)")
-    pre_pregnancy_weight: float = Field(..., gt=0, title="Pre-pregnancy Weight (kg)")
-    current_weight: float = Field(..., gt=0, title="Current Weight (kg)")
-    due_date: Optional[datetime] = Field(..., title="Due Date")
-    pre_existing_conditions: List[PreExistingCondition] = Field(
-        default_factory=list, title="Pre-existing Conditions"
-    )
-    food_intolerances: List[Intolerance] = Field(
-        default_factory=list, title="Food Intolerances"
-    )
-    dietary_preferences: List[DietaryPreference] = Field(
-        default_factory=list, title="Dietary Preferences"
-    )
+    date_of_birth: datetime
+    height: float
+    pre_pregnancy_weight: float
+    current_weight: float
+    due_date: Optional[datetime] = None
+    pre_existing_conditions: List[PreExistingCondition] = []
+    food_intolerances: List[Intolerance] = []
+    dietary_preferences: List[DietaryPreference] = []

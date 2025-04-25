@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import List
+import datetime
+from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .enums import DifficultyType, ExerciseType
 
@@ -14,60 +15,16 @@ class Exercise(BaseModel):
     Represents an exercise with its type, duration, difficulty level, and progress tracking.
     """
 
-    exercise_type: ExerciseType = Field(
-        ...,
-        title="Type of exercise",
-        description="The category of the exercise to be performed.",
-        examples=["Breathing"],
-    )
+    exercise_type: ExerciseType
+    duration: float
+    description: str = ""
+    tags: List[str] = []
 
-    duration: float = Field(
-        ...,
-        title="Duration",
-        description="Total duration of the exercise in seconds.",
-        examples=[300],
-        gt=0,
-    )
+    level: DifficultyType
 
-    description: str = Field(
-        ...,
-        title="Description",
-        description="A brief explanation of the exercise.",
-        examples=["Inhale and exhale"],
-    )
+    exercise_image_name: str
 
-    tags: List[str] = Field(
-        default=[],
-        title="Tags",
-        description="Relevant tags to categorize the exercise.",
-        examples=[["#relax", "#meditation"]],
-    )
+    duration_completed: float
 
-    level: DifficultyType = Field(
-        default=DifficultyType.BEGINNER,
-        title="Level",
-        description="Difficulty level of the exercise.",
-        examples=["Beginner"],
-    )
-
-    exercise_image_name: str = Field(
-        ...,
-        title="Exercise Image Name",
-        description="Filename or URL of the image representing the exercise.",
-        examples=["breathing_exercise.png"],
-    )
-
-    duration_completed: float = Field(
-        default=0,
-        title="Duration Completed",
-        description="Amount of time (in seconds) the exercise has been completed.",
-        examples=[0],
-        ge=0,
-    )
-
-    is_completed: bool = Field(
-        default=False,
-        title="Is Completed",
-        description="Indicates whether the exercise is completed. It's computed as: `is_completed = duration_completed >= duration - 1`.",
-        examples=[False],
-    )
+    is_completed: bool = False
+    completed_at: Optional[datetime.datetime] = None

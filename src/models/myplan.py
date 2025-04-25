@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .food_item import FoodItem
 
@@ -14,15 +14,7 @@ class MyPlan(BaseModel):
     Represents a user's nutrition and hydration tracking plan.
     """
 
-    breakfast: List[FoodItem] = Field(
-        default_factory=list, title="Breakfast", description="List of breakfast items"
-    )
-    lunch: List[FoodItem] = Field(
-        default_factory=list, title="Lunch", description="List of lunch items"
-    )
-    dinner: List[FoodItem] = Field(
-        default_factory=list, title="Dinner", description="List of dinner items"
-    )
-    snacks: List[FoodItem] = Field(
-        default_factory=list, title="Snacks", description="List of snack items"
-    )
+    breakfast: List[FoodItem] = []
+    lunch: List[FoodItem] = []
+    dinner: List[FoodItem] = []
+    snacks: List[FoodItem] = []

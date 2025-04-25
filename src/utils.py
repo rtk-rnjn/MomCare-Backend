@@ -1,19 +1,64 @@
 from __future__ import annotations
 
-import base64
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional
 
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.PublicKey import RSA
+import jwt
+from dotenv import load_dotenv
+from pydantic import BaseModel
 
-with open("public.pem", "rb") as f:
-    public_key = RSA.import_key(f.read())
+from src.models import User
+
+load_dotenv()
+
+ISS = "MomCare-Backend"
+AUD = "*"
 
 
-def encrypt(data: str) -> str:
-    cipher = PKCS1_OAEP.new(public_key)
-    return base64.b64encode(cipher.encrypt(data.encode())).decode()
+class Token(BaseModel):
+    sub: str
+    email: str
+    name: str
+    iat: int = int(datetime.now(timezone.utc).timestamp())
+    exp: int
+    iss: str = ISS
+    aud: str = AUD
 
 
-def decrypt(data: str) -> str:
-    cipher = PKCS1_OAEP.new(public_key)
-    return cipher.decrypt(base64.b64decode(data)).decode()
+class TokenHandler:
+    def __init__(self, secret: str, algorithm: str = "HS256"):
+        self.secret = secret
+        self.algorithm = algorithm
+
+    def create_access_token(
+        self, user: User, expire_in: int = 360, *, audience: str = AUD
+    ) -> str:
+        payload = Token(
+            sub=user.id,
+            email=user.email_address,
+            name=f"{user.first_name} {user.last_name}",
+            exp=int(
+                (datetime.now(timezone.utc) + timedelta(seconds=expire_in)).timestamp()
+            ),
+        )
+
+        return jwt.encode(dict(payload), self.secret, algorithm=self.algorithm)
+
+    def validate_token(self, token: str) -> Optional[Dict[str, Any]]:
+        try:
+            return jwt.decode(token, self.secret, algorithms=[self.algorithm])
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+
+    def decode_token(self, token: str) -> Optional[Dict[str, Any]]:
+        try:
+            return jwt.decode(
+                token,
+                self.secret,
+                algorithms=[self.algorithm],
+                options={"verify_exp": False},
+            )
+        except jwt.InvalidTokenError:
+            return None
