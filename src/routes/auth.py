@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from src.app import app, database, limiter
+from src.app import app, database
 from src.models import User
 from src.utils import TokenHandler
+
+if TYPE_CHECKING:
+
+    from type import UpdateResult
 
 
 class ServerResponse(BaseModel):
@@ -22,13 +27,18 @@ class ClientRequest(BaseModel):
     password: str
 
 
+class UpdateResponse(BaseModel):
+    success: bool = True
+    modified_count: int
+    matched_count: int
+
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 __cached_emails = set()
 
 
 @router.post("/register", response_model=ServerResponse)
-@limiter.limit("15/minute")
 async def register_user(request: Request, user: User) -> ServerResponse:
     _user = await database["users"].find_one({"email_address": user.email_address})
     if _user or user.email_address in __cached_emails:
@@ -42,9 +52,7 @@ async def register_user(request: Request, user: User) -> ServerResponse:
 
     sendable = user.model_dump(mode="json")
     sendable["_id"] = str(user.id)
-    sendable["last_login_ip"] = (
-        request.client.host if request.client is not None else "unknown"
-    )
+    sendable["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
     await database["users"].insert_one(sendable)
 
@@ -58,11 +66,8 @@ async def register_user(request: Request, user: User) -> ServerResponse:
 
 
 @router.post("/login", response_model=ServerResponse)
-@limiter.limit("60/minute")
 async def login_user(request: Request, credentials: ClientRequest) -> ServerResponse:
-    user = await database["users"].find_one(
-        {"email_address": credentials.email_address}
-    )
+    user = await database["users"].find_one({"email_address": credentials.email_address})
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
@@ -74,11 +79,9 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
         user["failed_login_attempts"] += 1
         raise HTTPException(status_code=400, detail="Invalid password")
 
-    current_time = datetime.now(timezone.utc)
+    current_time = datetime.now(timezone.utc).isoformat()
     user["last_login"] = current_time
-    user["last_login_ip"] = (
-        request.client.host if request.client is not None else "unknown"
-    )
+    user["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
     await database["users"].update_one(
         {
@@ -88,9 +91,7 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
         {
             "$set": {
                 "last_login": current_time,
-                "last_login_ip": (
-                    request.client.host if request.client is not None else "unknown"
-                ),
+                "last_login_ip": (request.client.host if request.client is not None else "unknown"),
             }
         },
     )
@@ -103,11 +104,8 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
 
 
 @router.post("/refresh", response_model=ServerResponse)
-@limiter.limit("1/hour")
 async def refresh_token(request: Request, credentials: ClientRequest) -> ServerResponse:
-    user = await database["users"].find_one(
-        {"email_address": credentials.email_address, "password": credentials.password}
-    )
+    user = await database["users"].find_one({"email_address": credentials.email_address, "password": credentials.password})
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
@@ -116,6 +114,38 @@ async def refresh_token(request: Request, credentials: ClientRequest) -> ServerR
         success=True,
         inserted_id=str(user["_id"]),
         access_token=new_access_token,
+    )
+
+
+@router.put("/update", response_model=UpdateResponse)
+async def update_user(request: Request, user_data: dict) -> UpdateResponse:
+    token_string = request.headers.get("Authorization")
+
+    if token_string and token_string.startswith("Bearer "):
+        token_string = token_string[7:]
+
+    if token_string is None:
+        raise HTTPException(status_code=401, detail="Missing token")
+
+    token = token_handler.decode_token(token_string)
+    if token is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user_id = token.sub
+    email_address = token.email
+
+    if "email_address" in user_data:
+        raise HTTPException(status_code=400, detail="Cannot update email address")
+
+    update_result: UpdateResult = await database["users"].update_one(
+        {"_id": user_id, "email_address": email_address},
+        {"$set": user_data},
+    )
+
+    return UpdateResponse(
+        success=update_result.acknowledged,
+        modified_count=update_result.modified_count,
+        matched_count=update_result.matched_count,
     )
 
 

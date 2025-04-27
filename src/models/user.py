@@ -40,7 +40,7 @@ class User(BaseModel):
     country_code: str = "+91"
     country: Country = Country.INDIA
 
-    phone_number: str
+    phone_number: str = ""
 
     medical_data: Optional[UserMedical] = None
     mood: Optional[MoodType] = None

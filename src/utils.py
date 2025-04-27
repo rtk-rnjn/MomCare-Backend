@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import jwt
 from dotenv import load_dotenv
@@ -11,9 +11,6 @@ from src.models import User
 
 load_dotenv()
 
-ISS = "MomCare-Backend"
-AUD = "*"
-
 
 class Token(BaseModel):
     sub: str
@@ -21,8 +18,6 @@ class Token(BaseModel):
     name: str
     iat: int = int(datetime.now(timezone.utc).timestamp())
     exp: int
-    iss: str = ISS
-    aud: str = AUD
 
 
 class TokenHandler:
@@ -30,35 +25,32 @@ class TokenHandler:
         self.secret = secret
         self.algorithm = algorithm
 
-    def create_access_token(
-        self, user: User, expire_in: int = 360, *, audience: str = AUD
-    ) -> str:
+    def create_access_token(self, user: User, expire_in: int = 360) -> str:
         payload = Token(
             sub=user.id,
             email=user.email_address,
             name=f"{user.first_name} {user.last_name}",
-            exp=int(
-                (datetime.now(timezone.utc) + timedelta(seconds=expire_in)).timestamp()
-            ),
+            exp=int((datetime.now(timezone.utc) + timedelta(seconds=expire_in)).timestamp()),
         )
 
         return jwt.encode(dict(payload), self.secret, algorithm=self.algorithm)
 
-    def validate_token(self, token: str) -> Optional[Dict[str, Any]]:
+    def validate_token(self, token: str) -> Optional[Token]:
         try:
-            return jwt.decode(token, self.secret, algorithms=[self.algorithm])
+            return Token(**jwt.decode(token, self.secret, algorithms=[self.algorithm]))
         except jwt.ExpiredSignatureError:
             return None
         except jwt.InvalidTokenError:
             return None
 
-    def decode_token(self, token: str) -> Optional[Dict[str, Any]]:
+    def decode_token(self, token: str) -> Optional[Token]:
         try:
-            return jwt.decode(
-                token,
-                self.secret,
-                algorithms=[self.algorithm],
-                options={"verify_exp": False},
+            return Token(
+                **jwt.decode(
+                    token,
+                    self.secret,
+                    algorithms=[self.algorithm],
+                )
             )
         except jwt.InvalidTokenError:
-            return None
+            raise
