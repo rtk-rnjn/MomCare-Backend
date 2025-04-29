@@ -4,9 +4,10 @@ import os
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from src.app import app, database
 from src.models import User
 from src.utils import Token, TokenHandler
@@ -60,7 +61,9 @@ async def register_user(request: Request, user: User) -> ServerResponse:
 
     sendable = user.model_dump(mode="json")
     sendable["_id"] = str(user.id)
-    sendable["last_login_ip"] = request.client.host if request.client is not None else "unknown"
+    sendable["last_login_ip"] = (
+        request.client.host if request.client is not None else "unknown"
+    )
 
     await database["users"].insert_one(sendable)
 
@@ -75,7 +78,9 @@ async def register_user(request: Request, user: User) -> ServerResponse:
 
 @router.post("/login", response_model=ServerResponse)
 async def login_user(request: Request, credentials: ClientRequest) -> ServerResponse:
-    user = await database["users"].find_one({"email_address": credentials.email_address})
+    user = await database["users"].find_one(
+        {"email_address": credentials.email_address}
+    )
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
@@ -89,7 +94,9 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
 
     current_time = datetime.now(timezone.utc).isoformat()
     user["last_login"] = current_time
-    user["last_login_ip"] = request.client.host if request.client is not None else "unknown"
+    user["last_login_ip"] = (
+        request.client.host if request.client is not None else "unknown"
+    )
 
     await database["users"].update_one(
         {
@@ -99,7 +106,9 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
         {
             "$set": {
                 "last_login": current_time,
-                "last_login_ip": (request.client.host if request.client is not None else "unknown"),
+                "last_login_ip": (
+                    request.client.host if request.client is not None else "unknown"
+                ),
             }
         },
     )
@@ -113,7 +122,9 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
 
 @router.post("/refresh", response_model=ServerResponse)
 async def refresh_token(credentials: ClientRequest) -> ServerResponse:
-    user = await database["users"].find_one({"email_address": credentials.email_address, "password": credentials.password})
+    user = await database["users"].find_one(
+        {"email_address": credentials.email_address, "password": credentials.password}
+    )
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
@@ -126,7 +137,9 @@ async def refresh_token(credentials: ClientRequest) -> ServerResponse:
 
 
 @router.put("/update", response_model=UpdateResponse)
-async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
+async def update_user(
+    user_data: dict, token: Token = Depends(get_user_token)
+) -> UpdateResponse:
     user_id = token.sub
     email_address = token.email
 
