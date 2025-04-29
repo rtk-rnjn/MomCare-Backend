@@ -4,12 +4,12 @@ import os
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
-
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.app import app, database
 from src.models import User
-from src.utils import TokenHandler
+from src.utils import Token, TokenHandler
 
 if TYPE_CHECKING:
 
@@ -36,6 +36,14 @@ class UpdateResponse(BaseModel):
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 __cached_emails = set()
+security = HTTPBearer()
+
+
+def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        return token_handler.decode_token(credentials.credentials)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid token") from e
 
 
 @router.post("/register", response_model=ServerResponse)
@@ -104,7 +112,7 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
 
 
 @router.post("/refresh", response_model=ServerResponse)
-async def refresh_token(request: Request, credentials: ClientRequest) -> ServerResponse:
+async def refresh_token(credentials: ClientRequest) -> ServerResponse:
     user = await database["users"].find_one({"email_address": credentials.email_address, "password": credentials.password})
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
@@ -118,19 +126,7 @@ async def refresh_token(request: Request, credentials: ClientRequest) -> ServerR
 
 
 @router.put("/update", response_model=UpdateResponse)
-async def update_user(request: Request, user_data: dict) -> UpdateResponse:
-    token_string = request.headers.get("Authorization")
-
-    if token_string and token_string.startswith("Bearer "):
-        token_string = token_string[7:]
-
-    if token_string is None:
-        raise HTTPException(status_code=401, detail="Missing token")
-
-    token = token_handler.decode_token(token_string)
-    if token is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
+async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
     user_id = token.sub
     email_address = token.email
 
@@ -147,6 +143,17 @@ async def update_user(request: Request, user_data: dict) -> UpdateResponse:
         modified_count=update_result.modified_count,
         matched_count=update_result.matched_count,
     )
+
+
+@router.get("/fetch", response_model=User)
+async def fetch_user(token: Token = Depends(get_user_token)) -> User:
+    user_id = token.sub
+    user = await database["users"].find_one({"_id": user_id})
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return User(**user)
 
 
 app.include_router(router)
