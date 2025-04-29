@@ -31,11 +31,11 @@ jobs:
       - name: Run Ruff Fixes
         run: ruff check . --fix
 
-      - name: Run isort
-        run: isort .
-
       - name: Run Black
-        run: black .
+        run: black . -l 135
+
+      - name: Run isort
+        run: isort . --profile black
 
       - name: Commit & Push changes if needed
         run: |
@@ -44,3 +44,4 @@ jobs:
           git add .
           git diff --cached --quiet || git commit -m "chore: auto-format with ruff, isort, black"
           git push
+          

@@ -1,8 +1,8 @@
 # MomCare-Backend
 
-Middleware for [MomCare](https://github.com/rtk-rnjn/MomCare) iOS application. This middleware is responsible for handling the requests from the iOS application and interacting with the database to fetch the required data.
+Backend for [MomCare](https://github.com/rtk-rnjn/MomCare) iOS application. This backend is responsible for handling the requests from the iOS application and interacting with the database to fetch the required data.
 
-We are using MongoDB as our database and FastAPI as our middleware.
+We are using MongoDB as our database and FastAPI as our backend.
 
 ## Installation
 
