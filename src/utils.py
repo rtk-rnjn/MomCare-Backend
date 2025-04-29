@@ -30,9 +30,7 @@ class TokenHandler:
             sub=user.id,
             email=user.email_address,
             name=f"{user.first_name} {user.last_name}",
-            exp=int(
-                (datetime.now(timezone.utc) + timedelta(seconds=expire_in)).timestamp()
-            ),
+            exp=int((datetime.now(timezone.utc) + timedelta(seconds=expire_in)).timestamp()),
         )
 
         return jwt.encode(dict(payload), self.secret, algorithm=self.algorithm)
