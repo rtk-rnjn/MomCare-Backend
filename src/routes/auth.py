@@ -149,7 +149,7 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
 @router.get("/fetch", response_model=User)
 async def fetch_user(token: Token = Depends(get_user_token)) -> User:
     user_id = token.sub
-    user = await database["users"].find_one({"_id": user_id})
+    user = await database["users"].find_one({"_id": user_id}, {"last_login": 0, "last_login_ip": 0, "updated_at": 0, "created_at": 0})
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
