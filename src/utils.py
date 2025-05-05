@@ -1,15 +1,23 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
 from dotenv import load_dotenv
+from google import genai
 from pydantic import BaseModel
 
 from src.models import User
 
 load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+
+if GEMINI_API_KEY is None:
+    raise ValueError("GEMINI_API_KEY is not set")
 
 
 class Token(BaseModel):
