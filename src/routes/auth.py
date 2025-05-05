@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
-from src.app import app, database
+from src.app import app, database, cache_handler
 from src.models import User
 from src.utils import Token, TokenHandler
 
@@ -36,7 +36,6 @@ class UpdateResponse(BaseModel):
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
-__cached_emails = set()
 security = HTTPBearer()
 
 
@@ -49,8 +48,8 @@ def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)
 
 @router.post("/register", response_model=ServerResponse)
 async def register_user(request: Request, user: User) -> ServerResponse:
-    _user = await database["users"].find_one({"email_address": user.email_address})
-    if _user or user.email_address in __cached_emails:
+    _user = await cache_handler.get_user(user.id)
+    if _user:
         raise HTTPException(status_code=400, detail="User already exists")
 
     current_time = datetime.now(timezone.utc)
@@ -64,8 +63,7 @@ async def register_user(request: Request, user: User) -> ServerResponse:
     sendable["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
     await database["users"].insert_one(sendable)
-
-    __cached_emails.add(user.email_address)
+    await cache_handler.set_user(user=user)
 
     return ServerResponse(
         success=True,
@@ -104,7 +102,6 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
             }
         },
     )
-    __cached_emails.add(user["email_address"])
     return ServerResponse(
         success=True,
         inserted_id=str(user["_id"]),
@@ -139,6 +136,8 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
         {"$set": user_data},
     )
 
+    await cache_handler.delete_user(user_id=user_id)
+
     return UpdateResponse(
         success=update_result.acknowledged,
         modified_count=update_result.modified_count,
@@ -149,12 +148,20 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
 @router.get("/fetch", response_model=User)
 async def fetch_user(token: Token = Depends(get_user_token)) -> User:
     user_id = token.sub
-    user = await database["users"].find_one({"_id": user_id}, {"last_login": 0, "last_login_ip": 0, "updated_at": 0, "created_at": 0})
+
+    cached_user = await cache_handler.get_user(user_id=user_id)
+    if cached_user:
+        return cached_user
+
+    user = await database["users"].find_one({"_id": user_id})
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return User(**user)
+    user = User(**user)
+
+    await cache_handler.set_user(user=user)
+    return user
 
 
 app.include_router(router)
