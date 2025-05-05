@@ -125,8 +125,9 @@ class CacheHandler(_CacheHandler):
 
         user = await self.collection.find_one({"_id": user_id})
         if user:
-            await self.redis_client.set(user_id, user)
-            return User(**user)
+            obj = User(**user)
+            await self.redis_client.set(user_id, json.dumps(user), ex=3600)
+            return obj
 
         return None
     
