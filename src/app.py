@@ -3,12 +3,13 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import aioredis
+from redis.asyncio import Redis
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from src.utils import CacheHandler
 
 load_dotenv()
 
@@ -19,9 +20,11 @@ if URI is None:
 
 mongo_client = AsyncIOMotorClient(URI, document_class=dict[str, Any])
 database = mongo_client["MomCare"]
-redis_client = aioredis.from_url(
-    os.getenv("REDIS_URL", "redis://localhost:6379"),
-    decode_responses=True,
+redis_client = Redis()
+
+cache_handler = CacheHandler(
+    mongo_client=mongo_client,
+    redis_client=redis_client,
 )
 
 app = FastAPI(
@@ -36,6 +39,8 @@ app = FastAPI(
         "name": "Mozilla Public License Version 2.0",
         "url": "https://opensource.org/licenses/MPL-2.0",
     },
+    on_startup=cache_handler.on_startup(),
+    on_shutdown=cache_handler.on_shutdown(),
 )
 
 app.add_middleware(

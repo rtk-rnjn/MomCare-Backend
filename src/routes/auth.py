@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
-from src.app import app, database, redis_client
+from src.app import app, database, cache_handler
 from src.models import User
 from src.utils import Token, TokenHandler
 
@@ -39,21 +39,6 @@ token_handler = TokenHandler(os.environ["JWT_SECRET"])
 security = HTTPBearer()
 
 
-async def cache_user_data(user: User) -> None:
-    await redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=3600)
-
-
-async def get_cached_user_data(user_id: str) -> User | None:
-    cached_data = await redis_client.get(f"user:{user_id}")
-    if cached_data:
-        return User.model_validate_json(cached_data)
-    return None
-
-
-async def invalidate_user_cache(user_id: str) -> None:
-    await redis_client.delete(f"user:{user_id}")
-
-
 def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         return token_handler.decode_token(credentials.credentials)
@@ -63,12 +48,7 @@ def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)
 
 @router.post("/register", response_model=ServerResponse)
 async def register_user(request: Request, user: User) -> ServerResponse:
-    _user = await get_cached_user_data(user.id)
-    if _user:
-        raise HTTPException(status_code=400, detail="User already exists")
-
-    _user = await database["users"].find_one({"email_address": user.email_address})
-
+    _user = await cache_handler.get_user(user.id)
     if _user:
         raise HTTPException(status_code=400, detail="User already exists")
 
@@ -83,7 +63,7 @@ async def register_user(request: Request, user: User) -> ServerResponse:
     sendable["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
     await database["users"].insert_one(sendable)
-    await cache_user_data(user)
+    await cache_handler.set_user(user=user)
 
     return ServerResponse(
         success=True,
@@ -156,7 +136,7 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
         {"$set": user_data},
     )
 
-    await invalidate_user_cache(user_id)
+    await cache_handler.delete_user(user_id=user_id)
 
     return UpdateResponse(
         success=update_result.acknowledged,
@@ -169,7 +149,7 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
 async def fetch_user(token: Token = Depends(get_user_token)) -> User:
     user_id = token.sub
 
-    cached_user = await get_cached_user_data(user_id)
+    cached_user = await cache_handler.get_user(user_id=user_id)
     if cached_user:
         return cached_user
 
@@ -180,7 +160,7 @@ async def fetch_user(token: Token = Depends(get_user_token)) -> User:
 
     user = User(**user)
 
-    await cache_user_data(user)
+    await cache_handler.set_user(user=user)
     return user
 
 
