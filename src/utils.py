@@ -5,11 +5,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable, List, Optional, TYPE_CHECKING, Union
 import json
 import jwt
-from dotenv import load_dotenv, unset_key
-from google import genai
+from dotenv import load_dotenv
 from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
-import redis
 from src.models import User
 import asyncio
 
