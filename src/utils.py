@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
 
 from src.models import User
+from src.models.myplan import MyPlan
 
 if TYPE_CHECKING:
     from motor.motor_asyncio import AsyncIOMotorClient
@@ -158,16 +159,11 @@ class GenAIHandler:
         self.client = genai.Client(api_key=self.api_key)
         self.cache_handler = cache_handler
 
-    async def generate_response(self, user_id: str) -> Optional[dict]:
-        user = await self.cache_handler.get_user(user_id=user_id)
-        if user is None:
-            return None
-
-        user = user.model_dump(mode="json")
-        user.pop("plan")
+    async def generate_plan(self, user: User) -> MyPlan:
+        user_data = user.model_dump(mode="json")
+        user_data.pop("plan")
         prompt = PROMPT.format(user=user, food_database=FOODS)
-        print(prompt)
 
         # TODO: Handle the response
 
-        return {}
+        return MyPlan()

@@ -35,8 +35,3 @@ async def get_ping(request: Request):
 
 
 app.include_router(router, prefix="/meta", tags=["meta"])
-
-
-@app.get("/test")
-async def test(request: Request):
-    await genai_handler.generate_response(user_id="31E09985-468F-4308-B0AE-1D4B5A5B6330")
