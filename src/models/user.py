@@ -37,7 +37,7 @@ class User(BaseModel):
     email_address: EmailStr
     password: str
 
-    country_code: str = "+91"
+    country_code: str = "91"
     country: Country = Country.INDIA
 
     phone_number: str = ""
@@ -46,7 +46,7 @@ class User(BaseModel):
     mood: Optional[MoodType] = None
 
     exercises: List[Exercise] = []
-    plan: Optional[MyPlan] = None
+    plan: MyPlan = MyPlan()
     history: List[History] = []
 
     created_at: datetime = datetime.now(timezone.utc)

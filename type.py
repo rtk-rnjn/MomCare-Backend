@@ -211,7 +211,9 @@ class MongoCollection(Collection, Generic[_DocumentType]):
         comment: Any | None = None,
     ) -> MutableMapping[str, Any]: ...
 
-    async def options(self, session: ClientSession | None = None, comment: Any | None = None) -> MutableMapping[str, Any]: ...
+    async def options(
+        self, session: ClientSession | None = None, comment: Any | None = None
+    ) -> MutableMapping[str, Any]: ...
 
     async def aggregate(
         self,

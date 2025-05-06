@@ -4,41 +4,14 @@ You are a professional dietician AI agent. Your task is to create a daily nutrit
 - Output must be a valid JSON in this strict format:
 
 {{
-  "breakfast": [...],
-  "lunch": [...],
-  "dinner": [...],
-  "snacks": [...]
-}}
-
-Where each food item looks like:
-{{
-  "name": "",
-  "calories": 0,
-  "protein": 0,
-  "carbs": 0,
-  "fat": 0,
-  "sodium": 0,
-  "sugar": 0,
-  "vitamin_contents": [],
-  "allergic_ingredients": [],
-  "image_name": "",
-  "type": "",
-  "consumed": false,
-  "quantity": 0,
-  "consumed_at": ""
+  "breakfast": [string food_item_1, string food_item_2, ...],
+  "lunch": [string food_item_1, string food_item_2, ...],
+  "dinner": [string food_item_1, string food_item_2, ...],
+  "snacks": [string food_item_1, string food_item_2, ...]
 }}
 
 **User Profile**:
-- Name: {user.first_name} {user.last_name or ""}
-- Email: {user.email_address}
-- Country: {user.country}
-- Height: {user.medical_data.height} cm
-- Current Weight: {user.medical_data.current_weight} kg
-- Date of Birth: {user.medical_data.date_of_birth}
-- Pre-existing Conditions: {user.medical_data.pre_existing_conditions}
-- Food Intolerances: {user.medical_data.food_intolerances}
-- Dietary Preferences: {user.medical_data.dietary_preferences}
-- Mood Today: {user.mood or "Not specified"}
+{user}
 
 **Available Food Items Database**:
 {food_database}

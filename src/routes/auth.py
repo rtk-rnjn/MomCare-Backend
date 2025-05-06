@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
-from src.app import app, database, cache_handler
+from src.app import app, cache_handler, database
 from src.models import User
 from src.utils import Token, TokenHandler
 
@@ -111,7 +111,9 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
 
 @router.post("/refresh", response_model=ServerResponse)
 async def refresh_token(credentials: ClientRequest) -> ServerResponse:
-    user = await database["users"].find_one({"email_address": credentials.email_address, "password": credentials.password})
+    user = await database["users"].find_one(
+        {"email_address": credentials.email_address, "password": credentials.password}
+    )
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
@@ -123,13 +125,14 @@ async def refresh_token(credentials: ClientRequest) -> ServerResponse:
     )
 
 
-@router.put("/update", response_model=UpdateResponse)
+@router.post("/update", response_model=UpdateResponse)
 async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
     user_id = token.sub
     email_address = token.email
 
-    if "email_address" in user_data:
-        raise HTTPException(status_code=400, detail="Cannot update email address")
+    user_data.pop("id", None)
+    user_data.pop("created_at", None)
+    user_data.pop("_id", None)
 
     update_result: UpdateResult = await database["users"].update_one(
         {"_id": user_id, "email_address": email_address},

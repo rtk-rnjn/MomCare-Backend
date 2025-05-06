@@ -3,13 +3,14 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from redis.asyncio import Redis
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from src.utils import CacheHandler
+from redis.asyncio import Redis
+
+from src.utils import CacheHandler, GenAIHandler
 
 load_dotenv()
 
@@ -26,6 +27,8 @@ cache_handler = CacheHandler(
     mongo_client=mongo_client,
     redis_client=redis_client,
 )
+
+genai_handler = GenAIHandler(cache_handler=cache_handler)
 
 app = FastAPI(
     title="MomCare API Documentation",

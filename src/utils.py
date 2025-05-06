@@ -1,19 +1,22 @@
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Callable, List, Optional, TYPE_CHECKING, Union
-import json
+from typing import TYPE_CHECKING, Callable, List, Optional, Union
+
 import jwt
 from dotenv import load_dotenv
+from google import genai
 from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
+
 from src.models import User
-import asyncio
 
 if TYPE_CHECKING:
-    from redis.asyncio import Redis
     from motor.motor_asyncio import AsyncIOMotorClient
+    from redis.asyncio import Redis
 
 load_dotenv()
 
@@ -22,6 +25,13 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if GEMINI_API_KEY is None:
     raise ValueError("GEMINI_API_KEY is not set")
+
+
+with open("prompt.txt", "r") as file:
+    PROMPT = file.read()
+
+with open("foods.txt", "r") as file:
+    FOODS = file.read().replace("\n", ",").split(",")
 
 
 class Token(BaseModel):
@@ -67,6 +77,7 @@ class TokenHandler:
         except jwt.InvalidTokenError:
             raise
 
+
 class _CacheHandler:
     redis_client: Redis
     mongo_client: AsyncIOMotorClient
@@ -78,7 +89,7 @@ class _CacheHandler:
         self.operations: asyncio.Queue[Union[InsertOne, UpdateOne, None]] = asyncio.Queue()
         self.loop = asyncio.get_event_loop()
         self.loop.create_task(self.process_operations())
-    
+
     async def process_operations(self) -> None:
         while True:
             operation = await self.operations.get()
@@ -94,20 +105,21 @@ class _CacheHandler:
     def on_startup(self) -> List[Callable]:
         async def ping_redis():
             return await self.redis_client.ping()
-        
+
         async def ping_mongo():
             return await self.mongo_client.admin.command("ping")
-        
+
         return [ping_redis, ping_mongo]
-    
+
     def on_shutdown(self) -> List[Callable]:
         async def close_redis():
             await self.redis_client.close()
-        
+
         async def close_mongo():
             self.mongo_client.close()
-        
+
         return [close_redis, close_mongo]
+
 
 class CacheHandler(_CacheHandler):
     def __init__(self, *, redis_client: Redis, mongo_client: AsyncIOMotorClient):
@@ -128,7 +140,7 @@ class CacheHandler(_CacheHandler):
             return obj
 
         return None
-    
+
     async def set_user(self, *, user: User) -> None:
         payload = user.model_dump_json()
         await self.redis_client.set(user.id, payload, ex=3600)
@@ -138,3 +150,24 @@ class CacheHandler(_CacheHandler):
 
     async def delete_user(self, *, user_id: str) -> None:
         await self.redis_client.delete(user_id)
+
+
+class GenAIHandler:
+    def __init__(self, api_key: Optional[str] = None, *, cache_handler: CacheHandler):
+        self.api_key = api_key or GEMINI_API_KEY
+        self.client = genai.Client(api_key=self.api_key)
+        self.cache_handler = cache_handler
+
+    async def generate_response(self, user_id: str) -> Optional[dict]:
+        user = await self.cache_handler.get_user(user_id=user_id)
+        if user is None:
+            return None
+
+        user = user.model_dump(mode="json")
+        user.pop("plan")
+        prompt = PROMPT.format(user=user, food_database=FOODS)
+        print(prompt)
+
+        # TODO: Handle the response
+
+        return {}
