@@ -34,4 +34,6 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    await genai_handler.generate_plan(user)
+    return await genai_handler.generate_plan(user)
+
+app.include_router(router)
