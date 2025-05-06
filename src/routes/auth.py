@@ -111,9 +111,7 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
 
 @router.post("/refresh", response_model=ServerResponse)
 async def refresh_token(credentials: ClientRequest) -> ServerResponse:
-    user = await database["users"].find_one(
-        {"email_address": credentials.email_address, "password": credentials.password}
-    )
+    user = await database["users"].find_one({"email_address": credentials.email_address, "password": credentials.password})
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
