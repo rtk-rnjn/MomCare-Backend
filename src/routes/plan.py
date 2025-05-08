@@ -27,9 +27,7 @@ router = APIRouter(prefix="/plan", tags=["Plan"])
 if os.getenv("HOST", "localhost") != "localhost":
 
     @router.get("/")
-    async def get_plan(
-        request: Request, token: Token = Depends(get_user_token)
-    ) -> Optional[MyPlan]:
+    async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
         user_id = token.sub
 
         user = await cache_handler.get_user(user_id)

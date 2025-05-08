@@ -182,9 +182,7 @@ class CacheHandler(_CacheHandler):
             yield food
 
     async def set_plan(self, *, user_id: str, plan: BaseModel) -> None:
-        expiration = datetime.now(timezone.utc).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        ) + timedelta(days=1)
+        expiration = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         await self.redis_client.set(
             f"plan:{user_id}",
             plan.model_dump_json(),
