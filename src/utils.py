@@ -9,11 +9,13 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Union
 import jwt
 from dotenv import load_dotenv
 from google import genai
+from google.genai.types import Content, GenerateContentConfig, Part
 from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
 
 from src.models import User
-from src.models.myplan import MyPlan
+from src.models.food_item import FoodItem
+from src.models.user import UserMedical
 
 if TYPE_CHECKING:
     from motor.motor_asyncio import AsyncIOMotorClient
@@ -27,12 +29,19 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY is None:
     raise ValueError("GEMINI_API_KEY is not set")
 
-
-with open("prompt.txt", "r") as file:
-    PROMPT = file.read()
-
 with open("foods.txt", "r") as file:
     FOODS = file.read().replace("\n", ",").split(",")
+
+CONSTRAINTS = """
+Constraints:
+- Exclude food items that contain user's intolerances or allergic ingredients.
+- Match dietary preferences strictly (e.g., vegetarian, vegan, keto).
+- Balance daily calories, protein, carbs, and fat according to standard nutrition practice.
+- Ensure variety in vitamin_contents across meals.
+- Generate exactly 3-5 items per meal (breakfast, lunch, dinner), and 1-3 for snacks.
+- Avoid repetition of same food item in multiple meals.
+- Output only valid JSON matching structure above, no text or explanation.
+"""
 
 
 class Token(BaseModel):
@@ -41,6 +50,13 @@ class Token(BaseModel):
     name: str
     iat: int = int(datetime.now(timezone.utc).timestamp())
     exp: int
+
+
+class MyPlan(BaseModel):
+    breakfast: List[str] = []
+    lunch: List[str] = []
+    dinner: List[str] = []
+    snacks: List[str] = []
 
 
 class TokenHandler:
@@ -126,15 +142,19 @@ class CacheHandler(_CacheHandler):
     def __init__(self, *, redis_client: Redis, mongo_client: AsyncIOMotorClient):
         self.redis_client = redis_client
         self.mongo_client = mongo_client
-        self.collection = mongo_client["MomCare"]["users"]
+        self.users_collection = mongo_client["MomCare"]["users"]
+        self.foods_collection = mongo_client["MomCare"]["foods"]
 
     async def get_user(self, user_id: str) -> Optional[User]:
+        if user_id == "localhost":
+            return self._return_localhost_user()
+
         user = await self.redis_client.get(user_id)
         if user:
             user = json.loads(user)
             return User(**user)
 
-        user = await self.collection.find_one({"_id": user_id})
+        user = await self.users_collection.find_one({"_id": user_id})
         if user:
             obj = User(**user)
             await self.redis_client.set(user_id, json.dumps(user), ex=3600)
@@ -152,6 +172,52 @@ class CacheHandler(_CacheHandler):
     async def delete_user(self, *, user_id: str) -> None:
         await self.redis_client.delete(user_id)
 
+    async def get_foods(self, food_name: str, *, fuzzy_search: bool = True, limit: int = 10):
+        payload = {"name": food_name}
+        if fuzzy_search:
+            payload = {"name": {"$regex": food_name, "$options": "i"}}
+
+        async for food in self.foods_collection.find(payload).limit(limit):
+            food = FoodItem(**food)
+            yield food
+
+    async def set_plan(self, *, user_id: str, plan: BaseModel) -> None:
+        expiration = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+        await self.redis_client.set(
+            f"plan:{user_id}",
+            plan.model_dump_json(),
+            ex=int(expiration.timestamp() - datetime.now(timezone.utc).timestamp()),
+        )
+
+    async def get_plan(self, *, user_id: str):
+        from src.models.myplan import MyPlan as _MyPlan
+
+        plan = await self.redis_client.get(f"plan:{user_id}")
+        if plan:
+            return _MyPlan(**json.loads(plan))
+
+        return None
+
+    def _return_localhost_user(self) -> User:
+        return User(
+            id="localhost",
+            first_name="Maria",
+            last_name="Smith",
+            email_address="maria.smith@example.com",
+            password="password",
+            country_code="US",
+            phone_number="1234567890",
+            medical_data=UserMedical(
+                date_of_birth=datetime(1990, 1, 1),
+                height=170,
+                pre_pregnancy_weight=70,
+                current_weight=77,
+                due_date=datetime(2025, 1, 1),
+            ),
+        )
+
 
 class GenAIHandler:
     def __init__(self, api_key: Optional[str] = None, *, cache_handler: CacheHandler):
@@ -159,11 +225,74 @@ class GenAIHandler:
         self.client = genai.Client(api_key=self.api_key)
         self.cache_handler = cache_handler
 
-    async def generate_plan(self, user: User) -> MyPlan:
+    async def generate_plan(self, user: User):
+        plan = await self.cache_handler.get_plan(user_id=user.id)
+        if plan:
+            return plan
+
         user_data = user.model_dump(mode="json")
         user_data.pop("plan")
-        prompt = PROMPT.format(user=user, food_database=FOODS)
 
-        # TODO: Handle the response
+        plan = self._generate_plan(user_data=user_data)
+        if not plan:
+            return None
 
-        return MyPlan()
+        parsed_plan = await self._parse_plan(plan=plan)
+        if not parsed_plan:
+            return None
+
+        await self.cache_handler.set_plan(user_id=user.id, plan=parsed_plan)
+        return parsed_plan
+
+    def _generate_plan(self, user_data: dict) -> Optional[MyPlan]:
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=[
+                Content(
+                    parts=[
+                        Part.from_text(text=f"User Data: {user_data}"),
+                        Part.from_text(text=f"List of available food items: {FOODS}"),
+                        Part.from_text(text=f"Today's date: {datetime.now().strftime('%Y-%m-%d')}"),
+                    ]
+                )
+            ],
+            config=GenerateContentConfig(
+                system_instruction="You are a certified AI dietician. Your role is to generate daily meal plans personalized for users based on their medical history, food intolerances, dietary preferences, mood, and available food items. ",
+                response_mime_type="application/json",
+                response_schema=MyPlan,
+            ),
+        )
+
+        if response:
+            return MyPlan(**json.loads(response.text or "{}"))
+
+        return None
+
+    async def _parse_plan(self, plan: Optional[MyPlan]):
+        if not plan:
+            return None
+
+        from src.models.myplan import MyPlan as _MyPlan
+
+        async def fetch_meals(meals):
+            if not meals:
+                return []
+
+            foods = []
+            for meal in meals:
+                food = await self.cache_handler.foods_collection.find_one({"name": meal})
+                if food:
+                    _food = FoodItem(**food)
+                    _food.image_name = ""
+                    _food.consumed = False
+
+                    foods.append(_food)
+
+            return foods
+
+        return _MyPlan(
+            breakfast=await fetch_meals(plan.breakfast),
+            lunch=await fetch_meals(plan.lunch),
+            dinner=await fetch_meals(plan.dinner),
+            snacks=await fetch_meals(plan.snacks),
+        )

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
-from src.app import app, genai_handler
+from src.app import app
 
 router = APIRouter()
 

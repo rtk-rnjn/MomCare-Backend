@@ -49,9 +49,8 @@ class User(BaseModel):
     plan: MyPlan = MyPlan()
     history: List[History] = []
 
-    created_at: datetime = datetime.now(timezone.utc)
-
     # Server stuff
+    created_at: datetime = datetime.now(timezone.utc)
     last_login: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     failed_login_attempts: int = 0

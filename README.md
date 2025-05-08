@@ -30,4 +30,4 @@ $ python3 main.py
 - [x] Add user update
 - [ ] AI Models?
 - [ ] Add tests
-- [ ] Add CI/CD
+- [x] Add CI/CD

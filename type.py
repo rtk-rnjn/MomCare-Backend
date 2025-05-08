@@ -73,7 +73,9 @@ class MongoCollection(Collection, Generic[_DocumentType]):
 
     async def bulk_write(
         self,
-        requests: Sequence[InsertOne | DeleteOne | DeleteMany | ReplaceOne | UpdateOne | UpdateMany],
+        requests: Sequence[
+            InsertOne | DeleteOne | DeleteMany | ReplaceOne | UpdateOne | UpdateMany
+        ],
         ordered: bool = True,
         bypass_document_validation: bool = False,
         session: ClientSession | None = None,
@@ -164,7 +166,9 @@ class MongoCollection(Collection, Generic[_DocumentType]):
         comment: Any | None = None,
     ) -> DeleteResult: ...
 
-    async def find_one(self, filter: Any | None = None, *args: Any, **kwargs: Any) -> _DocumentType:  # noqa: A002
+    async def find_one(
+        self, filter: Any | None = None, *args: Any, **kwargs: Any
+    ) -> _DocumentType:  # noqa: A002
         ...
 
     def find(self, *args: Any, **kwargs: Any) -> AsyncIterator[_DocumentType]: ...
@@ -181,7 +185,9 @@ class MongoCollection(Collection, Generic[_DocumentType]):
         **kwargs: Any,
     ) -> int: ...
 
-    async def create_index(self, keys: _IndexList, session: ClientSession | None = None, **kwargs: Any) -> str: ...
+    async def create_index(
+        self, keys: _IndexList, session: ClientSession | None = None, **kwargs: Any
+    ) -> str: ...
 
     async def create_indexes(
         self,
@@ -211,7 +217,9 @@ class MongoCollection(Collection, Generic[_DocumentType]):
         comment: Any | None = None,
     ) -> MutableMapping[str, Any]: ...
 
-    async def options(self, session: ClientSession | None = None, comment: Any | None = None) -> MutableMapping[str, Any]: ...
+    async def options(
+        self, session: ClientSession | None = None, comment: Any | None = None
+    ) -> MutableMapping[str, Any]: ...
 
     async def aggregate(
         self,
