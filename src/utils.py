@@ -146,9 +146,6 @@ class CacheHandler(_CacheHandler):
         self.foods_collection = mongo_client["MomCare"]["foods"]
 
     async def get_user(self, user_id: str) -> Optional[User]:
-        if user_id == "localhost":
-            return self._return_localhost_user()
-
         user = await self.redis_client.get(user_id)
         if user:
             user = json.loads(user)
@@ -197,25 +194,6 @@ class CacheHandler(_CacheHandler):
             return _MyPlan(**json.loads(plan))
 
         return None
-
-    def _return_localhost_user(self) -> User:
-        return User(
-            id="localhost",
-            first_name="Maria",
-            last_name="Smith",
-            email_address="maria.smith@example.com",
-            password="password",
-            country_code="US",
-            phone_number="1234567890",
-            medical_data=UserMedical(
-                date_of_birth=datetime(1990, 1, 1),
-                height=170,
-                pre_pregnancy_weight=70,
-                current_weight=77,
-                due_date=datetime(2025, 1, 1),
-            ),
-        )
-
 
 class GenAIHandler:
     def __init__(self, api_key: Optional[str] = None, *, cache_handler: CacheHandler):

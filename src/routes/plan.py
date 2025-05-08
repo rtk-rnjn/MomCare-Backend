@@ -24,24 +24,16 @@ def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials =
 
 router = APIRouter(prefix="/plan", tags=["Plan"])
 
-if os.getenv("HOST", "localhost") != "localhost":
+@router.get("/")
+async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
+    user_id = token.sub
 
-    @router.get("/")
-    async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
-        user_id = token.sub
+    user = await cache_handler.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-        user = await cache_handler.get_user(user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+    return await genai_handler.generate_plan(user)
 
-        return await genai_handler.generate_plan(user)
-
-else:
-
-    @router.get("/")
-    async def get_plan_localhost(request: Request) -> Optional[MyPlan]:
-        user = cache_handler._return_localhost_user()
-        return await genai_handler.generate_plan(user)
 
 
 @router.get("/search")
