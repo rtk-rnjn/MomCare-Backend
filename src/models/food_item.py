@@ -19,7 +19,7 @@ class FoodItem(BaseModel):
     vitamin_contents: List[str] = []
     allergic_ingredients: List[str] = []
 
-    image_name: Optional[str] = ""
+    image_uri: Optional[str] = ""
     type: Optional[str] = None
 
     consumed: Optional[bool] = False

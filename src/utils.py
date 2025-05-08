@@ -259,7 +259,7 @@ class GenAIHandler:
                 food = await self.cache_handler.foods_collection.find_one({"name": meal})
                 if food:
                     _food = FoodItem(**food)
-                    _food.image_name = ""
+                    _food.image_uri = ""
                     _food.consumed = False
 
                     foods.append(_food)
