@@ -28,6 +28,6 @@ $ python3 main.py
 
 - [x] Add user registration
 - [x] Add user update
-- [ ] AI Models?
+- [x] AI Models?
 - [ ] Add tests
 - [x] Add CI/CD
