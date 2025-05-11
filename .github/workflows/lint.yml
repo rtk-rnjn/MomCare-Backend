@@ -25,9 +25,6 @@ jobs:
         run: |
           pip install ruff black isort
 
-      - name: Run Ruff (lint only)
-        run: ruff check .
-
       - name: Run Ruff Fixes
         run: ruff check . --fix
 
