@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +11,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 
-from src.utils import CacheHandler, GenAIHandler
+from src.utils import CacheHandler, GoogleAPIHandler
 
 load_dotenv()
 
@@ -28,7 +29,7 @@ cache_handler = CacheHandler(
     redis_client=redis_client,
 )
 
-genai_handler = GenAIHandler(cache_handler=cache_handler)
+genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
 
 app = FastAPI(
     title="MomCare API Documentation",
@@ -59,5 +60,8 @@ app.add_middleware(
     allowed_hosts=["*"],
 )
 
+scheduler = AsyncIOScheduler()
+scheduler.add_job(CacheHandler.background_worker(genai_handler), "cron", minute="*")
+scheduler.start()
 
 from .routes import *  # noqa: E402, F401, F403

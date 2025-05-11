@@ -24,6 +24,7 @@ def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials =
 
 router = APIRouter(prefix="/plan", tags=["Plan"])
 
+
 @router.get("/")
 async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
     user_id = token.sub
@@ -33,7 +34,6 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> 
         raise HTTPException(status_code=404, detail="User not found")
 
     return await genai_handler.generate_plan(user)
-
 
 
 @router.get("/search")
@@ -46,6 +46,17 @@ async def search_food(request: Request, food_name: str, limit: int = 10) -> List
         return []
 
     return foods
+
+
+@router.get("/tips")
+async def get_tips(token: Token = Depends(get_user_token)):
+    user_id = token.sub
+
+    user = await cache_handler.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return await genai_handler.generate_tips(user)
 
 
 app.include_router(router)

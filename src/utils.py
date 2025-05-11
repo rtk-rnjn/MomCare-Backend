@@ -3,19 +3,20 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import jwt
 from dotenv import load_dotenv
 from google import genai
 from google.genai.types import Content, GenerateContentConfig, Part
-from pydantic import BaseModel
+from googleapiclient.discovery import build
+from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
+from pytz import all_timezones_set, timezone
 
 from src.models import User
 from src.models.food_item import FoodItem
-from src.models.user import UserMedical
 
 if TYPE_CHECKING:
     from motor.motor_asyncio import AsyncIOMotorClient
@@ -48,15 +49,40 @@ class Token(BaseModel):
     sub: str
     email: str
     name: str
-    iat: int = int(datetime.now(timezone.utc).timestamp())
+    iat: int = int(datetime.now(timezone("UTC")).timestamp())
     exp: int
 
 
-class MyPlan(BaseModel):
+class _TempMyPlan(BaseModel):
     breakfast: List[str] = []
     lunch: List[str] = []
     dinner: List[str] = []
     snacks: List[str] = []
+
+
+class _TempDailyInsight(BaseModel):
+    todays_focus: str
+    daily_tip: str
+
+
+class ImageModel(BaseModel):
+    context_link: str = Field(alias="contextLink")
+    thumbnail_link: str = Field(alias="thumbnailLink")
+
+
+class ItemModel(BaseModel):
+    title: str
+    link: str
+    display_link: str = Field(alias="displayLink")
+    mime: str
+    image: ImageModel
+
+
+class RootModel(BaseModel):
+    items: List[ItemModel]
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class TokenHandler:
@@ -69,7 +95,7 @@ class TokenHandler:
             sub=user.id,
             email=user.email_address,
             name=f"{user.first_name} {user.last_name}",
-            exp=int((datetime.now(timezone.utc) + timedelta(seconds=expire_in)).timestamp()),
+            exp=int((datetime.now(timezone("UTC")) + timedelta(seconds=expire_in)).timestamp()),
         )
 
         return jwt.encode(dict(payload), self.secret, algorithm=self.algorithm)
@@ -176,14 +202,17 @@ class CacheHandler(_CacheHandler):
 
         async for food in self.foods_collection.find(payload).limit(limit):
             food = FoodItem(**food)
+            image = await self.get_food_image(food_name=food.name)
+            food.image_uri = image.items[0].image.thumbnail_link if image and image.items else ""
+
             yield food
 
     async def set_plan(self, *, user_id: str, plan: BaseModel) -> None:
-        expiration = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         await self.redis_client.set(
             f"plan:{user_id}",
             plan.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone.utc).timestamp()),
+            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
 
     async def get_plan(self, *, user_id: str):
@@ -195,11 +224,77 @@ class CacheHandler(_CacheHandler):
 
         return None
 
-class GenAIHandler:
-    def __init__(self, api_key: Optional[str] = None, *, cache_handler: CacheHandler):
-        self.api_key = api_key or GEMINI_API_KEY
-        self.client = genai.Client(api_key=self.api_key)
+    async def set_food_image(self, *, food_name: str, model: RootModel) -> None:
+        await self.redis_client.set(f"food:{food_name}", model.model_dump_json(), ex=3600)
+
+    async def get_food_image(self, *, food_name: str) -> Optional[RootModel]:
+        image = await self.redis_client.get(f"food:{food_name}")
+        if image:
+            return RootModel(**json.loads(image))
+
+        return None
+
+    async def set_tips(self, *, user_id: str, tips: BaseModel) -> None:
+        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        await self.redis_client.set(
+            f"tips:{user_id}",
+            tips.model_dump_json(),
+            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
+        )
+
+    async def get_tips(self, *, user_id: str):
+
+        tips = await self.redis_client.get(f"tips:{user_id}")
+        if tips:
+            return _TempDailyInsight(**json.loads(tips))
+
+        return None
+
+    @staticmethod
+    async def background_worker(google_api_handler: GoogleAPIHandler):
+        collection = google_api_handler.cache_handler.mongo_client["MomCare"]["users"]
+        UTC_NOW = datetime.now(timezone("UTC"))
+
+        async def _inner_worker():
+            async for user in collection.find({}):
+                user_timezone = user.get("timezone", "Asia/Kolkata")
+
+                if user_timezone not in all_timezones_set:
+                    await asyncio.sleep(0)
+                    continue
+
+                user_tz = timezone(user_timezone)
+                user_now = UTC_NOW.replace(tzinfo=timezone("UTC")).astimezone(user_tz)
+
+                if user_now.hour == 0 and user_now.minute == 0:
+                    history_entry = {
+                        "date": user_now,
+                        "plan": user.get("plan"),
+                        "exercise": user.get("exercises", []),
+                        "moods": user.get("mood_history", []),
+                    }
+
+                await collection.update_one(
+                    {"_id": user["_id"]},
+                    {
+                        "$push": {"history": history_entry},
+                        "$set": {
+                            "mood_history": [],
+                            "exercises": [],
+                        },
+                    },
+                )
+
+        return _inner_worker()
+
+
+class GoogleAPIHandler:
+    def __init__(self, cache_handler: CacheHandler):
+        self.gemini_api_key = GEMINI_API_KEY
+        self.client = genai.Client(api_key=self.gemini_api_key)
         self.cache_handler = cache_handler
+
+        self.search_service = build("customsearch", "v1", developerKey=os.getenv("GOOGLE_SEARCH_KEY"))
 
     async def generate_plan(self, user: User):
         plan = await self.cache_handler.get_plan(user_id=user.id)
@@ -209,7 +304,7 @@ class GenAIHandler:
         user_data = user.model_dump(mode="json")
         user_data.pop("plan")
 
-        plan = self._generate_plan(user_data=user_data)
+        plan = await asyncio.to_thread(self._generate_plan, user_data=user_data)
         if not plan:
             return None
 
@@ -220,7 +315,21 @@ class GenAIHandler:
         await self.cache_handler.set_plan(user_id=user.id, plan=parsed_plan)
         return parsed_plan
 
-    def _generate_plan(self, user_data: dict) -> Optional[MyPlan]:
+    async def generate_tips(self, user: User):
+        tips = await self.cache_handler.get_tips(user_id=user.id)
+        if tips:
+            return tips
+
+        user_data = user.model_dump(mode="json")
+        user_data.pop("plan")
+
+        tips = await self._generate_tips(user=user)
+        if not tips:
+            return None
+
+        return tips
+
+    def _generate_plan(self, user_data: dict) -> Optional[_TempMyPlan]:
         response = self.client.models.generate_content(
             model="gemini-2.0-flash-001",
             contents=[
@@ -235,16 +344,16 @@ class GenAIHandler:
             config=GenerateContentConfig(
                 system_instruction="You are a certified AI dietician. Your role is to generate daily meal plans personalized for users based on their medical history, food intolerances, dietary preferences, mood, and available food items. ",
                 response_mime_type="application/json",
-                response_schema=MyPlan,
+                response_schema=_TempMyPlan,
             ),
         )
 
         if response:
-            return MyPlan(**json.loads(response.text or "{}"))
+            return _TempMyPlan(**json.loads(response.text or "{}"))
 
         return None
 
-    async def _parse_plan(self, plan: Optional[MyPlan]):
+    async def _parse_plan(self, plan: Optional[_TempMyPlan]):
         if not plan:
             return None
 
@@ -259,7 +368,7 @@ class GenAIHandler:
                 food = await self.cache_handler.foods_collection.find_one({"name": meal})
                 if food:
                     _food = FoodItem(**food)
-                    _food.image_uri = ""
+                    _food.image_uri = await self._generate_food_image_uri(_food.name)
                     _food.consumed = False
 
                     foods.append(_food)
@@ -272,3 +381,63 @@ class GenAIHandler:
             dinner=await fetch_meals(plan.dinner),
             snacks=await fetch_meals(plan.snacks),
         )
+
+    async def _generate_food_image_uri(self, food_name: str) -> str:
+        model = await self._fetch_food_image(food_name)
+
+        if model and model.items:
+            image = model.items[0].image
+            return image.thumbnail_link
+
+        return ""
+
+    async def _fetch_food_image(self, food_name: str):
+        cached_image = await self.cache_handler.get_food_image(food_name=food_name)
+        if cached_image:
+            return cached_image
+
+        search_response = (
+            self.search_service.cse()
+            .list(
+                q=food_name,
+                cx=os.getenv("GOOGLE_SEARCH_CX"),
+                searchType="image",
+                num=1,
+            )
+            .execute()
+        )
+
+        root_response = RootModel(**search_response)
+        await self.cache_handler.set_food_image(food_name=food_name, model=root_response)
+        return root_response
+
+    async def _generate_tips(self, user: User):
+        SYSTEM_INSTRUCTION = (
+            "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        )
+        SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
+        SYSTEM_INSTRUCTION += "Use 1-2 emojis in each (relevant and appropriate).\n"
+        SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"
+        SYSTEM_INSTRUCTION += "Avoid general advice; make it specific to pregnancy week progress.\n"
+
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=[
+                Content(
+                    parts=[
+                        Part.from_text(text=f"User Data: {user.model_dump(mode='json')}"),
+                        Part.from_text(text=f"Today's date: {datetime.now().strftime('%Y-%m-%d')}"),
+                    ]
+                )
+            ],
+            config=GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION,
+                response_mime_type="application/json",
+                response_schema=_TempDailyInsight,
+            ),
+        )
+
+        if response:
+            return _TempDailyInsight(**json.loads(response.text or "{}"))
+
+        return None

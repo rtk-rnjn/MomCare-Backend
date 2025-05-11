@@ -43,10 +43,11 @@ class User(BaseModel):
     phone_number: str = ""
 
     medical_data: Optional[UserMedical] = None
-    mood: Optional[MoodType] = None
 
+    mood_history: List[MoodHistory] = []
     exercises: List[Exercise] = []
     plan: MyPlan = MyPlan()
+
     history: List[History] = []
 
     # Server stuff
