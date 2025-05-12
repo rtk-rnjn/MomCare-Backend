@@ -9,7 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.app import app, cache_handler, genai_handler
 from src.models.food_item import FoodItem
 from src.models.myplan import MyPlan
-from src.utils import Token, TokenHandler
+from src.utils.utils import Token, TokenHandler
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 security = HTTPBearer()
