@@ -10,7 +10,7 @@ from pymongo import UpdateOne
 
 from src.app import app, cache_handler
 from src.models import User
-from src.utils.utils import Token, TokenHandler
+from src.utils import Token, TokenHandler
 
 
 class ServerResponse(BaseModel):

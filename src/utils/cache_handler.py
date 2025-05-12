@@ -58,13 +58,12 @@ class _CacheHandler:
         self.mongo_client = mongo_client
         self.users_collection = mongo_client["MomCare"]["users"]
 
-        self.loop = asyncio.get_event_loop()
-        self.loop.create_task(self.process_operations())
-
     async def process_operations(self) -> None:
         while True:
+            print("Processing operations...")
             operation = await self.users_collection_operations.get()
             if operation is None:
+                print("Stopping operations processing...")
                 break
 
             await self.users_collection.bulk_write([operation])
@@ -74,7 +73,8 @@ class _CacheHandler:
 
     def on_startup(self, genai_handler: GoogleAPIHandler) -> List[Callable]:
         async def ping_redis():
-            return await self.redis_client.ping()
+            await self.redis_client.ping()
+            await self.redis_client.flushall()
 
         async def ping_mongo():
             return await self.mongo_client.admin.command("ping")
@@ -84,7 +84,7 @@ class _CacheHandler:
             scheduler.add_job(CacheHandler.background_worker, "cron", [genai_handler], minute="*")
             scheduler.start()
 
-        return [ping_redis, ping_mongo, start_scheduler]
+        return [ping_redis, ping_mongo, start_scheduler, self.process_operations]
 
     def on_shutdown(self) -> List[Callable]:
         async def close_redis():
@@ -98,6 +98,7 @@ class _CacheHandler:
 
 class CacheHandler(_CacheHandler):
     def __init__(self, *, redis_client: Redis, mongo_client: AsyncIOMotorClient):
+        super().__init__(mongo_client=mongo_client)
         self.redis_client = redis_client
         self.mongo_client = mongo_client
         self.users_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["users"]

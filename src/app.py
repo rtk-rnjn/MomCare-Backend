@@ -10,7 +10,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 
-from src.utils.utils import CacheHandler, GoogleAPIHandler
+from src.utils import CacheHandler, GoogleAPIHandler
 
 load_dotenv()
 
