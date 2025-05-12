@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from pymongo import InsertOne, UpdateOne
 
 from src.app import app, cache_handler, database
 from src.models import User
@@ -56,13 +57,12 @@ async def register_user(request: Request, user: User) -> ServerResponse:
     user.created_at = current_time
     user.updated_at = current_time
     user.last_login = current_time
-    user.failed_login_attempts = 0
 
     sendable = user.model_dump(mode="json")
     sendable["_id"] = str(user.id)
     sendable["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
-    await database["users"].insert_one(sendable)
+    await cache_handler.users_collection_operations.put(InsertOne(sendable))
     await cache_handler.set_user(user=user)
 
     return ServerResponse(
@@ -74,51 +74,44 @@ async def register_user(request: Request, user: User) -> ServerResponse:
 
 @router.post("/login", response_model=ServerResponse)
 async def login_user(request: Request, credentials: ClientRequest) -> ServerResponse:
-    user = await database["users"].find_one({"email_address": credentials.email_address})
+    user = await cache_handler.get_user(email=credentials.email_address, password=credentials.password)
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
-    if user["password"] != credentials.password:
-        await database["users"].update_one(
-            {"email_address": credentials.email_address},
-            {"$inc": {"failed_login_attempts": 1}},
-        )
-        user["failed_login_attempts"] += 1
-        raise HTTPException(status_code=400, detail="Invalid password")
-
     current_time = datetime.now(timezone.utc).isoformat()
-    user["last_login"] = current_time
-    user["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
-    await database["users"].update_one(
-        {
-            "email_address": credentials.email_address,
-            "password": credentials.password,
-        },
-        {
-            "$set": {
-                "last_login": current_time,
-                "last_login_ip": (request.client.host if request.client is not None else "unknown"),
-            }
-        },
+    await cache_handler.users_collection_operations.put(
+        UpdateOne(
+            {
+                "email_address": credentials.email_address,
+                "password": credentials.password,
+            },
+            {
+                "$set": {
+                    "last_login": current_time,
+                    "last_login_ip": (request.client.host if request.client is not None else "unknown"),
+                }
+            },
+        )
     )
+
     return ServerResponse(
         success=True,
-        inserted_id=str(user["_id"]),
-        access_token=token_handler.create_access_token(User(**user)),
+        inserted_id=user.id,
+        access_token=token_handler.create_access_token(user),
     )
 
 
 @router.post("/refresh", response_model=ServerResponse)
 async def refresh_token(credentials: ClientRequest) -> ServerResponse:
-    user = await database["users"].find_one({"email_address": credentials.email_address, "password": credentials.password})
+    user = await cache_handler.get_user(email=credentials.email_address, password=credentials.password)
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
-    new_access_token = token_handler.create_access_token(User(**user))
+    new_access_token = token_handler.create_access_token(user)
     return ServerResponse(
         success=True,
-        inserted_id=str(user["_id"]),
+        inserted_id=user.id,
         access_token=new_access_token,
     )
 
@@ -126,23 +119,22 @@ async def refresh_token(credentials: ClientRequest) -> ServerResponse:
 @router.post("/update", response_model=UpdateResponse)
 async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
     user_id = token.sub
-    email_address = token.email
 
     user_data.pop("id", None)
     user_data.pop("created_at", None)
     user_data.pop("_id", None)
 
-    update_result: UpdateResult = await database["users"].update_one(
-        {"_id": user_id, "email_address": email_address},
-        {"$set": user_data},
+    await cache_handler.users_collection_operations.put(
+        UpdateOne(
+            {"_id": user_id},
+            {"$set": user_data},
+        )
     )
 
-    await cache_handler.delete_user(user_id=user_id)
-
     return UpdateResponse(
-        success=update_result.acknowledged,
-        modified_count=update_result.modified_count,
-        matched_count=update_result.matched_count,
+        success=True,
+        modified_count=1,
+        matched_count=1,
     )
 
 
@@ -150,18 +142,10 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
 async def fetch_user(token: Token = Depends(get_user_token)) -> User:
     user_id = token.sub
 
-    cached_user = await cache_handler.get_user(user_id=user_id)
-    if cached_user:
-        return cached_user
-
-    user = await database["users"].find_one({"_id": user_id})
-
+    user = await cache_handler.get_user(user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user = User(**user)
-
-    await cache_handler.set_user(user=user)
     return user
 
 

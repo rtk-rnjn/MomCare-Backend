@@ -4,9 +4,10 @@ import asyncio
 import json
 import os
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import jwt
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv
 from google import genai
 from google.genai.types import Content, GenerateContentConfig, Part
@@ -19,7 +20,7 @@ from src.models import User
 from src.models.food_item import FoodItem
 
 if TYPE_CHECKING:
-    from motor.motor_asyncio import AsyncIOMotorClient
+    from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
     from redis.asyncio import Redis
 
 load_dotenv()
@@ -82,7 +83,7 @@ class RootModel(BaseModel):
     items: List[ItemModel]
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
 
 
 class TokenHandler:
@@ -125,34 +126,39 @@ class _CacheHandler:
     redis_client: Redis
     mongo_client: AsyncIOMotorClient
 
+    users_collection_operations: asyncio.Queue[Union[InsertOne, UpdateOne, None]] = asyncio.Queue()
+
     def __init__(self, *, mongo_client: AsyncIOMotorClient):
         self.mongo_client = mongo_client
-        self.collection = mongo_client["MomCare"]["users"]
+        self.users_collection = mongo_client["MomCare"]["users"]
 
-        self.operations: asyncio.Queue[Union[InsertOne, UpdateOne, None]] = asyncio.Queue()
         self.loop = asyncio.get_event_loop()
         self.loop.create_task(self.process_operations())
 
     async def process_operations(self) -> None:
         while True:
-            operation = await self.operations.get()
+            operation = await self.users_collection_operations.get()
             if operation is None:
                 break
 
-            await self.collection.bulk_write([operation])
+            await self.users_collection.bulk_write([operation])
 
     async def cancel_operations(self) -> None:
-        await self.operations.put(None)
-        await self.loop.shutdown_asyncgens()
+        await self.users_collection_operations.put(None)
 
-    def on_startup(self) -> List[Callable]:
+    def on_startup(self, genai_handler: GoogleAPIHandler) -> List[Callable]:
         async def ping_redis():
             return await self.redis_client.ping()
 
         async def ping_mongo():
             return await self.mongo_client.admin.command("ping")
 
-        return [ping_redis, ping_mongo]
+        async def start_scheduler():
+            scheduler = AsyncIOScheduler()
+            scheduler.add_job(CacheHandler.background_worker, "cron", [genai_handler], minute="*")
+            scheduler.start()
+
+        return [ping_redis, ping_mongo, start_scheduler]
 
     def on_shutdown(self) -> List[Callable]:
         async def close_redis():
@@ -161,39 +167,65 @@ class _CacheHandler:
         async def close_mongo():
             self.mongo_client.close()
 
-        return [close_redis, close_mongo]
+        return [close_redis, close_mongo, self.cancel_operations]
 
 
 class CacheHandler(_CacheHandler):
     def __init__(self, *, redis_client: Redis, mongo_client: AsyncIOMotorClient):
         self.redis_client = redis_client
         self.mongo_client = mongo_client
-        self.users_collection = mongo_client["MomCare"]["users"]
-        self.foods_collection = mongo_client["MomCare"]["foods"]
+        self.users_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["users"]
+        self.foods_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["foods"]
 
-    async def get_user(self, user_id: str) -> Optional[User]:
-        user = await self.redis_client.get(user_id)
+    async def get_user(
+        self, user_id: Optional[str] = None, *, email: Optional[str] = None, password: Optional[str] = None
+    ) -> Optional[User]:
+
+        if not (user_id or (email and password)):
+            raise ValueError("Either user_id or email and password must be provided")
+
+        if email and password:
+            return await self._search_user(email=email, password=password)
+
+        if not user_id:
+            raise ValueError("user_id must be provided")
+
+        user = await self.redis_client.hgetall(f"user:{user_id}")  # type: ignore
         if user:
-            user = json.loads(user)
             return User(**user)
 
         user = await self.users_collection.find_one({"_id": user_id})
         if user:
-            obj = User(**user)
-            await self.redis_client.set(user_id, json.dumps(user), ex=3600)
-            return obj
+            return await self.set_user(user=User(**user))
 
         return None
 
-    async def set_user(self, *, user: User) -> None:
-        payload = user.model_dump_json()
-        await self.redis_client.set(user.id, payload, ex=3600)
+    async def _search_user(self, *, email: str, password: str) -> Optional[User]:
+        user_id = await self.redis_client.get(f"user:by_email:{email}")
+        if user_id:
+            user = await self.get_user(user_id=user_id)
+            if user and user.password == password:
+                return user
 
-    async def update_user(self, *, user: User) -> None:
-        await self.redis_client.delete(user.id)
+        user = await self.users_collection.find_one({"email_address": email, "password": password})
+        if user:
+            return await self.set_user(user=User(**user))
+
+        return None
+
+    async def set_user(self, *, user: User):
+        mapped_user = user.model_dump(mode="json")
+
+        await self.redis_client.hset(f"user:{user.id}", mapping=mapped_user)  # type: ignore
+        await self.redis_client.expire(f"user:{user.id}", 3600)
+
+        await self.redis_client.set(f"user:by_email:{user.email_address}", user.id, ex=3600)
+        await self.redis_client.set(f"user:by_phone:{user.phone_number}", user.id, ex=3600)
+
+        return user
 
     async def delete_user(self, *, user_id: str) -> None:
-        await self.redis_client.delete(user_id)
+        await self.redis_client.delete(f"user:{user_id}", f"user:by_email:{user_id}", f"user:by_phone:{user_id}")
 
     async def get_foods(self, food_name: str, *, fuzzy_search: bool = True, limit: int = 10):
         payload = {"name": food_name}
@@ -209,44 +241,37 @@ class CacheHandler(_CacheHandler):
 
     async def set_plan(self, *, user_id: str, plan: BaseModel) -> None:
         expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        await self.redis_client.set(
-            f"plan:{user_id}",
-            plan.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
-        )
+        await self.redis_client.hset(f"plan:{user_id}", mapping=plan.model_dump(mode="json"))  # type: ignore
+        await self.redis_client.expire(f"plan:{user_id}", int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()))
 
     async def get_plan(self, *, user_id: str):
         from src.models.myplan import MyPlan as _MyPlan
 
-        plan = await self.redis_client.get(f"plan:{user_id}")
+        plan = await self.redis_client.hgetall(f"plan:{user_id}")  # type: ignore
         if plan:
-            return _MyPlan(**json.loads(plan))
+            return _MyPlan(**plan)
 
         return None
 
     async def set_food_image(self, *, food_name: str, model: RootModel) -> None:
-        await self.redis_client.set(f"food:{food_name}", model.model_dump_json(), ex=3600)
+        await self.redis_client.hset(f"food:{food_name}", mapping=model.model_dump(mode="json"))  # type: ignore
 
     async def get_food_image(self, *, food_name: str) -> Optional[RootModel]:
         image = await self.redis_client.get(f"food:{food_name}")
         if image:
-            return RootModel(**json.loads(image))
+            return RootModel(**image)
 
         return None
 
     async def set_tips(self, *, user_id: str, tips: BaseModel) -> None:
         expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        await self.redis_client.set(
-            f"tips:{user_id}",
-            tips.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
-        )
+        await self.redis_client.hset(f"tips:{user_id}", mapping=tips.model_dump_json())  # type: ignore
+        await self.redis_client.expire(f"tips:{user_id}", int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()))
 
     async def get_tips(self, *, user_id: str):
-
-        tips = await self.redis_client.get(f"tips:{user_id}")
+        tips = await self.redis_client.hgetall(f"tips:{user_id}")  # type: ignore
         if tips:
-            return _TempDailyInsight(**json.loads(tips))
+            return _TempDailyInsight(**tips)
 
         return None
 
@@ -255,37 +280,41 @@ class CacheHandler(_CacheHandler):
         collection = google_api_handler.cache_handler.mongo_client["MomCare"]["users"]
         UTC_NOW = datetime.now(timezone("UTC"))
 
-        async def _inner_worker():
-            async for user in collection.find({}):
-                user_timezone = user.get("timezone", "Asia/Kolkata")
+        async for user in collection.find({}):
+            user_timezone = user.get("timezone", "Asia/Kolkata")
 
-                if user_timezone not in all_timezones_set:
-                    await asyncio.sleep(0)
-                    continue
+            if user_timezone not in all_timezones_set:
+                await asyncio.sleep(0)
+                continue
 
-                user_tz = timezone(user_timezone)
-                user_now = UTC_NOW.replace(tzinfo=timezone("UTC")).astimezone(user_tz)
+            user_tz = timezone(user_timezone)
+            user_now = UTC_NOW.replace(tzinfo=timezone("UTC")).astimezone(user_tz)
 
-                if user_now.hour == 0 and user_now.minute == 0:
-                    history_entry = {
-                        "date": user_now,
-                        "plan": user.get("plan"),
-                        "exercise": user.get("exercises", []),
-                        "moods": user.get("mood_history", []),
-                    }
+            if not (user_now.hour == 0 and user_now.minute == 0):
+                continue
 
-                await collection.update_one(
-                    {"_id": user["_id"]},
-                    {
-                        "$push": {"history": history_entry},
-                        "$set": {
-                            "mood_history": [],
-                            "exercises": [],
-                        },
+            print(f"Processing user: {user['email_address']}")
+
+            history_entry = {
+                "date": user_now,
+                "plan": user.get("plan"),
+                "exercise": user.get("exercises", []),
+                "moods": user.get("mood_history", []),
+            }
+
+            update_one_operation = UpdateOne(
+                {"_id": user["_id"]},
+                {
+                    "$set": {
+                        "mood_history": [],
+                        "exercises": [],
                     },
-                )
-
-        return _inner_worker()
+                    "$addToSet": {
+                        "history": history_entry,
+                    },
+                },
+            )
+            await _CacheHandler.users_collection_operations.put(update_one_operation)
 
 
 class GoogleAPIHandler:

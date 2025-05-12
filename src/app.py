@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,7 +42,7 @@ app = FastAPI(
         "name": "Mozilla Public License Version 2.0",
         "url": "https://opensource.org/licenses/MPL-2.0",
     },
-    on_startup=cache_handler.on_startup(),
+    on_startup=cache_handler.on_startup(genai_handler),
     on_shutdown=cache_handler.on_shutdown(),
 )
 
@@ -60,8 +59,5 @@ app.add_middleware(
     allowed_hosts=["*"],
 )
 
-scheduler = AsyncIOScheduler()
-scheduler.add_job(CacheHandler.background_worker(genai_handler), "cron", minute="*")
-scheduler.start()
 
 from .routes import *  # noqa: E402, F401, F403

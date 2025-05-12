@@ -54,7 +54,6 @@ class User(BaseModel):
     created_at: datetime = datetime.now(timezone.utc)
     last_login: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    failed_login_attempts: int = 0
     last_login_ip: Optional[str] = None
     is_active: bool = True
     is_verified: bool = False
