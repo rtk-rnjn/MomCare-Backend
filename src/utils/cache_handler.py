@@ -166,7 +166,9 @@ class CacheHandler(_CacheHandler):
 
     async def set_plan(self, *, user_id: str, plan: BaseModel) -> None:
         expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        await self.redis_client.set(f"plan:{user_id}", plan.model_dump_json(), ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()))
+        await self.redis_client.set(
+            f"plan:{user_id}", plan.model_dump_json(), ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp())
+        )
 
     async def get_plan(self, *, user_id: str):
         from src.models.myplan import MyPlan as _MyPlan
@@ -189,7 +191,9 @@ class CacheHandler(_CacheHandler):
 
     async def set_tips(self, *, user_id: str, tips: BaseModel) -> None:
         expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        await self.redis_client.set(f"tips:{user_id}", tips.model_dump_json(), ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()))
+        await self.redis_client.set(
+            f"tips:{user_id}", tips.model_dump_json(), ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp())
+        )
 
     async def get_tips(self, *, user_id: str):
         tips_data = await self.redis_client.get(f"tips:{user_id}")  # type: ignore
