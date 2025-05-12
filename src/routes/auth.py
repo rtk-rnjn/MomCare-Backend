@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,10 +11,6 @@ from pymongo import UpdateOne
 from src.app import app, cache_handler
 from src.models import User
 from src.utils import Token, TokenHandler
-
-if TYPE_CHECKING:
-
-    pass
 
 
 class ServerResponse(BaseModel):
