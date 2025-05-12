@@ -26,8 +26,8 @@ router = APIRouter(prefix="/plan", tags=["Plan"])
 
 
 @router.get("/")
-async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
-    user_id = token.sub
+async def get_plan(request: Request) -> Optional[MyPlan]:
+    user_id = "7CD207A2-754F-41BB-8EBC-23799FC410B1"
 
     user = await cache_handler.get_user(user_id)
     if not user:

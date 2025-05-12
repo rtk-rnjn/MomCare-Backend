@@ -22,7 +22,10 @@ if TYPE_CHECKING:
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GOOGLE_SEARCH_KEY = os.getenv("SEARCH_API_KEY")
 
+if GOOGLE_SEARCH_KEY is None:
+    raise ValueError("GOOGLE_SEARCH_KEY is not set")
 
 if GEMINI_API_KEY is None:
     raise ValueError("GEMINI_API_KEY is not set")
@@ -80,7 +83,7 @@ class GoogleAPIHandler:
         self.client = genai.Client(api_key=self.gemini_api_key)
         self.cache_handler = cache_handler
 
-        self.search_service = build("customsearch", "v1", developerKey=os.getenv("GOOGLE_SEARCH_KEY"))
+        self.search_service = build("customsearch", "v1", developerKey=GOOGLE_SEARCH_KEY)
 
     async def generate_plan(self, user: User):
         plan = await self.cache_handler.get_plan(user_id=user.id)
@@ -186,7 +189,7 @@ class GoogleAPIHandler:
             self.search_service.cse()
             .list(
                 q=food_name,
-                cx=os.getenv("GOOGLE_SEARCH_CX"),
+                cx=os.getenv("SEARCH_API_CX"),
                 searchType="image",
                 num=1,
             )

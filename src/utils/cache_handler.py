@@ -60,10 +60,8 @@ class _CacheHandler:
 
     async def process_operations(self) -> None:
         while True:
-            print("Processing operations...")
             operation = await self.users_collection_operations.get()
             if operation is None:
-                print("Stopping operations processing...")
                 break
 
             await self.users_collection.bulk_write([operation])
@@ -84,7 +82,10 @@ class _CacheHandler:
             scheduler.add_job(CacheHandler.background_worker, "cron", [genai_handler], minute="*")
             scheduler.start()
 
-        return [ping_redis, ping_mongo, start_scheduler, self.process_operations]
+        async def start_operations():
+            asyncio.create_task(self.process_operations())
+
+        return [ping_redis, ping_mongo, start_scheduler, start_operations]
 
     def on_shutdown(self) -> List[Callable]:
         async def close_redis():
@@ -170,6 +171,15 @@ class CacheHandler(_CacheHandler):
         await self.redis_client.set(
             f"plan:{user_id}", plan.model_dump_json(), ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp())
         )
+        update_operation = UpdateOne(
+            {"_id": user_id},
+            {
+                "$set": {
+                    "plan": plan.model_dump(mode="json"),
+                }
+            },
+        )
+        await self.users_collection_operations.put(update_operation)
 
     async def get_plan(self, *, user_id: str):
         from src.models.myplan import MyPlan as _MyPlan
