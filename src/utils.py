@@ -239,6 +239,10 @@ class CacheHandler(_CacheHandler):
 
             yield food
 
+    async def create_user(self, *, user: dict) -> None:
+        await self.users_collection_operations.put(InsertOne(user))
+        await self.set_user(user=User(**user))
+
     async def set_plan(self, *, user_id: str, plan: BaseModel) -> None:
         expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         await self.redis_client.hset(f"plan:{user_id}", mapping=plan.model_dump(mode="json"))  # type: ignore
@@ -441,7 +445,9 @@ class GoogleAPIHandler:
         return root_response
 
     async def _generate_tips(self, user: User):
-        SYSTEM_INSTRUCTION = "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        SYSTEM_INSTRUCTION = (
+            "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        )
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
         SYSTEM_INSTRUCTION += "Use 1-2 emojis in each (relevant and appropriate).\n"
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"

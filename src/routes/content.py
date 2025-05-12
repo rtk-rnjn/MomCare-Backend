@@ -42,9 +42,6 @@ async def search_food(request: Request, food_name: str, limit: int = 10) -> List
     async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
         foods.append(food)
 
-    if not foods:
-        return []
-
     return foods
 
 

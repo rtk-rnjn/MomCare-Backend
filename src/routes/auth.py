@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-from pymongo import InsertOne, UpdateOne
+from pymongo import UpdateOne
 
 from src.app import app, cache_handler
 from src.models import User
@@ -62,12 +62,11 @@ async def register_user(request: Request, user: User) -> ServerResponse:
     sendable["_id"] = str(user.id)
     sendable["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
-    await cache_handler.users_collection_operations.put(InsertOne(sendable))
-    await cache_handler.set_user(user=user)
+    await cache_handler.create_user(user=sendable)
 
     return ServerResponse(
         success=True,
-        inserted_id=str(user.id),
+        inserted_id=user.id,
         access_token=token_handler.create_access_token(user),
     )
 
