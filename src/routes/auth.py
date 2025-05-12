@@ -9,13 +9,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
 
-from src.app import app, cache_handler, database
+from src.app import app, cache_handler
 from src.models import User
 from src.utils import Token, TokenHandler
 
 if TYPE_CHECKING:
 
-    from type import UpdateResult
+    pass
 
 
 class ServerResponse(BaseModel):
