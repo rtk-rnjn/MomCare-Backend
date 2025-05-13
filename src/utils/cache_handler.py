@@ -148,7 +148,7 @@ class CacheHandler(_CacheHandler):
             raise ValueError("user_id must be provided")
 
         self.log.debug("Attempting to get user from Redis with id: %s", user_id)
-        user_data = await self.redis_client.get("user:%s" % user_id)  # type: ignore
+        user_data = await self.redis_client.get(f"user:{user_id}")  # type: ignore
         if user_data:
             self.log.info("Cache hit for user id: %s", user_id)
             return User(**json.loads(user_data))
@@ -163,7 +163,7 @@ class CacheHandler(_CacheHandler):
         return None
 
     async def _search_user(self, *, email: str, password: str) -> Optional[User]:
-        user_id = await self.redis_client.get("user:by_email:%s" % email)
+        user_id = await self.redis_client.get(f"user:by_email:{email}")
         if user_id:
             self.log.info("User ID found in Redis for email: %s", email)
             user = await self.get_user(user_id=user_id)
@@ -184,13 +184,13 @@ class CacheHandler(_CacheHandler):
 
     async def set_user(self, *, user: User):
         self.log.debug("Setting user in Redis with id: %s", user.id)
-        await self.redis_client.set("user:%s" % user.id, user.model_dump_json(), ex=3600)
-        await self.redis_client.set("user:by_email:%s" % user.email_address, user.id, ex=3600)
+        await self.redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=3600)
+        await self.redis_client.set(f"user:by_email:{user.email_address}", user.id, ex=3600)
         return user
 
     async def delete_user(self, *, user_id: str) -> None:
         self.log.debug("Deleting user from Redis with id: %s", user_id)
-        await self.redis_client.delete("user:%s" % user_id, "user:by_email:%s" % user_id)
+        await self.redis_client.delete(f"user:{user_id}", f"user:by_email:{user_id}")
 
     async def get_foods(self, food_name: str, *, fuzzy_search: bool = True, limit: int = 10):
         self.log.debug("Fetching foods matching name: %s | Fuzzy: %s", food_name, fuzzy_search)
@@ -227,7 +227,7 @@ class CacheHandler(_CacheHandler):
         from src.models.myplan import MyPlan as _MyPlan
 
         self.log.debug("Getting plan for user id: %s", user_id)
-        plan_data = await self.redis_client.get("plan:%s" % user_id)  # type: ignore
+        plan_data = await self.redis_client.get(f"plan:{user_id}")  # type: ignore
         if plan_data:
             self.log.info("Plan found in Redis for user id: %s", user_id)
             return _MyPlan(**json.loads(plan_data))
@@ -237,11 +237,11 @@ class CacheHandler(_CacheHandler):
 
     async def set_food_image(self, *, food_name: str, model: RootModel) -> None:
         self.log.debug("Setting food image for food: %s", food_name)
-        await self.redis_client.set("food:%s" % food_name, model.model_dump_json())  # type: ignore
+        await self.redis_client.set(f"food:{food_name}", model.model_dump_json())  # type: ignore
 
     async def get_food_image(self, *, food_name: str) -> Optional[RootModel]:
         self.log.debug("Getting food image for food: %s", food_name)
-        image = await self.redis_client.get("food:%s" % food_name)
+        image = await self.redis_client.get(f"food:{food_name}")
         if image:
             self.log.info("Food image found for: %s", food_name)
             return RootModel(**json.loads(image))
@@ -253,14 +253,14 @@ class CacheHandler(_CacheHandler):
         self.log.debug("Setting tips for user id: %s", user_id)
         expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         await self.redis_client.set(
-            "tips:%s" % user_id,
+            f"tips:{user_id}",
             tips.model_dump_json(),
             ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
 
     async def get_tips(self, *, user_id: str):
         self.log.debug("Getting tips for user id: %s", user_id)
-        tips_data = await self.redis_client.get("tips:%s" % user_id)  # type: ignore
+        tips_data = await self.redis_client.get(f"tips:{user_id}")  # type: ignore
         if tips_data:
             self.log.info("Tips found in Redis for user id: %s", user_id)
             return _TempDailyInsight(**json.loads(tips_data))

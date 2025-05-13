@@ -90,47 +90,47 @@ class GoogleAPIHandler:
         self.log.info("GoogleAPIHandler initialized with Gemini and Google Custom Search clients.")
 
     async def generate_plan(self, user: User):
-        self.log.info("Generating plan for user ID: {}".format(user.id))
+        self.log.info("Generating plan for user ID: %s" % user.id)
         plan = await self.cache_handler.get_plan(user_id=user.id)
         if plan:
-            self.log.info("Plan found in cache for user ID: {}".format(user.id))
+            self.log.info("Plan found in cache for user ID: %s" % user.id)
             return plan
 
         user_data = user.model_dump(mode="json")
         user_data.pop("plan", None)
 
-        self.log.info("Calling Gemini API to generate plan for user ID: {}".format(user.id))
+        self.log.info("Calling Gemini API to generate plan for user ID: %s" % user.id)
         plan = await asyncio.to_thread(self._generate_plan, user_data=user_data)
         if not plan:
-            self.log.warning("Gemini API returned no plan for user ID: {}".format(user.id))
+            self.log.warning("Gemini API returned no plan for user ID: %s" % user.id)
             return None
 
         parsed_plan = await self._parse_plan(plan=plan)
         if not parsed_plan:
-            self.log.warning("Failed to parse plan for user ID: {}".format(user.id))
+            self.log.warning("Failed to parse plan for user ID: %s" % user.id)
             return None
 
         await self.cache_handler.set_plan(user_id=user.id, plan=parsed_plan)
-        self.log.info("Plan generated and cached for user ID: {}".format(user.id))
+        self.log.info("Plan generated and cached for user ID: %s" % user.id)
         return parsed_plan
 
     async def generate_tips(self, user: User):
-        self.log.info("Generating tips for user ID: {}".format(user.id))
+        self.log.info("Generating tips for user ID: %s" % user.id)
         tips = await self.cache_handler.get_tips(user_id=user.id)
         if tips:
-            self.log.info("Tips found in cache for user ID: {}".format(user.id))
+            self.log.info("Tips found in cache for user ID: %s" % user.id)
             return tips
 
         user_data = user.model_dump(mode="json")
         user_data.pop("plan", None)
 
-        self.log.info("Calling Gemini API to generate tips for user ID: {}".format(user.id))
+        self.log.info("Calling Gemini API to generate tips for user ID: %s" % user.id)
         tips = await self._generate_tips(user=user)
         if not tips:
-            self.log.warning("Gemini API returned no tips for user ID: {}".format(user.id))
+            self.log.warning("Gemini API returned no tips for user ID: %s" % user.id)
             return None
 
-        self.log.info("Tips generated for user ID: {}".format(user.id))
+        self.log.info("Tips generated for user ID: %s" % user.id)
         return tips
 
     def _generate_plan(self, user_data: dict) -> Optional[_TempMyPlan]:
@@ -140,8 +140,8 @@ class GoogleAPIHandler:
                 contents=[
                     Content(
                         parts=[
-                            Part.from_text(text="User Data: {}".format(user_data)),
-                            Part.from_text(text="List of available food items: {}".format(FOODS)),
+                            Part.from_text(text=f"User Data: {user_data}"), 
+                            Part.from_text(text=f"List of available food items: {FOODS}"),
                             Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
                         ]
                     )
@@ -156,7 +156,7 @@ class GoogleAPIHandler:
             if response:
                 return _TempMyPlan(**json.loads(response.text or "{}"))
         except Exception as e:
-            self.log.error("Error generating plan with Gemini API: {}".format(str(e)))
+            self.log.exception("Error generating plan with Gemini API: %s" % str(e), exc_info=True)
 
         return None
 
@@ -180,7 +180,7 @@ class GoogleAPIHandler:
                     _food.consumed = False
                     foods.append(_food)
                 else:
-                    self.log.warning("Food item '{}' not found in collection.".format(meal))
+                    self.log.warning("Food item '%s' not found in collection." % meal)
 
             return foods
 
@@ -197,16 +197,16 @@ class GoogleAPIHandler:
         if model and model.items:
             return model.items[0].image.thumbnail_link
 
-        self.log.warning("No image found for food: {}".format(food_name))
+        self.log.warning("No image found for food: %s" % food_name)
         return ""
 
     async def _fetch_food_image(self, food_name: str):
         cached_image = await self.cache_handler.get_food_image(food_name=food_name)
         if cached_image:
-            self.log.info("Image for '{}' retrieved from cache.".format(food_name))
+            self.log.info("Image for '%s' retrieved from cache." % food_name)
             return cached_image
 
-        self.log.info("Fetching image for '{}' from Google Search.".format(food_name))
+        self.log.info("Fetching image for '%s' from Google Search." % food_name)
         try:
             search_response = (
                 self.search_service.cse()
@@ -222,7 +222,7 @@ class GoogleAPIHandler:
             await self.cache_handler.set_food_image(food_name=food_name, model=root_response)
             return root_response
         except Exception as e:
-            self.log.error("Error fetching image for '{}': {}".format(food_name, str(e)))
+            self.log.exception("Error fetching image for '%s': %s" % (food_name, str(e)), exc_info=True)
             return None
 
     async def _generate_tips(self, user: User):
@@ -256,6 +256,6 @@ class GoogleAPIHandler:
                 return tips
 
         except Exception as e:
-            self.log.error("Error generating tips: {}".format(str(e)))
+            self.log.exception("Error generating tips: %s" % str(e), exc_info=True)
 
         return None
