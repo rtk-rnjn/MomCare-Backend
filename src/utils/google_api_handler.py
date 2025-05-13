@@ -140,7 +140,7 @@ class GoogleAPIHandler:
                 contents=[
                     Content(
                         parts=[
-                            Part.from_text(text=f"User Data: {user_data}"), 
+                            Part.from_text(text=f"User Data: {user_data}"),
                             Part.from_text(text=f"List of available food items: {FOODS}"),
                             Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
                         ]
