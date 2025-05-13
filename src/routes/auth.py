@@ -39,6 +39,7 @@ def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)
     try:
         return token_handler.decode_token(credentials.credentials)
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=401, detail="Invalid token") from e
 
 

@@ -23,9 +23,10 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GOOGLE_SEARCH_KEY = os.getenv("SEARCH_API_KEY")
+GOOGLE_SEARCH_CX = os.getenv("SEARCH_API_CX")
 
-if GOOGLE_SEARCH_KEY is None:
-    raise ValueError("GOOGLE_SEARCH_KEY is not set")
+if GOOGLE_SEARCH_KEY is None or GOOGLE_SEARCH_CX is None:
+    raise ValueError("GOOGLE_SEARCH_KEY or GOOGLE_SEARCH_CX is not set")
 
 if GEMINI_API_KEY is None:
     raise ValueError("GEMINI_API_KEY is not set")
@@ -79,71 +80,89 @@ class RootModel(BaseModel):
 
 class GoogleAPIHandler:
     def __init__(self, cache_handler: CacheHandler):
+        from src.utils.log import log
+
         self.gemini_api_key = GEMINI_API_KEY
         self.client = genai.Client(api_key=self.gemini_api_key)
         self.cache_handler = cache_handler
-
         self.search_service = build("customsearch", "v1", developerKey=GOOGLE_SEARCH_KEY)
+        self.log = log
+        self.log.info("GoogleAPIHandler initialized with Gemini and Google Custom Search clients.")
 
     async def generate_plan(self, user: User):
+        self.log.info("Generating plan for user ID: {}".format(user.id))
         plan = await self.cache_handler.get_plan(user_id=user.id)
         if plan:
+            self.log.info("Plan found in cache for user ID: {}".format(user.id))
             return plan
 
         user_data = user.model_dump(mode="json")
-        user_data.pop("plan")
+        user_data.pop("plan", None)
 
+        self.log.info("Calling Gemini API to generate plan for user ID: {}".format(user.id))
         plan = await asyncio.to_thread(self._generate_plan, user_data=user_data)
         if not plan:
+            self.log.warning("Gemini API returned no plan for user ID: {}".format(user.id))
             return None
 
         parsed_plan = await self._parse_plan(plan=plan)
         if not parsed_plan:
+            self.log.warning("Failed to parse plan for user ID: {}".format(user.id))
             return None
 
         await self.cache_handler.set_plan(user_id=user.id, plan=parsed_plan)
+        self.log.info("Plan generated and cached for user ID: {}".format(user.id))
         return parsed_plan
 
     async def generate_tips(self, user: User):
+        self.log.info("Generating tips for user ID: {}".format(user.id))
         tips = await self.cache_handler.get_tips(user_id=user.id)
         if tips:
+            self.log.info("Tips found in cache for user ID: {}".format(user.id))
             return tips
 
         user_data = user.model_dump(mode="json")
-        user_data.pop("plan")
+        user_data.pop("plan", None)
 
+        self.log.info("Calling Gemini API to generate tips for user ID: {}".format(user.id))
         tips = await self._generate_tips(user=user)
         if not tips:
+            self.log.warning("Gemini API returned no tips for user ID: {}".format(user.id))
             return None
 
+        self.log.info("Tips generated for user ID: {}".format(user.id))
         return tips
 
     def _generate_plan(self, user_data: dict) -> Optional[_TempMyPlan]:
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash-001",
-            contents=[
-                Content(
-                    parts=[
-                        Part.from_text(text=f"User Data: {user_data}"),
-                        Part.from_text(text=f"List of available food items: {FOODS}"),
-                        Part.from_text(text=f"Today's date: {datetime.now().strftime('%Y-%m-%d')}"),
-                    ]
-                )
-            ],
-            config=GenerateContentConfig(
-                system_instruction="You are a certified AI dietician. Your role is to generate daily meal plans personalized for users based on their medical history, food intolerances, dietary preferences, mood, and available food items. ",
-                response_mime_type="application/json",
-                response_schema=_TempMyPlan,
-            ),
-        )
+        try:
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash-001",
+                contents=[
+                    Content(
+                        parts=[
+                            Part.from_text(text="User Data: {}".format(user_data)),
+                            Part.from_text(text="List of available food items: {}".format(FOODS)),
+                            Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
+                        ]
+                    )
+                ],
+                config=GenerateContentConfig(
+                    system_instruction="You are a certified AI dietician. Your role is to generate daily meal plans personalized for users based on their medical history, food intolerances, dietary preferences, mood, and available food items. ",
+                    response_mime_type="application/json",
+                    response_schema=_TempMyPlan,
+                ),
+            )
 
-        if response:
-            return _TempMyPlan(**json.loads(response.text or "{}"))
+            if response:
+                return _TempMyPlan(**json.loads(response.text or "{}"))
+        except Exception as e:
+            self.log.error("Error generating plan with Gemini API: {}".format(str(e)))
 
         return None
 
     async def _parse_plan(self, plan: Optional[_TempMyPlan]):
         if not plan:
+            self.log.warning("Empty plan received in _parse_plan.")
             return None
 
         from src.models.myplan import MyPlan as _MyPlan
@@ -159,11 +178,13 @@ class GoogleAPIHandler:
                     _food = FoodItem(**food)
                     _food.image_uri = await self._generate_food_image_uri(_food.name)
                     _food.consumed = False
-
                     foods.append(_food)
+                else:
+                    self.log.warning("Food item '{}' not found in collection.".format(meal))
 
             return foods
 
+        self.log.info("Parsing plan and fetching food images.")
         return _MyPlan(
             breakfast=await fetch_meals(plan.breakfast),
             lunch=await fetch_meals(plan.lunch),
@@ -173,58 +194,70 @@ class GoogleAPIHandler:
 
     async def _generate_food_image_uri(self, food_name: str) -> str:
         model = await self._fetch_food_image(food_name)
-
         if model and model.items:
-            image = model.items[0].image
-            return image.thumbnail_link
+            return model.items[0].image.thumbnail_link
 
+        self.log.warning("No image found for food: {}".format(food_name))
         return ""
 
     async def _fetch_food_image(self, food_name: str):
         cached_image = await self.cache_handler.get_food_image(food_name=food_name)
         if cached_image:
+            self.log.info("Image for '{}' retrieved from cache.".format(food_name))
             return cached_image
 
-        search_response = (
-            self.search_service.cse()
-            .list(
-                q=food_name,
-                cx=os.getenv("SEARCH_API_CX"),
-                searchType="image",
-                num=1,
+        self.log.info("Fetching image for '{}' from Google Search.".format(food_name))
+        try:
+            search_response = (
+                self.search_service.cse()
+                .list(
+                    q=food_name,
+                    cx=GOOGLE_SEARCH_CX,
+                    searchType="image",
+                    num=1,
+                )
+                .execute()
             )
-            .execute()
-        )
-
-        root_response = RootModel(**search_response)
-        await self.cache_handler.set_food_image(food_name=food_name, model=root_response)
-        return root_response
+            root_response = RootModel(**search_response)
+            await self.cache_handler.set_food_image(food_name=food_name, model=root_response)
+            return root_response
+        except Exception as e:
+            self.log.error("Error fetching image for '{}': {}".format(food_name, str(e)))
+            return None
 
     async def _generate_tips(self, user: User):
-        SYSTEM_INSTRUCTION = "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        SYSTEM_INSTRUCTION = (
+            "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        )
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
         SYSTEM_INSTRUCTION += "Use 1-2 emojis in each (relevant and appropriate).\n"
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"
         SYSTEM_INSTRUCTION += "Avoid general advice; make it specific to pregnancy week progress.\n"
 
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash-001",
-            contents=[
-                Content(
-                    parts=[
-                        Part.from_text(text=f"User Data: {user.model_dump(mode='json')}"),
-                        Part.from_text(text=f"Today's date: {datetime.now().strftime('%Y-%m-%d')}"),
-                    ]
-                )
-            ],
-            config=GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                response_mime_type="application/json",
-                response_schema=_TempDailyInsight,
-            ),
-        )
+        try:
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash-001",
+                contents=[
+                    Content(
+                        parts=[
+                            Part.from_text(text="User Data: {}".format(user.model_dump(mode="json"))),
+                            Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
+                        ]
+                    )
+                ],
+                config=GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    response_mime_type="application/json",
+                    response_schema=_TempDailyInsight,
+                ),
+            )
 
-        if response:
-            return _TempDailyInsight(**json.loads(response.text or "{}"))
+            if response:
+                tips = _TempDailyInsight(**json.loads(response.text or "{}"))
+                await self.cache_handler.set_tips(user_id=user.id, tips=tips)
+                return tips
+
+        except Exception as e:
+            self.log.error("Error generating tips: {}".format(str(e)))
 
         return None
