@@ -60,5 +60,5 @@ class TokenHandler:
             log.info("Token successfully decoded")
             return Token(**decoded)
         except jwt.InvalidTokenError:
-            log.exception("Token decoding failed due to invalid token")
+            log.exception("Token decoding failed due to invalid token", exc_info=True)
             raise

@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from src.models import User
 from src.models.food_item import FoodItem
+from src.utils.cache_handler import RootModel
 
 if TYPE_CHECKING:
 
@@ -59,15 +60,10 @@ class _TempDailyInsight(BaseModel):
 
 
 class ImageModel(BaseModel):
-    context_link: str = Field(alias="contextLink")
     thumbnail_link: str = Field(alias="thumbnailLink")
 
 
 class ItemModel(BaseModel):
-    title: str
-    link: str
-    display_link: str = Field(alias="displayLink")
-    mime: str
     image: ImageModel
 
 
@@ -193,15 +189,15 @@ class GoogleAPIHandler:
         )
 
     async def _generate_food_image_uri(self, food_name: str) -> str:
-        model = await self._fetch_food_image(food_name)
-        if model and model.items:
-            return model.items[0].image.thumbnail_link
+        image = await self._fetch_food_image(food_name)
+        if image:
+            return image
 
         self.log.warning("No image found for food: %s" % food_name)
         return ""
 
-    async def _fetch_food_image(self, food_name: str):
-        cached_image = await self.cache_handler.get_food_image(food_name=food_name)
+    async def _fetch_food_image(self, food_name: str) -> str:
+        cached_image: RootModel | None = await self.cache_handler.get_food_image(food_name=food_name)
         if cached_image:
             self.log.info("Image for '%s' retrieved from cache." % food_name)
             return cached_image
@@ -219,8 +215,11 @@ class GoogleAPIHandler:
                 .execute()
             )
             root_response = RootModel(**search_response)
-            await self.cache_handler.set_food_image(food_name=food_name, model=root_response)
-            return root_response
+            image_link = root_response.items[0].image.thumbnail_link
+            await self.cache_handler.set_food_image(food_name=food_name, image_link=image_link)
+            self.log.info("Image for '%s' fetched and cached." % food_name)
+            return image_link
+
         except Exception as e:
             self.log.exception("Error fetching image for '%s': %s" % (food_name, str(e)), exc_info=True)
             return None

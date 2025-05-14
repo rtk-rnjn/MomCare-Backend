@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from dotenv import load_dotenv
+import os
+
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 
@@ -21,7 +22,7 @@ if URI is None:
 
 mongo_client = AsyncIOMotorClient(URI, document_class=dict[str, Any])
 database = mongo_client["MomCare"]
-redis_client = Redis()
+redis_client = Redis(decode_responses=True)
 
 cache_handler = CacheHandler(
     mongo_client=mongo_client,
@@ -51,7 +52,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["Authorization"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.add_middleware(

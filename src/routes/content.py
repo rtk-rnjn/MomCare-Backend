@@ -9,25 +9,21 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.app import app, cache_handler, genai_handler
 from src.models.food_item import FoodItem
 from src.models.myplan import MyPlan
-from src.utils import TokenHandler
+from src.utils import TokenHandler, Token
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 security = HTTPBearer()
 
 
 def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    try:
-        return token_handler.decode_token(credentials.credentials)
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid token") from e
-
+    return token_handler.decode_token(credentials.credentials)
 
 router = APIRouter(prefix="/plan", tags=["Plan"])
 
 
-@router.get("/")
-async def get_plan(request: Request) -> Optional[MyPlan]:
-    user_id = "7CD207A2-754F-41BB-8EBC-23799FC410B1"
+@router.get("")
+async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
+    user_id = token.sub
 
     user = await cache_handler.get_user(user_id)
     if not user:
@@ -46,8 +42,8 @@ async def search_food(request: Request, food_name: str, limit: int = 10) -> List
 
 
 @router.get("/tips")
-async def get_tips():
-    user_id = "7CD207A2-754F-41BB-8EBC-23799FC410B1"
+async def get_tips(token: Token = Depends(get_user_token)):
+    user_id = token.sub
 
     user = await cache_handler.get_user(user_id)
     if not user:

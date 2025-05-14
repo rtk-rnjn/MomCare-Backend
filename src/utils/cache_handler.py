@@ -29,14 +29,12 @@ class _TempDailyInsight(BaseModel):
 
 
 class ImageModel(BaseModel):
-    context_link: str = Field(alias="contextLink")
     thumbnail_link: str = Field(alias="thumbnailLink")
 
 
 class ItemModel(BaseModel):
     title: str
     link: str
-    display_link: str = Field(alias="displayLink")
     mime: str
     image: ImageModel
 
@@ -60,7 +58,6 @@ class _CacheHandler:
         self.mongo_client = mongo_client
         self.users_collection = mongo_client["MomCare"]["users"]
         self.log = log
-        self.log.info("CacheHandler initialized")
 
     async def process_operations(self) -> None:
         self.log.info("Starting operation processor")
@@ -141,11 +138,17 @@ class CacheHandler(_CacheHandler):
             raise ValueError("Either user_id or email and password must be provided")
 
         if email and password:
+            email, password = str(email).lower(), str(password)
             self.log.debug("Searching user by email: %s", email)
             return await self._search_user(email=email, password=password)
 
-        if not user_id:
+        if user_id is None:
             raise ValueError("user_id must be provided")
+
+        if isinstance(user_id, bytes):
+            user_id = user_id.decode("utf-8")
+        if not isinstance(user_id, str):
+            user_id = str(user_id)
 
         self.log.debug("Attempting to get user from Redis with id: %s", user_id)
         user_data = await self.redis_client.get(f"user:{user_id}")  # type: ignore
@@ -186,6 +189,7 @@ class CacheHandler(_CacheHandler):
         self.log.debug("Setting user in Redis with id: %s", user.id)
         await self.redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=3600)
         await self.redis_client.set(f"user:by_email:{user.email_address}", user.id, ex=3600)
+        self.log.info("User set in Redis with id: %s with data: %s", user.id, user.model_dump_json())
         return user
 
     async def delete_user(self, *, user_id: str) -> None:
@@ -201,7 +205,7 @@ class CacheHandler(_CacheHandler):
         async for food in self.foods_collection.find(payload).limit(limit):
             food = FoodItem(**food)
             image = await self.get_food_image(food_name=food.name)
-            food.image_uri = image.items[0].image.thumbnail_link if image and image.items else ""
+            food.image_uri = image
             yield food
 
     async def create_user(self, *, user: dict) -> None:
@@ -235,16 +239,16 @@ class CacheHandler(_CacheHandler):
         self.log.warning("No plan found in Redis for user id: %s", user_id)
         return None
 
-    async def set_food_image(self, *, food_name: str, model: RootModel) -> None:
+    async def set_food_image(self, *, food_name: str, image_link: str) -> None:
         self.log.debug("Setting food image for food: %s", food_name)
-        await self.redis_client.set(f"food:{food_name}", model.model_dump_json())  # type: ignore
+        await self.redis_client.set(f"food:{food_name}", image_link)  # type: ignore
 
-    async def get_food_image(self, *, food_name: str) -> Optional[RootModel]:
+    async def get_food_image(self, *, food_name: str) -> Optional[str]:
         self.log.debug("Getting food image for food: %s", food_name)
         image = await self.redis_client.get(f"food:{food_name}")
         if image:
             self.log.info("Food image found for: %s", food_name)
-            return RootModel(**json.loads(image))
+            return image
 
         self.log.warning("Food image not found for: %s", food_name)
         return None
@@ -257,6 +261,7 @@ class CacheHandler(_CacheHandler):
             tips.model_dump_json(),
             ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
+        self.log.info("Tips set in Redis for user id: %s with data: %s", user_id, tips.model_dump_json())
 
     async def get_tips(self, *, user_id: str):
         self.log.debug("Getting tips for user id: %s", user_id)
@@ -285,8 +290,6 @@ class CacheHandler(_CacheHandler):
 
             if not (user_now.hour == 0 and user_now.minute == 0):
                 continue
-
-            print(f"Processing user: {user['email_address']}")
 
             history_entry = {
                 "date": user_now,
