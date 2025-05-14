@@ -15,7 +15,7 @@ from .enums import (
 from .exercise import Exercise
 from .myplan import MyPlan
 
-__all__ = ("User", "UserMedical", "History")
+__all__ = ("User", "UserMedical", "History", "MoodHistory")
 
 
 class MoodHistory(BaseModel):

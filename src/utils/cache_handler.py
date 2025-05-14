@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
 from pytz import all_timezones_set, timezone
 
-from src.models import User
+from src.models import User, MoodType, MoodHistory
 from src.models.food_item import FoodItem
 
 if TYPE_CHECKING:
@@ -238,6 +238,47 @@ class CacheHandler(_CacheHandler):
 
         self.log.warning("No plan found in Redis for user id: %s", user_id)
         return None
+    
+    async def set_user_mood(self, *, user_id: str, mood_history: MoodHistory) -> None:
+        self.log.debug("Setting mood history for user id: %s", user_id)
+        await self._update_user_cache(user_id=user_id, update_data={"mood_history": mood_history})
+        update_operation = UpdateOne(
+            {"_id": user_id},
+            {"$set": {"mood_history": mood_history.model_dump(mode="json")}},
+        )
+        await self.users_collection_operations.put(update_operation)
+    
+    async def get_user_mood(
+        self,
+        user_id: str,
+        *,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        mood: Optional[MoodType] = None,
+    ) -> List[MoodHistory]:
+        # TODO: Implement filtering based on start_date, end_date, and mood
+        self.log.debug("Getting mood history for user id: %s", user_id)
+        user = await self.get_user(user_id=user_id)
+        if not user:
+            self.log.warning("User not found for id: %s", user_id)
+            return []
+        return []
+    
+
+    async def _update_user_cache(self, *, user_id: str, update_data: dict) -> None:
+        user = await self.get_user(user_id=user_id)
+        if not user:
+            return
+
+        self.log.debug("Updating user cache for id: %s", user_id)
+
+        self.log.debug("User: %s data before update: %s", user_id, user.model_dump(mode="json"))
+        user_data = user.model_dump(mode="json")
+        user_data.update(update_data)
+        self.log.debug("User: %s data after update: %s", user_id, user_data)
+
+        self.log.debug("Setting updated user data in Redis for id: %s", user_id)
+        await self.redis_client.set(f"user:{user_id}", json.dumps(user_data), ex=3600)
 
     async def set_food_image(self, *, food_name: str, image_link: str) -> None:
         self.log.debug("Setting food image for food: %s", food_name)
