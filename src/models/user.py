@@ -27,7 +27,7 @@ class MoodHistory(BaseModel):
 class History(BaseModel):
     date: datetime = datetime.now(timezone("Asia/Kolkata"))
     plan: Optional[MyPlan] = None
-    exercise: List[Exercise] = []
+    exercises: List[Exercise] = []
     moods: List[MoodHistory] = []
 
     created_at: datetime = datetime.now(timezone("Asia/Kolkata"))
