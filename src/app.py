@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from dotenv import load_dotenv
-import os
-
 from fastapi import FastAPI
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 

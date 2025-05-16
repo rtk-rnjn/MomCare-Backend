@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel
+from pytz import timezone
 
 from .food_item import FoodItem
 
@@ -18,3 +20,5 @@ class MyPlan(BaseModel):
     lunch: List[FoodItem] = []
     dinner: List[FoodItem] = []
     snacks: List[FoodItem] = []
+
+    created_at: datetime = datetime.now(timezone("Asia/Kolkata"))

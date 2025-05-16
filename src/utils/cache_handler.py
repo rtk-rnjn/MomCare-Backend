@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
 from pytz import all_timezones_set, timezone
 
-from src.models import User, MoodType, MoodHistory
+from src.models import MoodHistory, MoodType, User
 from src.models.food_item import FoodItem
 
 if TYPE_CHECKING:
@@ -238,7 +238,7 @@ class CacheHandler(_CacheHandler):
 
         self.log.warning("No plan found in Redis for user id: %s", user_id)
         return None
-    
+
     async def set_user_mood(self, *, user_id: str, mood_history: MoodHistory) -> None:
         self.log.debug("Setting mood history for user id: %s", user_id)
         await self._update_user_cache(user_id=user_id, update_data={"mood_history": mood_history})
@@ -247,7 +247,7 @@ class CacheHandler(_CacheHandler):
             {"$set": {"mood_history": mood_history.model_dump(mode="json")}},
         )
         await self.users_collection_operations.put(update_operation)
-    
+
     async def get_user_mood(
         self,
         user_id: str,
@@ -263,7 +263,6 @@ class CacheHandler(_CacheHandler):
             self.log.warning("User not found for id: %s", user_id)
             return []
         return []
-    
 
     async def _update_user_cache(self, *, user_id: str, update_data: dict) -> None:
         user = await self.get_user(user_id=user_id)

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr
+from pytz import timezone
 
 from .enums import (
     Country,
@@ -19,15 +20,22 @@ __all__ = ("User", "UserMedical", "History", "MoodHistory")
 
 
 class MoodHistory(BaseModel):
-    date: datetime = datetime.now(timezone.utc)
+    date: datetime = datetime.now(timezone("Asia/Kolkata"))
     mood: MoodType
 
 
 class History(BaseModel):
-    date: datetime = datetime.now(timezone.utc)
+    date: datetime = datetime.now(timezone("Asia/Kolkata"))
     plan: Optional[MyPlan] = None
     exercise: List[Exercise] = []
     moods: List[MoodHistory] = []
+
+    created_at: datetime = datetime.now(timezone("Asia/Kolkata"))
+
+    class Config:
+        json_encoders = {
+            datetime: lambda datetime_object: datetime_object.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
 
 
 class User(BaseModel):
@@ -51,12 +59,17 @@ class User(BaseModel):
     history: List[History] = []
 
     # Server stuff
-    created_at: datetime = datetime.now(timezone.utc)
+    created_at: datetime = datetime.now(timezone("Asia/Kolkata"))
     last_login: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     last_login_ip: Optional[str] = None
     is_active: bool = True
     is_verified: bool = False
+
+    class Config:
+        json_encoders = {
+            datetime: lambda datetime_object: datetime_object.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
 
 
 class UserMedical(BaseModel):
@@ -68,3 +81,8 @@ class UserMedical(BaseModel):
     pre_existing_conditions: List[PreExistingCondition] = []
     food_intolerances: List[Intolerance] = []
     dietary_preferences: List[DietaryPreference] = []
+
+    class Config:
+        json_encoders = {
+            datetime: lambda datetime_object: datetime_object.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }

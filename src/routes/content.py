@@ -9,7 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.app import app, cache_handler, genai_handler
 from src.models.food_item import FoodItem
 from src.models.myplan import MyPlan
-from src.utils import TokenHandler, Token
+from src.utils import Token, TokenHandler
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 security = HTTPBearer()
@@ -17,6 +17,7 @@ security = HTTPBearer()
 
 def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     return token_handler.decode_token(credentials.credentials)
+
 
 router = APIRouter(prefix="/plan", tags=["Plan"])
 
