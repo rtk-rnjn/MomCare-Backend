@@ -22,3 +22,8 @@ class MyPlan(BaseModel):
     snacks: List[FoodItem] = []
 
     created_at: datetime = datetime.now(timezone("Asia/Kolkata"))
+
+    class Config:
+        json_encoders = {
+            datetime: lambda datetime_object: datetime_object.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
