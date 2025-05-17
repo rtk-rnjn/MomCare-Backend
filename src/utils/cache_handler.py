@@ -263,7 +263,7 @@ class CacheHandler(_CacheHandler):
             self.log.warning("User not found for id: %s", user_id)
             return []
         return []
-    
+
     async def update_user(self, *, user_id: str, update_data: dict) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
         await self._update_user_cache(user_id=user_id, update_data=update_data)
