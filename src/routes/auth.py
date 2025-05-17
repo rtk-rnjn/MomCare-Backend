@@ -121,6 +121,7 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
             {"$set": user_data},
         )
     )
+    await cache_handler._update_user_cache(user_id=user_id, user_data=user_data)
 
     return UpdateResponse(
         success=True,
