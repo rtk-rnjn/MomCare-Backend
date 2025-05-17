@@ -115,13 +115,7 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
     user_data.pop("created_at", None)
     user_data.pop("_id", None)
 
-    await cache_handler.users_collection_operations.put(
-        UpdateOne(
-            {"_id": user_id},
-            {"$set": user_data},
-        )
-    )
-    await cache_handler._update_user_cache(user_id=user_id, user_data=user_data)
+    await cache_handler.update_user(user_id=user_id, update_data=user_data)
 
     return UpdateResponse(
         success=True,
