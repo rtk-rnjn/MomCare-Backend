@@ -203,16 +203,10 @@ class GoogleAPIHandler:
 
         self.log.info("Fetching image for '%s' from Google Search." % food_name)
         try:
-            search_response = (
-                self.search_service.cse()
-                .list(
-                    q=food_name,
-                    cx=GOOGLE_SEARCH_CX,
-                    searchType="image",
-                    num=1,
-                )
-                .execute()
-            )
+            cse = await asyncio.to_thread(self.search_service.cse)
+            prepare_list = await asyncio.to_thread(cse.list, q=food_name, cx=GOOGLE_SEARCH_CX, searchType="image", num=1)
+            search_response = await asyncio.to_thread(prepare_list.execute)
+
             root_response = RootModel(**search_response)
             image_link = root_response.items[0].image.thumbnail_link
             await self.cache_handler.set_food_image(food_name=food_name, image_link=image_link)

@@ -12,6 +12,7 @@ from pytz import all_timezones_set, timezone
 
 from src.models import MoodHistory, MoodType, User
 from src.models.food_item import FoodItem
+from src.models.myplan import MyPlan
 
 if TYPE_CHECKING:
     from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
@@ -286,6 +287,12 @@ class CacheHandler(_CacheHandler):
         self.log.debug("User: %s data after update: %s", user_id, user_data)
 
         self.log.debug("Setting updated user data in Redis for id: %s", user_id)
+
+        plan_data = update_data.get("plan")
+        if plan_data:
+            plan = MyPlan(**plan_data)
+            await self.set_plan(user_id=user_id, plan=plan)
+
         await self.redis_client.set(f"user:{user_id}", json.dumps(user_data), ex=3600)
 
     async def set_food_image(self, *, food_name: str, image_link: str) -> None:
