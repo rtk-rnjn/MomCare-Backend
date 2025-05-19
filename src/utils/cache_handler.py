@@ -264,7 +264,7 @@ class CacheHandler(_CacheHandler):
             self.log.warning("User not found for id: %s", user_id)
             return []
         return []
-    
+
     async def update_user(self, *, user_id: str, update_data: dict) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
         await self._update_user_cache(user_id=user_id, update_data=update_data)
@@ -327,6 +327,34 @@ class CacheHandler(_CacheHandler):
             return _TempDailyInsight(**json.loads(tips_data))
 
         self.log.warning("Tips not found for user id: %s", user_id)
+        return None
+
+    async def get_file_link(self, *, file_name: str) -> Optional[str]:
+        self.log.debug("Getting file link for file: %s", file_name)
+        file_link = await self.redis_client.get(f"file:{file_name}")
+        if file_link:
+            self.log.info("File link found for: %s", file_name)
+            return file_link
+
+        self.log.warning("File link not found for: %s", file_name)
+        return None
+
+    async def set_file_link(self, *, file_name: str, file_link: str) -> None:
+        self.log.debug("Setting file link for file: %s", file_name)
+        await self.redis_client.set(f"file:{file_name}", file_link, ex=3600)  # type: ignore
+
+    async def delete_file_link(self, *, file_name: str) -> None:
+        self.log.debug("Deleting file link for file: %s", file_name)
+        await self.redis_client.delete(f"file:{file_name}")  # type: ignore
+
+    async def get_key_expiry(self, *, key: str) -> Optional[datetime]:
+        self.log.debug("Getting key expiry for key: %s", key)
+        ttl = await self.redis_client.ttl(key)
+        if ttl is not None:
+            self.log.info("Key expiry found for key: %s", key)
+            return datetime.now(timezone("UTC")) + timedelta(seconds=ttl)
+
+        self.log.warning("Key expiry not found for key: %s", key)
         return None
 
     @staticmethod
