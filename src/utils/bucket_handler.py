@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Optional
 
 import boto3
 from dotenv import load_dotenv
@@ -53,14 +52,12 @@ class S3:
                 return response
             return response
 
-        except Exception as e:
+        except Exception:
             return None
 
     async def _list_s3_items(self, prefix: str, key: str) -> list[str]:
         try:
-            response = await asyncio.to_thread(
-                self.s3_client.list_objects_v2, Bucket=self.bucket_name, Prefix=prefix, Delimiter="/"
-            )
+            response = await asyncio.to_thread(self.s3_client.list_objects_v2, Bucket=self.bucket_name, Prefix=prefix, Delimiter="/")
             return [item[key] for item in response.get(key == "Key" and "Contents" or "CommonPrefixes", [])]
         except Exception:
             return []
