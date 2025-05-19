@@ -351,7 +351,7 @@ class CacheHandler(_CacheHandler):
         self.log.debug("Getting key expiry for key: %s", key)
         ttl = await self.redis_client.ttl(key)
         if ttl is not None:
-            self.log.info("Key expiry found for key: %s", key)
+            self.log.info("Key expiry found for key: %s with ttl: %s", key, ttl)
             return datetime.now(timezone("UTC")) + timedelta(seconds=ttl)
 
         self.log.warning("Key expiry not found for key: %s", key)

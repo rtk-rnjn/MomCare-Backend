@@ -22,7 +22,7 @@ def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials =
     return token_handler.decode_token(credentials.credentials)
 
 
-router = APIRouter(prefix="/plan", tags=["Plan"])
+router = APIRouter(prefix="/content", tags=["Plan"])
 
 
 class TuneResponse(BaseModel):
@@ -35,7 +35,7 @@ class TuneResponse(BaseModel):
         }
 
 
-@router.get("")
+@router.get("/plan")
 async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
     user_id = token.sub
 
@@ -67,12 +67,12 @@ async def get_tips(token: Token = Depends(get_user_token)):
 
 
 @router.get("/tunes/{tune_type}/{category}/{file_name}")
-async def get_tune_link(tune_type: str, category: str, file_name: str, token: Token = Depends(get_user_token)):
+async def get_tune_link(tune_type: str, category: str, file_name: str):
     path = f"Tunes/{tune_type}/{file_name}"
     # TODO: Yes i know
 
     link = await s3_client.get_presigned_url(file_name=path)
-    expiry_at = await cache_handler.get_key_expiry(key=path)
+    expiry_at = await cache_handler.get_key_expiry(key=f"file:{path}")
 
     if not link:
         raise HTTPException(status_code=502, detail="Unable to generate link")
@@ -84,9 +84,7 @@ async def get_tune_link(tune_type: str, category: str, file_name: str, token: To
 
 
 @router.get("/tunes/{tune_type}")
-async def get_tune_list(tune_type: str, token: Token = Depends(get_user_token)):
-    user_id = token.sub
-
+async def get_tune_list(tune_type: str):
     directories = await s3_client.list_files(prefix=f"Tunes/{tune_type}/")
     if not directories:
         raise HTTPException(status_code=404, detail="No tunes found")

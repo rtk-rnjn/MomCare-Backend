@@ -49,7 +49,7 @@ class S3:
                 ExpiresIn=1 * 60 * 60,  # 1 hour
             )
             if response:
-                await self.cache_handler.set_file_link(file_name=file_name, link=response)
+                await self.cache_handler.set_file_link(file_name=file_name, file_link=response)
                 return response
             return response
 
