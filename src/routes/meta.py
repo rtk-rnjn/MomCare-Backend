@@ -7,9 +7,11 @@ from src.app import app
 
 router = APIRouter()
 
+
 @app.route("/")
 async def root(request: Request):
     return RedirectResponse(url=app.docs_url)
+
 
 @router.get("/")
 async def get_meta(request: Request):
