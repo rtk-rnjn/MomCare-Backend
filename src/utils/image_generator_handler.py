@@ -36,12 +36,12 @@ class ImageGeneratorHandler:
             "Authorization": f"Bearer {self.api_key}",
         }
 
-        self.session = aiohttp.ClientSession(
-            headers=self.headers,
-            timeout=aiohttp.ClientTimeout(total=10),
-        )
+        self.session = None
 
     async def _search_image(self, query: str) -> Optional[PixelRootResponse]:
+        if self.session is None:
+            self.session = aiohttp.ClientSession(headers=self.headers)
+
         async with self.session.get(self.api_url, params={"query": query}) as response:
             if response.status == 200:
                 data = await response.json()
