@@ -1,4 +1,5 @@
 from .bucket_handler import S3  # noqa
 from .cache_handler import CacheHandler  # noqa
 from .google_api_handler import GoogleAPIHandler  # noqa
+from .image_generator_handler import ImageGeneratorHandler  # noqa
 from .token_handler import Token, TokenHandler  # noqa

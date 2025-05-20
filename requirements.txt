@@ -16,3 +16,5 @@ uvicorn
 uvloop
 motor
 boto3
+aiohttp
+aiodns

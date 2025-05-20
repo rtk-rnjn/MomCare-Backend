@@ -15,6 +15,8 @@ from pydantic import BaseModel, Field
 from src.models import User
 from src.models.food_item import FoodItem
 
+from .image_generator_handler import ImageGeneratorHandler
+
 if TYPE_CHECKING:
 
     from .cache_handler import CacheHandler
@@ -82,7 +84,10 @@ class GoogleAPIHandler:
         self.cache_handler = cache_handler
         self.search_service = build("customsearch", "v1", developerKey=GOOGLE_SEARCH_KEY)
         self.log = log
+
         self.log.info("GoogleAPIHandler initialized with Gemini and Google Custom Search clients.")
+
+        self.image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)
 
     async def generate_plan(self, user: User):
         self.log.info("Generating plan for user ID: %s" % user.id)
@@ -201,6 +206,10 @@ class GoogleAPIHandler:
             self.log.info("Image for '%s' retrieved from cache." % food_name)
             return cached_image
 
+        pixel_image_uri = await self.image_generator_handler.search_image(food_name=food_name)
+        if pixel_image_uri:
+            return pixel_image_uri
+
         self.log.info("Fetching image for '%s' from Google Search." % food_name)
         try:
             cse = await asyncio.to_thread(self.search_service.cse)
@@ -218,7 +227,9 @@ class GoogleAPIHandler:
             return None
 
     async def _generate_tips(self, user: User):
-        SYSTEM_INSTRUCTION = "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        SYSTEM_INSTRUCTION = (
+            "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        )
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
         SYSTEM_INSTRUCTION += "Use 1-2 emojis in each (relevant and appropriate).\n"
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"

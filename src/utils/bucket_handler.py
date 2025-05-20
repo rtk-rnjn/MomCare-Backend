@@ -57,7 +57,9 @@ class S3:
 
     async def _list_s3_items(self, prefix: str, key: str) -> list[str]:
         try:
-            response = await asyncio.to_thread(self.s3_client.list_objects_v2, Bucket=self.bucket_name, Prefix=prefix, Delimiter="/")
+            response = await asyncio.to_thread(
+                self.s3_client.list_objects_v2, Bucket=self.bucket_name, Prefix=prefix, Delimiter="/"
+            )
             return [item[key] for item in response.get(key == "Key" and "Contents" or "CommonPrefixes", [])]
         except Exception:
             return []

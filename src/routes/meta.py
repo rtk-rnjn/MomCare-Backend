@@ -34,4 +34,4 @@ async def get_ping(request: Request):
     return {"ping": "pong"}
 
 
-app.include_router(router, prefix="/meta", tags=["meta"])
+app.include_router(router, prefix="/meta", tags=["Meta"])

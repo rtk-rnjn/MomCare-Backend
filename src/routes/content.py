@@ -11,18 +11,19 @@ from pydantic import BaseModel
 from src.app import app, cache_handler, genai_handler
 from src.models.food_item import FoodItem
 from src.models.myplan import MyPlan
-from src.utils import S3, Token, TokenHandler
+from src.utils import S3, ImageGeneratorHandler, Token, TokenHandler
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 security = HTTPBearer()
 s3_client = S3(cache_handler=cache_handler)
+image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)
 
 
 def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     return token_handler.decode_token(credentials.credentials)
 
 
-router = APIRouter(prefix="/content", tags=["Plan"])
+router = APIRouter(prefix="/content", tags=["Content"])
 
 
 class TuneResponse(BaseModel):
@@ -50,6 +51,9 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> 
 async def search_food(request: Request, food_name: str, limit: int = 10) -> List[FoodItem]:
     foods: List[FoodItem] = []
     async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
+        if food.image_uri is None or food.image_uri == "":
+            food.image_uri = await image_generator_handler.search_image(food_name=food.name)
+
         foods.append(food)
 
     return foods
