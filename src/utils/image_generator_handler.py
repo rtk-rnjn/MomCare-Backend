@@ -23,7 +23,7 @@ class PixelPhotoResponse(BaseModel):
 
 load_dotenv()
 
-BASE_URL = URL("https://api.pixel.com/v1")
+BASE_URL = URL("https://api.pexels.com/v1")
 
 
 class ImageGeneratorHandler:
@@ -32,9 +32,7 @@ class ImageGeneratorHandler:
         self.api_key = os.environ["PIXEL_API_KEY"]
         self.api_url = BASE_URL / "search"
 
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-        }
+        self.headers = {"Authorization": f"{self.api_key}"}
 
         self.session = None
 
@@ -53,7 +51,7 @@ class ImageGeneratorHandler:
         if link:
             return link
 
-        root_response = await self._search_image(f"{food_name} food")
+        root_response = await self._search_image(f"{food_name}")
         if root_response is None:
             return None
 
