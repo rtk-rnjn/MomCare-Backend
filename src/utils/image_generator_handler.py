@@ -19,6 +19,11 @@ class PixelRootResponse(BaseModel):
 
 class PixelPhotoResponse(BaseModel):
     url: str
+    src: PixelPhotoSrcResponse
+
+
+class PixelPhotoSrcResponse(BaseModel):
+    original: str
 
 
 load_dotenv()
@@ -56,7 +61,7 @@ class ImageGeneratorHandler:
             return None
 
         if len(root_response.photos) >= 1:
-            link = root_response.photos[0].url
+            link = root_response.photos[0].src.original
 
             await self.cache_handler.set_food_image(food_name=food_name, image_link=link)
             return link
