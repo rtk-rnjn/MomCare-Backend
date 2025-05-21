@@ -1,4 +1,5 @@
 {
     "python.analysis.autoImportCompletions": false,
-    "python.REPL.enableREPLSmartSend": false
+    "python.REPL.enableREPLSmartSend": false,
+    "python.analysis.typeCheckingMode": "standard"
 }

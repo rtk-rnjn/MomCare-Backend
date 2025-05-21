@@ -89,7 +89,7 @@ class GoogleAPIHandler:
 
         self.image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)
 
-    async def generate_plan(self, user: User, *, force_create: bool = False) -> Optional[_TempMyPlan]:
+    async def generate_plan(self, user: User, *, force_create: bool = False) -> Optional[MyPlan]:
         self.log.info("Generating plan for user ID: %s" % user.id)
         plan = await self.cache_handler.get_plan(user_id=user.id)
         if plan and not force_create:
@@ -198,8 +198,8 @@ class GoogleAPIHandler:
         self.log.warning("No image found for food: %s" % food_name)
         return ""
 
-    async def _fetch_food_image(self, food_name: str) -> str:
-        cached_image: RootModel | None = await self.cache_handler.get_food_image(food_name=food_name)
+    async def _fetch_food_image(self, food_name: str) -> Optional[str]:
+        cached_image = await self.cache_handler.get_food_image(food_name=food_name)
         if cached_image:
             self.log.info("Image for '%s' retrieved from cache." % food_name)
             return cached_image
@@ -226,7 +226,9 @@ class GoogleAPIHandler:
             return pixel_image_uri
 
     async def _generate_tips(self, user: User):
-        SYSTEM_INSTRUCTION = "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        SYSTEM_INSTRUCTION = (
+            "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        )
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
         SYSTEM_INSTRUCTION += "Use 1-2 emojis in each (relevant and appropriate).\n"
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"

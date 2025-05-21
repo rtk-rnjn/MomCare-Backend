@@ -56,7 +56,11 @@ class ImageGeneratorHandler:
         if link:
             return link
 
-        root_response = await self._search_image(f"{food_name}")
+        try:
+            root_response = await self._search_image(f"{food_name}")
+        except aiohttp.ClientError as e:
+            return None
+
         if root_response is None:
             return None
 

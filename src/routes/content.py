@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from src.app import app, cache_handler, genai_handler
-from src.models.food_item import FoodItem
 from src.models.myplan import MyPlan
 from src.utils import S3, ImageGeneratorHandler, Token, TokenHandler
+
+if TYPE_CHECKING:
+    from typing_extensions import AsyncIterator
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 security = HTTPBearer()
@@ -36,6 +39,14 @@ class TuneResponse(BaseModel):
         }
 
 
+async def _search_food(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
+    async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
+        if food.image_uri is None or food.image_uri == "":
+            food.image_uri = await image_generator_handler.search_image(food_name=food.name)
+
+        yield food.model_dump_json() + "\n"
+
+
 @router.get("/plan")
 async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
     user_id = token.sub
@@ -48,15 +59,9 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> 
 
 
 @router.get("/search")
-async def search_food(request: Request, food_name: str, limit: int = 10) -> List[FoodItem]:
-    foods: List[FoodItem] = []
-    async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
-        if food.image_uri is None or food.image_uri == "":
-            food.image_uri = await image_generator_handler.search_image(food_name=food.name)
-
-        foods.append(food)
-
-    return foods
+async def search_food(request: Request, food_name: str, limit: int = 1):
+    foods = _search_food(request, food_name=food_name, limit=limit)
+    return StreamingResponse(foods, media_type="application/json")
 
 
 @router.get("/tips")

@@ -10,7 +10,10 @@ router = APIRouter()
 
 @app.route("/")
 async def root(request: Request):
-    return RedirectResponse(url=app.docs_url)
+    if app.docs_url:
+        return RedirectResponse(url=app.docs_url)
+
+    return {"message": "Welcome to the API!"}
 
 
 @router.get("/")
