@@ -207,7 +207,9 @@ class GoogleAPIHandler:
         self.log.info("Fetching image for '%s' from Google Search." % food_name)
         try:
             cse = await asyncio.to_thread(self.search_service.cse)
-            prepare_list = await asyncio.to_thread(cse.list, q=f"{food_name} - HD Food Image", cx=GOOGLE_SEARCH_CX, searchType="image", num=1)
+            prepare_list = await asyncio.to_thread(
+                cse.list, q=f"{food_name} - HD Food Image", cx=GOOGLE_SEARCH_CX, searchType="image", num=1
+            )
             search_response = await asyncio.to_thread(prepare_list.execute)
 
             root_response = RootModel(**search_response)
@@ -224,9 +226,7 @@ class GoogleAPIHandler:
             return pixel_image_uri
 
     async def _generate_tips(self, user: User):
-        SYSTEM_INSTRUCTION = (
-            "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
-        )
+        SYSTEM_INSTRUCTION = "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
         SYSTEM_INSTRUCTION += "Use 1-2 emojis in each (relevant and appropriate).\n"
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"

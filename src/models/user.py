@@ -6,8 +6,13 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 from pytz import timezone
 
-from .enums import (Country, DietaryPreference, Intolerance, MoodType,
-                    PreExistingCondition)
+from .enums import (
+    Country,
+    DietaryPreference,
+    Intolerance,
+    MoodType,
+    PreExistingCondition,
+)
 from .exercise import Exercise
 from .myplan import MyPlan
 
