@@ -378,7 +378,7 @@ class CacheHandler(_CacheHandler):
             history_entry = {
                 "date": user_now,
                 "plan": user.get("plan"),
-                "exercise": user.get("exercises", []),
+                "exercises": user.get("exercises", []),
                 "moods": user.get("mood_history", []),
             }
 
@@ -388,6 +388,7 @@ class CacheHandler(_CacheHandler):
                     "$set": {
                         "mood_history": [],
                         "exercises": [],
+                        "plan": await google_api_handler.generate_plan(user=user, force_create=True),
                     },
                     "$addToSet": {
                         "history": history_entry,

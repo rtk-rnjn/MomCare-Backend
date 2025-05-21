@@ -89,10 +89,10 @@ class GoogleAPIHandler:
 
         self.image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)
 
-    async def generate_plan(self, user: User):
+    async def generate_plan(self, user: User, *, force_create: bool = False) -> Optional[_TempMyPlan]:
         self.log.info("Generating plan for user ID: %s" % user.id)
         plan = await self.cache_handler.get_plan(user_id=user.id)
-        if plan:
+        if plan and not force_create:
             self.log.info("Plan found in cache for user ID: %s" % user.id)
             return plan
 
