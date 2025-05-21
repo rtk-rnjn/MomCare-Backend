@@ -12,7 +12,7 @@ from google.genai.types import Content, GenerateContentConfig, Part
 from googleapiclient.discovery import build
 from pydantic import BaseModel, Field
 
-from src.models import User
+from src.models import MyPlan, User
 from src.models.food_item import FoodItem
 
 from .image_generator_handler import ImageGeneratorHandler
@@ -165,8 +165,6 @@ class GoogleAPIHandler:
             self.log.warning("Empty plan received in _parse_plan.")
             return None
 
-        from src.models.myplan import MyPlan as _MyPlan
-
         async def fetch_meals(meals):
             if not meals:
                 return []
@@ -185,7 +183,7 @@ class GoogleAPIHandler:
             return foods
 
         self.log.info("Parsing plan and fetching food images.")
-        return _MyPlan(
+        return MyPlan(
             breakfast=await fetch_meals(plan.breakfast),
             lunch=await fetch_meals(plan.lunch),
             dinner=await fetch_meals(plan.dinner),
@@ -227,7 +225,9 @@ class GoogleAPIHandler:
             return None
 
     async def _generate_tips(self, user: User):
-        SYSTEM_INSTRUCTION = "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        SYSTEM_INSTRUCTION = (
+            "Generate a precise and short Daily Tip and Today's Focus for a pregnant woman who is due in October.\n"
+        )
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
         SYSTEM_INSTRUCTION += "Use 1-2 emojis in each (relevant and appropriate).\n"
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"

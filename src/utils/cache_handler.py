@@ -190,7 +190,11 @@ class CacheHandler(_CacheHandler):
         self.log.debug("Setting user in Redis with id: %s", user.id)
         await self.redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=3600)
         await self.redis_client.set(f"user:by_email:{user.email_address}", user.id, ex=3600)
-        self.log.info("User set in Redis with id: %s with data: %s", user.id, user.model_dump_json())
+        self.log.info(
+            "User set in Redis with id: %s with data: %s",
+            user.id,
+            user.model_dump_json(),
+        )
         return user
 
     async def delete_user(self, *, user_id: str) -> None:
@@ -229,13 +233,15 @@ class CacheHandler(_CacheHandler):
         await self.users_collection_operations.put(update_operation)
 
     async def get_plan(self, *, user_id: str):
-        from src.models.myplan import MyPlan as _MyPlan
-
         self.log.debug("Getting plan for user id: %s", user_id)
         plan_data = await self.redis_client.get(f"plan:{user_id}")  # type: ignore
         if plan_data:
             self.log.info("Plan found in Redis for user id: %s", user_id)
-            return _MyPlan(**json.loads(plan_data))
+            plan = MyPlan(**json.loads(plan_data))
+            if plan.is_empty():
+                self.log.warning("Plan is empty for user id: %s", user_id)
+                return None
+            return plan
 
         self.log.warning("No plan found in Redis for user id: %s", user_id)
         return None
@@ -317,7 +323,11 @@ class CacheHandler(_CacheHandler):
             tips.model_dump_json(),
             ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
-        self.log.info("Tips set in Redis for user id: %s with data: %s", user_id, tips.model_dump_json())
+        self.log.info(
+            "Tips set in Redis for user id: %s with data: %s",
+            user_id,
+            tips.model_dump_json(),
+        )
 
     async def get_tips(self, *, user_id: str):
         self.log.debug("Getting tips for user id: %s", user_id)
