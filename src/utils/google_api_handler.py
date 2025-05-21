@@ -204,14 +204,10 @@ class GoogleAPIHandler:
             self.log.info("Image for '%s' retrieved from cache." % food_name)
             return cached_image
 
-        pixel_image_uri = await self.image_generator_handler.search_image(food_name=food_name)
-        if pixel_image_uri:
-            return pixel_image_uri
-
         self.log.info("Fetching image for '%s' from Google Search." % food_name)
         try:
             cse = await asyncio.to_thread(self.search_service.cse)
-            prepare_list = await asyncio.to_thread(cse.list, q=food_name, cx=GOOGLE_SEARCH_CX, searchType="image", num=1)
+            prepare_list = await asyncio.to_thread(cse.list, q=f"{food_name} - HD Food Image", cx=GOOGLE_SEARCH_CX, searchType="image", num=1)
             search_response = await asyncio.to_thread(prepare_list.execute)
 
             root_response = RootModel(**search_response)
@@ -222,7 +218,10 @@ class GoogleAPIHandler:
 
         except Exception as e:
             self.log.exception("Error fetching image for '%s': %s" % (food_name, str(e)), exc_info=True)
-            return None
+
+        pixel_image_uri = await self.image_generator_handler.search_image(food_name=food_name)
+        if pixel_image_uri:
+            return pixel_image_uri
 
     async def _generate_tips(self, user: User):
         SYSTEM_INSTRUCTION = (
