@@ -1,8 +1,8 @@
 [
     {
-        "yoga_name": "Tree Pose",
-        "strength_level": "Beginner",
-        "benefits": "Improves balance and posture, strengthens thighs and calves, mental focus",
+        "name": "Tree Pose",
+        "level": "Beginner",
+        "description": "Improves balance and posture, strengthens thighs and calves, mental focus",
         "week": "1-12",
         "tags": [
             "#BalanceBoost",
@@ -10,15 +10,15 @@
             "#MindfulMovement",
             "#YogaForPosture"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Legs",
             "Core"
         ]
     },
     {
-        "yoga_name": "Lotus Pose",
-        "strength_level": "Intermediate",
-        "benefits": "Lotus Pose is great for meditation and Pranayama practice. Much more stable than its counterparts. This asana allows the entire body to remain steady during a long period of time",
+        "name": "Lotus Pose",
+        "level": "Intermediate",
+        "description": "Lotus Pose is great for meditation and Pranayama practice. Much more stable than its counterparts. This asana allows the entire body to remain steady during a long period of time",
         "week": "13-27",
         "tags": [
             "#MeditationPose",
@@ -26,129 +26,129 @@
             "#LotusPose",
             "#MindfulBreathing"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Hip Opening"
         ]
     },
     {
-        "yoga_name": "Warrior I",
-        "strength_level": "Beginner",
-        "benefits": "improve the rotation of the hips and mobilize the spine. This pose offers a full body stretch and strengthening and improves breathing and circulation.",
+        "name": "Warrior I",
+        "level": "Beginner",
+        "description": "improve the rotation of the hips and mobilize the spine. This pose offers a full body stretch and strengthening and improves breathing and circulation.",
         "week": "13-27",
         "tags": [
             "#WarriorStrong",
             "#HipOpener",
             "#SpineMobility"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Chest Opening"
         ]
     },
     {
-        "yoga_name": "Chair Pose",
-        "strength_level": "Beginner",
-        "benefits": "mproves posture, tones the nervous system. Reinforce the legs, gluts and abdominal muscles. Stimulates the heart and diaphragm",
+        "name": "Chair Pose",
+        "level": "Beginner",
+        "description": "mproves posture, tones the nervous system. Reinforce the legs, gluts and abdominal muscles. Stimulates the heart and diaphragm",
         "week": "28-40",
         "tags": [
             "#ChairPosePower",
             "#StrongLegs",
             "#CoreStrength"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Full Body"
         ]
     },
     {
-        "yoga_name": "Bridge Pose",
-        "strength_level": "Beginner",
-        "benefits": "relieves back pain, improves blood circulation, and calms the mind and the nervous system.",
+        "name": "Bridge Pose",
+        "level": "Beginner",
+        "description": "relieves back pain, improves blood circulation, and calms the mind and the nervous system.",
         "week": "13-27",
         "tags": [
             "#HipFlexorStretch",
             "#GentleBackbend",
             "#RestorativeYoga"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Back Legs",
             "Shoulders"
         ]
     },
     {
-        "yoga_name": "Supine Spinal Twist",
-        "strength_level": "Beginner",
-        "benefits": "massages and tones the abdominal organs and muscles.Relaxing the spine. Stretches the obliques, glutes and chest.",
+        "name": "Supine Spinal Twist",
+        "level": "Beginner",
+        "description": "massages and tones the abdominal organs and muscles.Relaxing the spine. Stretches the obliques, glutes and chest.",
         "week": "28-40",
         "tags": [
             "#DetoxPose",
             "#DigestionBoost",
             "#ObliqueStretch"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Spine",
             "Shoulder"
         ]
     },
     {
-        "yoga_name": "Triangle Pose",
-        "strength_level": "Beginner",
-        "benefits": "greatly improves hip joints rotation. Strengthen legs, upper back and shoulders. Also improve the digestion and tones the reproductive organs.",
+        "name": "Triangle Pose",
+        "level": "Beginner",
+        "description": "greatly improves hip joints rotation. Strengthen legs, upper back and shoulders. Also improve the digestion and tones the reproductive organs.",
         "week": "13-27",
         "tags": [
             "#TrianglePose",
             "#HipMobility",
             "#ShoulderStrength"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Legs"
         ]
     },
     {
-        "yoga_name": "Half Standing forward Bend",
-        "strength_level": "Beginner",
-        "benefits": "corrects hyper kyphosis and tones abdominal muscles. Use as a transition pose during the flow",
+        "name": "Half Standing forward Bend",
+        "level": "Beginner",
+        "description": "corrects hyper kyphosis and tones abdominal muscles. Use as a transition pose during the flow",
         "week": "13-27",
         "tags": [
             "#CoreToning",
             "#HamstringStretch",
             "#YogaTransitions"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Back"
         ]
     },
     {
-        "yoga_name": "Warrior II",
-        "strength_level": "Beginner",
-        "benefits": "Improves circulation, strengthen your whole body, and open your hips. it also relieves your neck and back pain. This pose allows you to experiment with your centre of gravity as you align your body.",
+        "name": "Warrior II",
+        "level": "Beginner",
+        "description": "Improves circulation, strengthen your whole body, and open your hips. it also relieves your neck and back pain. This pose allows you to experiment with your centre of gravity as you align your body.",
         "week": "13-27",
         "tags": [
             "#StrongBody",
             "#NeckPainRelief",
             "#BalanceTraining"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Arms",
             "Legs"
         ]
     },
     {
-        "yoga_name": "Child's Pose",
-        "strength_level": "Beginner",
-        "benefits": "This relaxing pose stretches your shoulders, chest, and low back. It increases flexibility in your spine, hips and thighs.",
+        "name": "Child's Pose",
+        "level": "Beginner",
+        "description": "This relaxing pose stretches your shoulders, chest, and low back. It increases flexibility in your spine, hips and thighs.",
         "week": "1-12",
         "tags": [
             "#BreatheEasy",
             "#CalmMind",
             "#StressRelief"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Full Body"
         ]
     },
     {
-        "yoga_name": "Butterfly Pose",
-        "strength_level": "Beginner",
-        "benefits": "It increases hip and groin flexibility, improved circulation in the pelvic area and potential release from menstrual discomfort and lower back pain.",
+        "name": "Butterfly Pose",
+        "level": "Beginner",
+        "description": "It increases hip and groin flexibility, improved circulation in the pelvic area and potential release from menstrual discomfort and lower back pain.",
         "week": "1-12",
         "tags": [
             "#ComfortPose",
@@ -156,59 +156,59 @@
             "#GroinStretch",
             "#YogaForWomen"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Hip Opener"
         ]
     },
     {
-        "yoga_name": "Down Dog Pose",
-        "strength_level": "Intermediate",
-        "benefits": "It is a wonderful stretch for the entire back of the body from head to toe. Inversion helps to bring oxygenated blood to the brain as well as giving a new perspective on the world.",
+        "name": "Down Dog Pose",
+        "level": "Intermediate",
+        "description": "It is a wonderful stretch for the entire back of the body from head to toe. Inversion helps to bring oxygenated blood to the brain as well as giving a new perspective on the world.",
         "week": "13-27",
         "tags": [
-            "#InversionBenefits",
+            "#Inversiondescription",
             "#BrainBoost",
             "#ShoulderOpener"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Full Body"
         ]
     },
     {
-        "yoga_name": "Seated Side bend Pose",
-        "strength_level": "Beginner",
-        "benefits": "It is a soothing yoga pose that stretches neck, shoulders, back and obliques. This pose helps to relax the mind and relieve stress and anxiety.",
+        "name": "Seated Side bend Pose",
+        "level": "Beginner",
+        "description": "It is a soothing yoga pose that stretches neck, shoulders, back and obliques. This pose helps to relax the mind and relieve stress and anxiety.",
         "week": "1-12",
         "tags": [
             "#Sideband",
             "#NeckRelief",
             "#StressBuster"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Hips",
             "Shoulders",
             "Triceps"
         ]
     },
     {
-        "yoga_name": "Meditation pose",
-        "strength_level": "Beginner",
-        "benefits": "calm the mind, reduce stress, and improve cognitive function.",
+        "name": "Meditation pose",
+        "level": "Beginner",
+        "description": "calm the mind, reduce stress, and improve cognitive function.",
         "week": "1-12",
         "tags": [
             "#ZenMind",
             "#MentalFocus",
             "#YogaForClarity"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Improve posture",
             "relaxation"
         ]
     },
     {
-        "yoga_name": "Basic yoga sitting",
-        "strength_level": "Beginner",
-        "benefits": "improved flexibility, enhanced core strength, better posture, reduced stress, and improved focus",
+        "name": "Basic yoga sitting",
+        "level": "Beginner",
+        "description": "improved flexibility, enhanced core strength, better posture, reduced stress, and improved focus",
         "week": "1-12",
         "tags": [
             "#EasyPose",
@@ -216,7 +216,7 @@
             "#SpineHealth",
             "#DailyPractice"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "hips",
             "knees",
             "ankles",
@@ -224,16 +224,16 @@
         ]
     },
     {
-        "yoga_name": "Kneeling chair",
-        "strength_level": "Beginner",
-        "benefits": "improved flexibility, posture, and spinal alignment.",
+        "name": "Kneeling chair",
+        "level": "Beginner",
+        "description": "improved flexibility, posture, and spinal alignment.",
         "week": "13-27",
         "tags": [
             "#SlowMovement",
             "#ComfortPose",
             "#JointCare"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "lower back",
             "knees",
             "shins",
@@ -241,44 +241,44 @@
         ]
     },
     {
-        "yoga_name": "Extending chair",
-        "strength_level": "Beginner",
-        "benefits": "Scratch legs ,calves",
+        "name": "Extending chair",
+        "level": "Beginner",
+        "description": "Scratch legs ,calves",
         "week": "28-40",
         "tags": [
             "#ArmStrength",
             "#StabilityPose",
             "#ChairVariation"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Legs and Ankles"
         ]
     },
     {
-        "yoga_name": "Leg stretching",
-        "strength_level": "Beginner",
-        "benefits": "Stretch and relax legs knees pain",
+        "name": "Leg stretching",
+        "level": "Beginner",
+        "description": "Stretch and relax legs knees pain",
         "week": "1-12",
         "tags": [
             "#LegStretch",
             "#CoreStrength",
             "#DailyStretch"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Legs and hips"
         ]
     },
     {
-        "yoga_name": "Peacock pose",
-        "strength_level": "Advanced",
-        "benefits": "Improved digestion, enhanced strength, in the arms and wrists and increased balance and coordination.",
+        "name": "Peacock pose",
+        "level": "Advanced",
+        "description": "Improved digestion, enhanced strength, in the arms and wrists and increased balance and coordination.",
         "week": "1-2",
         "tags": [
             "#WristPower",
             "#balanceChallenge",
             "#AdvancedYoga"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "abdominal area",
             "including the liver",
             "gall bladder",
@@ -289,9 +289,9 @@
         ]
     },
     {
-        "yoga_name": "Tiger pose",
-        "strength_level": "Beginner",
-        "benefits": "improved spinal flexibility, stronger core muscles, enhanced digestion, and stress relief.",
+        "name": "Tiger pose",
+        "level": "Beginner",
+        "description": "improved spinal flexibility, stronger core muscles, enhanced digestion, and stress relief.",
         "week": "13-27",
         "tags": [
             "#ForAwakening",
@@ -299,7 +299,7 @@
             "#CatCowFlow",
             "#DigestionAid"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "legs",
             "hips",
             "spine",
@@ -310,16 +310,16 @@
         ]
     },
     {
-        "yoga_name": "Half tortoise pose",
-        "strength_level": "Beginner",
-        "benefits": "It stretches the back, shoulder, neck, and hip, improves blood flow to the brain, enhance mental clarity and aids in digestion and elimination.",
+        "name": "Half tortoise pose",
+        "level": "Beginner",
+        "description": "It stretches the back, shoulder, neck, and hip, improves blood flow to the brain, enhance mental clarity and aids in digestion and elimination.",
         "week": "13-27",
         "tags": [
             "#BreatheEasy",
             "#YogaForSleep",
             "#slowdown"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "spine",
             "shoulders",
             "hips",
@@ -327,76 +327,76 @@
         ]
     },
     {
-        "yoga_name": "Cobra pose",
-        "strength_level": "Beginner",
-        "benefits": "strengthening the back and spine, improving flexibility and posture, and reducing stress and anxiety.",
+        "name": "Cobra pose",
+        "level": "Beginner",
+        "description": "strengthening the back and spine, improving flexibility and posture, and reducing stress and anxiety.",
         "week": "1-15",
         "tags": [
             "#GentleBackend",
             "#MorningYoga",
             "#HeartOpener"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "primarily affects the spine and back muscles"
         ]
     },
     {
-        "yoga_name": "Cow pose",
-        "strength_level": "Beginner",
-        "benefits": "improved spinal flexibility, back and neck pain relief, and improved digestion",
+        "name": "Cow pose",
+        "level": "Beginner",
+        "description": "improved spinal flexibility, back and neck pain relief, and improved digestion",
         "week": "1-12",
         "tags": [
             "#CowPose",
             "#NeckRelief",
             "#DailyPractice"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "back",
             "neck",
             "chest"
         ]
     },
     {
-        "yoga_name": "Plow pose",
-        "strength_level": "Advanced",
-        "benefits": "strengthens the spine, improves flexibility in the shoulders, neck, and back, stimulates the thyroid gland, and can help alleviate stress and anxiety.",
+        "name": "Plow pose",
+        "level": "Advanced",
+        "description": "strengthens the spine, improves flexibility in the shoulders, neck, and back, stimulates the thyroid gland, and can help alleviate stress and anxiety.",
         "week": "1-7",
         "tags": [
             "#NeckRelease",
             "#RestorativeYoga",
             "#MindfulMovement"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Spine",
             "neck",
             "shoulders"
         ]
     },
     {
-        "yoga_name": "Half Split",
-        "strength_level": "Beginner",
-        "benefits": "Improve digestion, stress relief, increased spinal flexibility, and better circulation",
+        "name": "Half Split",
+        "level": "Beginner",
+        "description": "Improve digestion, stress relief, increased spinal flexibility, and better circulation",
         "week": "1-12",
         "tags": [
             "#EnergyBoost",
             "#FullBodyStrengthening"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Spine",
             "abdominal muscles",
             "digestive system"
         ]
     },
     {
-        "yoga_name": "Wheel",
-        "strength_level": "Beginner",
-        "benefits": "enable efficient movement, improve vehicle handling and stability, and can even be used for exercises like yoga.",
+        "name": "Wheel",
+        "level": "Beginner",
+        "description": "enable efficient movement, improve vehicle handling and stability, and can even be used for exercises like yoga.",
         "week": "1-15",
         "tags": [
             "#PowePose",
             "#ChestOpener"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "spine",
             "arms",
             "wrists",
@@ -404,16 +404,16 @@
         ]
     },
     {
-        "yoga_name": "Twisting triangle",
-        "strength_level": "Beginner",
-        "benefits": "strengthens and stretches the legs, opens the chest to improve breathing, relieves mild back pain, and improves your sense of balance.",
+        "name": "Twisting triangle",
+        "level": "Beginner",
+        "description": "strengthens and stretches the legs, opens the chest to improve breathing, relieves mild back pain, and improves your sense of balance.",
         "week": "1-15",
         "tags": [
             "#FullBodyFlow",
             "#DetoxPose",
             "#AlignmentMatters"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "legs",
             "spine",
             "hips",
@@ -422,15 +422,15 @@
         ]
     },
     {
-        "yoga_name": "Camel pose",
-        "strength_level": "Intermediate",
-        "benefits": "Improves digestion, relief from lower back pain, and increased hip flexibility, help with menstrual discomfort and even boost confidence.",
+        "name": "Camel pose",
+        "level": "Intermediate",
+        "description": "Improves digestion, relief from lower back pain, and increased hip flexibility, help with menstrual discomfort and even boost confidence.",
         "week": "13-27",
         "tags": [
             "#EnergyFlow",
             "#EmotionalRelease"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Chest",
             "back",
             "hips",
@@ -438,9 +438,9 @@
         ]
     },
     {
-        "yoga_name": "Lizard pose",
-        "strength_level": "Advanced",
-        "benefits": "Increases Hip flexibility, Releases tension in Groin, build strength in legs, open shoulders.",
+        "name": "Lizard pose",
+        "level": "Advanced",
+        "description": "Increases Hip flexibility, Releases tension in Groin, build strength in legs, open shoulders.",
         "week": "1-15",
         "tags": [
             "#Lizard",
@@ -448,7 +448,7 @@
             "#Training",
             "#InjuryPrevention"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Hips",
             "Hamstrings",
             "Groin",
@@ -456,68 +456,68 @@
         ]
     },
     {
-        "yoga_name": "Side leg raises",
-        "strength_level": "Beginner",
-        "benefits": "Strengthen the outer hip muscles, tone the thighs, contribute to better posture, reduce risk of knee and hip injuries.",
+        "name": "Side leg raises",
+        "level": "Beginner",
+        "description": "Strengthen the outer hip muscles, tone the thighs, contribute to better posture, reduce risk of knee and hip injuries.",
         "week": "13-27",
         "tags": [
             "#TonedThighs",
             "#YogaForLegs",
             "#MindBodyConnect"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Hips",
             "Glutes",
             "Thighs"
         ]
     },
     {
-        "yoga_name": "Single Leg Lift",
-        "strength_level": "Beginner",
-        "benefits": "Improves balance, enhance core strength, increase hip flexor strength, better overall stability.",
+        "name": "Single Leg Lift",
+        "level": "Beginner",
+        "description": "Improves balance, enhance core strength, increase hip flexor strength, better overall stability.",
         "week": "1-20",
         "tags": [
             "#YogaForAbs",
             "#SlowAndSteady"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Legs",
             "Back"
         ]
     },
     {
-        "yoga_name": "Spine Stretch Forward",
-        "strength_level": "Beginner",
-        "benefits": "Improves spinal flexibility, reduce back pain, improve posture and muscle tension.",
+        "name": "Spine Stretch Forward",
+        "level": "Beginner",
+        "description": "Improves spinal flexibility, reduce back pain, improve posture and muscle tension.",
         "week": "1-12",
         "tags": [
             "#GentlePose",
             "#SeatedPose",
             "#BreatheDeep"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Back",
             "Hamstrings"
         ]
     },
     {
-        "yoga_name": "Lunge",
-        "strength_level": "Intermediate",
-        "benefits": "Increase lower body strength, improves balance, enhance flexibility, and increase core strength.",
+        "name": "Lunge",
+        "level": "Intermediate",
+        "description": "Increase lower body strength, improves balance, enhance flexibility, and increase core strength.",
         "week": "13-27",
         "tags": [
             "#FlexibilityGoals"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Leg",
             "Hamstrings",
             "Hand"
         ]
     },
     {
-        "yoga_name": "Full body Stretch",
-        "strength_level": "Intermediate",
-        "benefits": "Increase Flexibility",
+        "name": "Full body Stretch",
+        "level": "Intermediate",
+        "description": "Increase Flexibility",
         "week": "1-8",
         "tags": [
             "#EnergyFlow",
@@ -525,7 +525,7 @@
             "#YogaForAll",
             "#Pregnancy"
         ],
-        "target_body_part": [
+        "targeted_body_parts": [
             "Legs",
             "shoulders",
             "Arms",

@@ -17,6 +17,7 @@ __all__ = (
 class ExerciseType(Enum):
     BREATHING = "Breathing"
     STRETCHING = "Stretching"
+    YOGA = "Yoga"
 
 
 class MoodType(Enum):

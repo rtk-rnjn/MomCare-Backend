@@ -14,17 +14,13 @@ class Exercise(BaseModel):
     """
     Represents an exercise with its type, duration, difficulty level, and progress tracking.
     """
-
-    exercise_type: ExerciseType
+    name: str
+    exercise_type: ExerciseType = ExerciseType.YOGA
     duration: float
     description: str = ""
     tags: List[str] = []
 
     level: DifficultyType
 
-    exercise_image_name: str
-
+    exercise_image_uri: str
     duration_completed: float
-
-    is_completed: bool = False
-    completed_at: Optional[datetime.datetime] = None
