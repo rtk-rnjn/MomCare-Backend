@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from .google_api_handler import GoogleAPIHandler
 
-with open("foods.txt", "r") as file:
+with open("static/foods.txt", "r") as file:
     FOODS = file.read().replace("\n", ",").split(",")
 
 
@@ -356,6 +356,29 @@ class CacheHandler(_CacheHandler):
     async def delete_file_link(self, *, file_name: str) -> None:
         self.log.debug("Deleting file link for file: %s", file_name)
         await self.redis_client.delete(f"file:{file_name}")  # type: ignore
+
+    async def set_exercise(self, *, user_id: str, exercise: BaseModel) -> None:
+        self.log.debug("Setting exercise for user id: %s", user_id)
+        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        await self.redis_client.set(
+            f"exercise:{user_id}",
+            exercise.model_dump_json(),
+            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
+        )
+        self.log.info(
+            "Exercise set in Redis for user id: %s with data: %s",
+            user_id,
+            exercise.model_dump_json(),
+        )
+
+    async def get_exercise(self, *, user_id: str) -> Optional[BaseModel]:
+        self.log.debug("Getting exercise for user id: %s", user_id)
+        exercise_data = await self.redis_client.get(f"exercise:{user_id}")
+        if exercise_data:
+            self.log.info("Exercise found in Redis for user id: %s", user_id)
+            return BaseModel(**json.loads(exercise_data))
+        self.log.warning("Exercise not found for user id: %s", user_id)
+        return None
 
     async def get_key_expiry(self, *, key: str) -> Optional[datetime]:
         self.log.debug("Getting key expiry for key: %s", key)

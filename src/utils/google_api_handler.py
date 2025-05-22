@@ -33,8 +33,13 @@ if GOOGLE_SEARCH_KEY is None or GOOGLE_SEARCH_CX is None:
 if GEMINI_API_KEY is None:
     raise ValueError("GEMINI_API_KEY is not set")
 
-with open("foods.txt", "r") as file:
+with open("static/foods.txt", "r") as file:
     FOODS = file.read().replace("\n", ",").split(",")
+
+
+with open("static/yoga_set.json", "r") as file:
+    YOGA_SETS = json.load(file)
+
 
 CONSTRAINTS = """
 Constraints:
@@ -47,6 +52,13 @@ Constraints:
 - Output only valid JSON matching structure above, no text or explanation.
 """
 
+class YogaSet(BaseModel):
+    yoga_name: str
+    strength_level: str
+    target_body_part: List[str]
+    benefits: str
+    week: str
+    tags: List[str]
 
 class _TempMyPlan(BaseModel):
     breakfast: List[str] = []
@@ -259,3 +271,55 @@ class GoogleAPIHandler:
             self.log.exception("Error generating tips: %s" % str(e), exc_info=True)
 
         return None
+
+    async def _get_exercise(self, user: User):
+        SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant women do today.\n"
+        SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
+
+        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format(
+            [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
+        )
+
+
+        try:
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash-001",
+                contents=[
+                    Content(
+                        parts=[
+                            Part.from_text(text="User Data: {}".format(user.model_dump(mode="json"))),
+                            Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
+                        ]
+                    )
+                ],
+                config=GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    response_mime_type="application/json",
+                    response_schema=YogaSet,
+                ),
+            )
+
+            if response:
+                exercise = YogaSet(**json.loads(response.text or "{}"))
+                await self.cache_handler.set_exercise(user_id=user.id, exercise=exercise)
+                return exercise
+
+        except Exception as e:
+            self.log.exception("Error generating exercise: %s" % str(e), exc_info=True)
+        return None
+    
+    async def get_exercise(self, user: User):
+        self.log.info("Generating exercise for user ID: %s" % user.id)
+        exercise = await self.cache_handler.get_exercise(user_id=user.id)
+        if exercise:
+            self.log.info("Exercise found in cache for user ID: %s" % user.id)
+            return exercise
+
+        self.log.info("Calling Gemini API to generate exercise for user ID: %s" % user.id)
+        exercise = await self._get_exercise(user=user)
+        if not exercise:
+            self.log.warning("Gemini API returned no exercise for user ID: %s" % user.id)
+            return None
+
+        self.log.info("Exercise generated for user ID: %s" % user.id)
+        return exercise
