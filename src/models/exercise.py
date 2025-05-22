@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import datetime
-from typing import List, Optional
+from typing import List
 
 from pydantic import BaseModel
 
@@ -14,6 +13,7 @@ class Exercise(BaseModel):
     """
     Represents an exercise with its type, duration, difficulty level, and progress tracking.
     """
+
     name: str
     exercise_type: ExerciseType = ExerciseType.YOGA
     duration: float
