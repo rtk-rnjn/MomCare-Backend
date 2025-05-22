@@ -52,6 +52,7 @@ Constraints:
 - Output only valid JSON matching structure above, no text or explanation.
 """
 
+
 class YogaSet(BaseModel):
     yoga_name: str
     strength_level: str
@@ -59,6 +60,7 @@ class YogaSet(BaseModel):
     benefits: str
     week: str
     tags: List[str]
+
 
 class _TempMyPlan(BaseModel):
     breakfast: List[str] = []
@@ -280,7 +282,6 @@ class GoogleAPIHandler:
             [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
         )
 
-
         try:
             response = self.client.models.generate_content(
                 model="gemini-2.0-flash-001",
@@ -307,7 +308,7 @@ class GoogleAPIHandler:
         except Exception as e:
             self.log.exception("Error generating exercise: %s" % str(e), exc_info=True)
         return None
-    
+
     async def get_exercise(self, user: User):
         self.log.info("Generating exercise for user ID: %s" % user.id)
         exercise = await self.cache_handler.get_exercise(user_id=user.id)
