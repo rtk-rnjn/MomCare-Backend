@@ -72,3 +72,14 @@ class S3:
 
     async def list_folder(self, prefix: str) -> list[str]:
         return await self._list_s3_items(prefix, "Prefix")
+
+    async def get_metadata(self, file_name: str) -> dict:
+        try:
+            response = await asyncio.to_thread(
+                self.s3_client.head_object,
+                Bucket=self.bucket_name,
+                Key=file_name,
+            )
+            return response
+        except Exception:
+            return {}
