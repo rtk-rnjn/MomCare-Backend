@@ -98,7 +98,15 @@ async def get_tune_list(tune_type: str):
     if not directories:
         raise HTTPException(status_code=404, detail="No tunes found")
 
-    return [directory.split("/")[-1].strip("/") for directory in directories if directory.split("/")[-1].strip("/")]
+    files = []
+
+    for directory in directories:
+        d = directory.split("/")
+        file = d[-1]
+        if file and file.endswith(".mp3"):
+            files.append(file)
+
+    return files
 
 
 app.include_router(router)
