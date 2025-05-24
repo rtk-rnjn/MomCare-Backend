@@ -68,7 +68,9 @@ async def login(request: Request, credentials: Credentials):
     if credentials.email_address != "admin@momcare.site":
         raise HTTPException(status_code=403, detail="Access denied")
 
-    user_data = await cache_handler.users_collection.find_one({"email_address": credentials.email_address, "password": credentials.password})
+    user_data = await cache_handler.users_collection.find_one(
+        {"email_address": credentials.email_address, "password": credentials.password}
+    )
     if not user_data:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 

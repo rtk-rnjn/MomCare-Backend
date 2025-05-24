@@ -221,7 +221,9 @@ class GoogleAPIHandler:
         self.log.info("Fetching image for '%s' from Google Search." % food_name)
         try:
             cse = await asyncio.to_thread(self.search_service.cse)
-            prepare_list = await asyncio.to_thread(cse.list, q=f"{food_name} - HD Food Image", cx=GOOGLE_SEARCH_CX, searchType="image", num=1)
+            prepare_list = await asyncio.to_thread(
+                cse.list, q=f"{food_name} - HD Food Image", cx=GOOGLE_SEARCH_CX, searchType="image", num=1
+            )
             search_response = await asyncio.to_thread(prepare_list.execute)
 
             root_response = RootModel(**search_response)
@@ -276,7 +278,9 @@ class GoogleAPIHandler:
         SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant women do today.\n"
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
 
-        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format([YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS])
+        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format(
+            [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
+        )
 
         try:
             response = self.client.models.generate_content(
