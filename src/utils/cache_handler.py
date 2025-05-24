@@ -213,6 +213,19 @@ class CacheHandler(_CacheHandler):
             food.image_uri = image
             yield food
 
+    async def get_food(self, food_name: str) -> Optional[FoodItem]:
+        self.log.debug("Getting food by name: %s", food_name)
+        food = await self.foods_collection.find_one({"name": food_name})
+        if not food:
+            self.log.warning("Food not found for name: %s", food_name)
+            return None
+
+        food_item = FoodItem(**food)
+        image = await self.get_food_image(food_name=food_item.name)
+        if image:
+            food_item.image_uri = image
+        return food_item
+
     async def create_user(self, *, user: dict) -> None:
         self.log.debug("Creating new user with email: %s", user.get("email_address"))
         await self.users_collection_operations.put(InsertOne(user))
