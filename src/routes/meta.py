@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from time import perf_counter
+
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
-from src.app import app
+from src.app import app, redis_client, mongo_client
 
 router = APIRouter()
 
@@ -40,7 +42,23 @@ async def get_version(request: Request):
 
 @router.get("/ping")
 async def get_ping(request: Request):
-    return {"ping": "pong"}
+    start_time = perf_counter()
+    await redis_client.ping()
+    end_time = perf_counter()
+
+    redis_ping = end_time - start_time
+
+    start_time = perf_counter()
+    await mongo_client.admin.command("ping")
+    end_time = perf_counter()
+    mongo_ping = end_time - start_time
+
+
+    return {
+        "ping": "pong",
+        "redis": redis_ping,
+        "mongo": mongo_ping
+    }
 
 
 app.include_router(router, prefix="/meta", tags=["Meta"])
