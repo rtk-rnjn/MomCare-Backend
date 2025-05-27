@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from enum import Enum
 
@@ -11,7 +12,7 @@ from pydantic import BaseModel
 
 from src.app import app, cache_handler
 from src.models import User
-from src.utils import Token, TokenHandler
+from src.utils import Token, TokenHandler, log
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
@@ -45,7 +46,7 @@ def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)
         raise HTTPException(status_code=401, detail=str(e))
 
 
-async def stream_users(
+async def stream_data(
     collection: AsyncIOMotorCollection,
     limit: int,
     sort_by: SortBy = SortBy.CREATED_AT,
@@ -55,12 +56,12 @@ async def stream_users(
 
     cursor = collection.find().sort(sort_by.value, sort_order_value).limit(limit)
 
-    async def user_generator():
-        async for user in cursor:
-            user["id"] = str(user["_id"])
-            yield user
+    async def data_generator():
+        async for data in cursor:
+            data["id"] = str(data.pop("_id", None))
+            yield json.dumps(data) + "\n"
 
-    return StreamingResponse(user_generator(), media_type="application/json")
+    return StreamingResponse(data_generator(), media_type="application/json")
 
 
 @router.post("/login")
@@ -68,9 +69,7 @@ async def login(request: Request, credentials: Credentials):
     if credentials.email_address != "admin@momcare.site":
         raise HTTPException(status_code=403, detail="Access denied")
 
-    user_data = await cache_handler.users_collection.find_one(
-        {"email_address": credentials.email_address, "password": credentials.password}
-    )
+    user_data = await cache_handler.users_collection.find_one({"email_address": credentials.email_address, "password": credentials.password})
     if not user_data:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -83,25 +82,45 @@ async def login(request: Request, credentials: Credentials):
 @router.get("/users")
 async def get_all_users(
     request: Request,
-    limit: int,
+    limit: int = 10,
     sort_by: SortBy = SortBy.CREATED_AT,
     sort_order: SortOrder = SortOrder.DESCENDING,
     token: Token = Depends(get_user_token),
 ):
     collection: AsyncIOMotorCollection = cache_handler.users_collection
-    return await stream_users(collection, limit, sort_by, sort_order)
+    return await stream_data(collection, limit, sort_by, sort_order)
+
+
+@router.get("/users/metadata")
+async def get_users_collection_metadata():
+    collection = cache_handler.users_collection
+    documents = await collection.count_documents({})
+    size = await collection.estimated_document_count()
+    name = collection.name
+
+    return {"documents": documents, "size": size, "name": name}
 
 
 @router.get("/foods")
 async def get_all_foods(
     request: Request,
-    limit: int,
+    limit: int = 10,
     sort_by: SortBy = SortBy.CREATED_AT,
     sort_order: SortOrder = SortOrder.DESCENDING,
     token: Token = Depends(get_user_token),
 ):
     collection: AsyncIOMotorCollection = cache_handler.foods_collection
-    return await stream_users(collection, limit, sort_by, sort_order)
+    return await stream_data(collection, limit, sort_by, sort_order)
+
+
+@router.get("/foods/metadata")
+async def get_foods_collection_metadata():
+    collection = cache_handler.foods_collection
+    documents = await collection.count_documents({})
+    size = await collection.estimated_document_count()
+
+    name = collection.name
+    return {"documents": documents, "size": size, "name": name}
 
 
 @router.get("/users/{user_id}")
@@ -120,6 +139,11 @@ async def get_food_by_id(food_id: str, token: Token = Depends(get_user_token)):
         raise HTTPException(status_code=404, detail="Food not found")
 
     return food
+
+
+@router.get("/logs")
+async def get_logs():
+    return log.log.recent_logs
 
 
 app.include_router(router)

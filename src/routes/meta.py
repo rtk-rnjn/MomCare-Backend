@@ -53,7 +53,11 @@ async def get_ping(request: Request):
     end_time = perf_counter()
     mongo_ping = end_time - start_time
 
-    return {"ping": "pong", "redis": redis_ping, "mongo": mongo_ping}
+    return {
+        "ping": "pong",
+        # "redis": redis_ping,
+        # "mongo": mongo_ping,
+    }
 
 
 app.include_router(router, prefix="/meta", tags=["Meta"])
