@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from src.app import app, cache_handler
 from src.models import User
-from src.utils import Token, TokenHandler, log
+from src.utils import TokenHandler, log
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
@@ -36,10 +36,14 @@ class Credentials(BaseModel):
     password: str
 
 
-def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+ADMIN_EMAIL = os.environ["ADMIN_EMAIL"]
+ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
+
+
+def get_admin_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         token = token_handler.decode_token(credentials.credentials)
-        if token and token.sub != "admin@momcare.site":
+        if token and token.sub != ADMIN_EMAIL:
             raise HTTPException(status_code=403, detail="Access denied")
         return token
     except Exception as e:
@@ -47,14 +51,16 @@ def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)
 
 
 async def stream_data(
+    *,
     collection: AsyncIOMotorCollection,
     limit: int,
+    offset: int = 0,
     sort_by: SortBy = SortBy.CREATED_AT,
     sort_order: SortOrder = SortOrder.DESCENDING,
 ):
     sort_order_value = 1 if sort_order == SortOrder.ASCENDING else -1
 
-    cursor = collection.find().sort(sort_by.value, sort_order_value).limit(limit)
+    cursor = collection.find().sort(sort_by.value, sort_order_value).limit(limit).skip(offset)
 
     async def data_generator():
         async for data in cursor:
@@ -66,29 +72,32 @@ async def stream_data(
 
 @router.post("/login")
 async def login(request: Request, credentials: Credentials):
-    if credentials.email_address != "admin@momcare.site":
+    if credentials.email_address != ADMIN_EMAIL or credentials.password != ADMIN_PASSWORD:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    user_data = await cache_handler.users_collection.find_one({"email_address": credentials.email_address, "password": credentials.password})
-    if not user_data:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    user = User(**user_data)
+    user = User(id=ADMIN_EMAIL, first_name="MomCare", last_name="Admin", email_address=ADMIN_EMAIL, password=ADMIN_PASSWORD)
     token = token_handler.create_access_token(user)
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {"token": token}
 
 
-@router.get("/users")
+@router.get("/users", dependencies=[Depends(get_admin_token)])
 async def get_all_users(
-    request: Request,
     limit: int = 10,
+    offset: int = 0,
     sort_by: SortBy = SortBy.CREATED_AT,
     sort_order: SortOrder = SortOrder.DESCENDING,
-    token: Token = Depends(get_user_token),
 ):
     collection: AsyncIOMotorCollection = cache_handler.users_collection
-    return await stream_data(collection, limit, sort_by, sort_order)
+    return await stream_data(collection=collection, limit=limit, offset=offset, sort_by=sort_by, sort_order=sort_order)
+
+
+@router.get("/users/search", dependencies=[Depends(get_admin_token)])
+async def search_user_by_email(email_address: str):
+    collection: AsyncIOMotorCollection = cache_handler.users_collection
+    query = {"email_address": {"$regex": email_address, "$options": "i"}}
+
+    return await collection.find_one(query)
 
 
 @router.get("/users/metadata")
@@ -101,16 +110,15 @@ async def get_users_collection_metadata():
     return {"documents": documents, "size": size, "name": name}
 
 
-@router.get("/foods")
+@router.get("/foods", dependencies=[Depends(get_admin_token)])
 async def get_all_foods(
-    request: Request,
     limit: int = 10,
+    offset: int = 0,
     sort_by: SortBy = SortBy.CREATED_AT,
     sort_order: SortOrder = SortOrder.DESCENDING,
-    token: Token = Depends(get_user_token),
 ):
     collection: AsyncIOMotorCollection = cache_handler.foods_collection
-    return await stream_data(collection, limit, sort_by, sort_order)
+    return await stream_data(collection=collection, limit=limit, offset=offset, sort_by=sort_by, sort_order=sort_order)
 
 
 @router.get("/foods/metadata")
@@ -123,27 +131,9 @@ async def get_foods_collection_metadata():
     return {"documents": documents, "size": size, "name": name}
 
 
-@router.get("/users/{user_id}")
-async def get_user_by_id(user_id: str, token: Token = Depends(get_user_token)):
-    user = await cache_handler.get_user(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return user
-
-
-@router.get("/foods/{food_id}")
-async def get_food_by_id(food_id: str, token: Token = Depends(get_user_token)):
-    food = await cache_handler.get_food(food_id)
-    if not food:
-        raise HTTPException(status_code=404, detail="Food not found")
-
-    return food
-
-
-@router.get("/logs")
+@router.get("/logs", dependencies=[Depends(get_admin_token)])
 async def get_logs():
     return log.log.recent_logs
 
 
-app.include_router(router)
+app.include_router(router, include_in_schema=False)
