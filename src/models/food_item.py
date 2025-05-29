@@ -24,4 +24,3 @@ class FoodItem(BaseModel):
 
     consumed: Optional[bool] = False
     quantity: Optional[float] = None
-    consumed_at: Optional[str] = None

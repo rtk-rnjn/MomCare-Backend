@@ -10,7 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from src.app import app, cache_handler, genai_handler
-from src.models.myplan import MyPlan
+from src.models import MyPlan
 from src.utils import S3, ImageGeneratorHandler, Token, TokenHandler
 
 if TYPE_CHECKING:
@@ -123,39 +123,6 @@ async def get_directories(path: str):
     directories = await s3_client.list_folder(prefix=path)
 
     return directories
-
-@router.get("/tunes/{tune_type}/{category}/{file_name}")
-async def get_tune_link(tune_type: str, category: str, file_name: str):
-    path = f"Tunes/{tune_type}/{file_name}"
-    # TODO: Yes i know
-
-    link = await s3_client.get_presigned_url(file_name=path)
-    expiry_at = await cache_handler.get_key_expiry(key=f"file:{path}")
-
-    if not link:
-        raise HTTPException(status_code=502, detail="Unable to generate link")
-
-    return S3Response(
-        link=link,
-        link_expiry_at=expiry_at,
-    )
-
-
-@router.get("/tunes/{tune_type}")
-async def get_tune_list(tune_type: str):
-    directories = await s3_client.list_files(prefix=f"Tunes/{tune_type}/")
-    if not directories:
-        raise HTTPException(status_code=404, detail="No tunes found")
-
-    files = []
-
-    for directory in directories:
-        d = directory.split("/")
-        file = d[-1]
-        if file and file.endswith(".mp3"):
-            files.append(file)
-
-    return files
 
 
 app.include_router(router)

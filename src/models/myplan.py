@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pytz import timezone
 
 from .food_item import FoodItem
@@ -21,7 +21,7 @@ class MyPlan(BaseModel):
     dinner: List[FoodItem] = []
     snacks: List[FoodItem] = []
 
-    created_at: datetime = datetime.now(timezone("Asia/Kolkata"))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
 
     def is_empty(self) -> bool:
         return not any([self.breakfast, self.lunch, self.dinner, self.snacks])

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from pytz import timezone
 
 from .enums import (
@@ -59,7 +59,7 @@ class User(BaseModel):
     history: List[History] = []
 
     # Server stuff
-    created_at: datetime = datetime.now(timezone("Asia/Kolkata"))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
     last_login: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     last_login_ip: Optional[str] = None
