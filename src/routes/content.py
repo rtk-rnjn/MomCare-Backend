@@ -77,20 +77,52 @@ async def get_tips(token: Token = Depends(get_user_token)):
 
     return await genai_handler.generate_tips(user)
 
-@router.get("/<path:path>")
+@router.get("/s3/file/{path:path}")
 async def get_file(path: str):
     if not path:
         raise HTTPException(status_code=404, detail="File not found")
 
-    str = await s3_client.get_presigned_url(path)
+    link = await s3_client.get_presigned_url(path)
 
     if not any(path.endswith(ext) for ext in VALID_INPUTS):
         raise HTTPException(status_code=400, detail="Invalid file type")
 
+    if link is None:
+        raise HTTPException(status_code=502, detail="Unable to generate link")
+
     return S3Response(
-        link=str,
+        link=link,
         link_expiry_at=await cache_handler.get_key_expiry(key=f"file:{path}"),
     )
+
+@router.get("/s3/files/{path:path}")
+async def get_files(path: str):
+    if not path:
+        raise HTTPException(status_code=404, detail="Path not found")
+
+    directories = await s3_client.list_files(prefix=path)
+
+    if not directories:
+        raise HTTPException(status_code=404, detail="No files found")
+
+    files = []
+
+    for directory in directories:
+        d = directory.split("/")
+        file = d[-1]
+        if file and any(file.endswith(ext) for ext in VALID_INPUTS):
+            files.append(file)
+
+    return files
+
+@router.get("/s3/directories/{path:path}")
+async def get_directories(path: str):
+    if not path:
+        raise HTTPException(status_code=404, detail="Path not found")
+
+    directories = await s3_client.list_folder(prefix=path)
+
+    return directories
 
 @router.get("/tunes/{tune_type}/{category}/{file_name}")
 async def get_tune_link(tune_type: str, category: str, file_name: str):
