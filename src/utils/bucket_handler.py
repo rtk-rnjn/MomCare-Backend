@@ -36,10 +36,6 @@ class S3:
         self.cache_handler = cache_handler
 
     async def get_presigned_url(self, file_name: str) -> Optional[str]:
-        link = await self.cache_handler.get_file_link(file_name=file_name)
-        if link:
-            return link
-
         try:
             response = await asyncio.to_thread(
                 self.s3_client.generate_presigned_url,
@@ -47,9 +43,6 @@ class S3:
                 Params={"Bucket": self.bucket_name, "Key": file_name},
                 ExpiresIn=1 * 60 * 60,  # 1 hour
             )
-            if response:
-                await self.cache_handler.set_file_link(file_name=file_name, file_link=response)
-                return response
             return response
 
         except Exception:

@@ -352,24 +352,6 @@ class CacheHandler(_CacheHandler):
         self.log.warning("Tips not found for user id: %s", user_id)
         return None
 
-    async def get_file_link(self, *, file_name: str) -> Optional[str]:
-        self.log.debug("Getting file link for file: %s", file_name)
-        file_link = await self.redis_client.get(f"file:{file_name}")
-        if file_link:
-            self.log.info("File link found for: %s", file_name)
-            return file_link
-
-        self.log.warning("File link not found for: %s", file_name)
-        return None
-
-    async def set_file_link(self, *, file_name: str, file_link: str) -> None:
-        self.log.debug("Setting file link for file: %s", file_name)
-        await self.redis_client.set(f"file:{file_name}", file_link, ex=3600)  # type: ignore
-
-    async def delete_file_link(self, *, file_name: str) -> None:
-        self.log.debug("Deleting file link for file: %s", file_name)
-        await self.redis_client.delete(f"file:{file_name}")  # type: ignore
-
     async def set_exercise(self, *, user_id: str, exercise: BaseModel) -> None:
         self.log.debug("Setting exercise for user id: %s", user_id)
         expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
