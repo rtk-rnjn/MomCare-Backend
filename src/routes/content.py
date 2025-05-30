@@ -10,7 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from src.app import app, cache_handler, genai_handler
-from src.models import MyPlan
+from src.models import MyPlan, Song, SongMetadata
 from src.utils import S3, ImageGeneratorHandler, Token, TokenHandler
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials =
 
 router = APIRouter(prefix="/content", tags=["Content"])
 VALID_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif"]
-VALID_VIDEO_EXTENSIONS = [".mp4", ".avi", ".mov"]
+VALID_VIDEO_EXTENSIONS = [".mp4", ".avi", ".mov", ".mp3"]
 VALID_INPUTS = VALID_IMAGE_EXTENSIONS + VALID_VIDEO_EXTENSIONS
 
 
@@ -102,18 +102,7 @@ async def get_files(path: str):
 
     directories = await s3_client.list_files(prefix=path)
 
-    if not directories:
-        raise HTTPException(status_code=404, detail="No files found")
-
-    files = []
-
-    for directory in directories:
-        d = directory.split("/")
-        file = d[-1]
-        if file and any(file.endswith(ext) for ext in VALID_INPUTS):
-            files.append(file)
-
-    return files
+    return directories
 
 @router.get("/s3/directories/{path:path}")
 async def get_directories(path: str):
@@ -123,6 +112,23 @@ async def get_directories(path: str):
     directories = await s3_client.list_folder(prefix=path)
 
     return directories
+
+@router.get("/s3/song/{path:path}")
+async def get_song(path: str):
+    if not path.endswith(tuple(VALID_VIDEO_EXTENSIONS)):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    link = await s3_client.get_presigned_url(path)
+
+    if link is None:
+        raise HTTPException(status_code=502, detail="Unable to generate link")
+
+    metadata = await cache_handler.get_song_metadata(key=path)
+
+    return Song(
+        uri=link,
+        metadata=SongMetadata(**metadata) if metadata else None,
+    )
 
 
 app.include_router(router)

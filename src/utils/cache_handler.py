@@ -126,7 +126,7 @@ class CacheHandler(_CacheHandler):
         self.mongo_client = mongo_client
         self.users_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["users"]
         self.foods_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["foods"]
-        self.log.info("CacheHandler initialized with Redis and MongoDB clients")
+        self.misc_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["misc"]
 
     async def get_user(
         self,
@@ -401,6 +401,33 @@ class CacheHandler(_CacheHandler):
             return datetime.now(timezone("UTC")) + timedelta(seconds=ttl)
 
         self.log.warning("Key expiry not found for key: %s", key)
+        return None
+
+    async def get_song_metadata(self, *, key: str) -> Optional[dict]:
+        self.log.debug("Getting song metadata for key: %s", key)
+        metadata = await self.redis_client.get(f"song_metadata:{key}")
+        if metadata:
+            self.log.info("Song metadata found for key: %s", key)
+            return json.loads(metadata)
+        
+        self.log.info("Song metadata not found in Redis for key: %s. Querying MongoDB...", key)
+        song_metadata = await self.misc_collection.find_one(
+            {
+                "$or": [
+                    {"filepath": key},
+                    {"title": key},
+                    {"artist": key},
+                ]
+            },
+            {"_id": 0, "filepath": 1, "title": 1, "artist": 1, "duration": 1},
+        )
+
+        if song_metadata:
+            self.log.info("Song metadata found in MongoDB for key: %s", key)
+            await self.redis_client.set(f"song_metadata:{key}", json.dumps(song_metadata))
+            return song_metadata
+
+        self.log.warning("Song metadata not found for key: %s", key)
         return None
 
     @staticmethod
