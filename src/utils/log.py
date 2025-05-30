@@ -11,7 +11,9 @@ from pytz import timezone
 filehandler = logging.handlers.RotatingFileHandler(
     "logs/log.log",
     maxBytes=1024 * 1024 * 5,
-    mode="a",
+    mode="w",
+    backupCount=5,
+    encoding="utf-8",
 )
 filehandler.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s")
