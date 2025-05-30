@@ -409,7 +409,7 @@ class CacheHandler(_CacheHandler):
         if metadata:
             self.log.info("Song metadata found for key: %s", key)
             return json.loads(metadata)
-        
+
         self.log.info("Song metadata not found in Redis for key: %s. Querying MongoDB...", key)
         song_metadata = await self.misc_collection.find_one(
             {

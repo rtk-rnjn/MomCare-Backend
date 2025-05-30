@@ -46,12 +46,12 @@ async def get_ping(request: Request):
     await redis_client.ping()
     end_time = perf_counter()
 
-    redis_ping = end_time - start_time
+    end_time - start_time
 
     start_time = perf_counter()
     await mongo_client.admin.command("ping")
     end_time = perf_counter()
-    mongo_ping = end_time - start_time
+    end_time - start_time
 
     return {
         "ping": "pong",

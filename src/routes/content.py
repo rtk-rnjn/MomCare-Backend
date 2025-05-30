@@ -77,6 +77,7 @@ async def get_tips(token: Token = Depends(get_user_token)):
 
     return await genai_handler.generate_tips(user)
 
+
 @router.get("/s3/file/{path:path}")
 async def get_file(path: str):
     if not path:
@@ -95,6 +96,7 @@ async def get_file(path: str):
         link_expiry_at=await cache_handler.get_key_expiry(key=f"file:{path}"),
     )
 
+
 @router.get("/s3/files/{path:path}")
 async def get_files(path: str):
     if not path:
@@ -104,6 +106,7 @@ async def get_files(path: str):
 
     return directories
 
+
 @router.get("/s3/directories/{path:path}")
 async def get_directories(path: str):
     if not path:
@@ -112,6 +115,7 @@ async def get_directories(path: str):
     directories = await s3_client.list_folder(prefix=path)
 
     return directories
+
 
 @router.get("/s3/song/{path:path}")
 async def get_song(path: str):

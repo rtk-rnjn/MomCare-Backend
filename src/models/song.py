@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
+
+
 class Song(BaseModel):
     uri: str
     image_uri: Optional[str] = None
