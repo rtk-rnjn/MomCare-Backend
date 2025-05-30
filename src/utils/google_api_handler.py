@@ -170,7 +170,7 @@ class GoogleAPIHandler:
             if response:
                 return _TempMyPlan(**json.loads(response.text or "{}"))
         except Exception as e:
-            self.log.exception("Error generating plan with Gemini API: %s" % str(e), exc_info=True)
+            self.log.error("Error generating plan with Gemini API: %s" % str(e), exc_info=True)
 
         return None
 
@@ -237,7 +237,7 @@ class GoogleAPIHandler:
             return image_link
 
         except Exception as e:
-            self.log.exception("Error fetching image for '%s': %s" % (food_name, str(e)), exc_info=True)
+            self.log.error("Error fetching image for '%s': %s" % (food_name, str(e)), exc_info=True)
 
         pixel_image_uri = await self.image_generator_handler.search_image(food_name=food_name)
         if pixel_image_uri:
@@ -250,13 +250,19 @@ class GoogleAPIHandler:
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"
         SYSTEM_INSTRUCTION += "Avoid general advice; make it specific to pregnancy week progress.\n"
 
+        user_data = user.model_dump(mode="json")
+
+        user_data.pop("history", None)
+        user_data.pop("plan", None)
+        user_data.pop("mood_history", None)
+
         try:
             response = self.client.models.generate_content(
                 model="gemini-2.0-flash-001",
                 contents=[
                     Content(
                         parts=[
-                            Part.from_text(text="User Data: {}".format(user.model_dump(mode="json"))),
+                            Part.from_text(text="User Data: {}".format(user_data)),
                             Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
                         ]
                     )
@@ -274,12 +280,12 @@ class GoogleAPIHandler:
                 return tips
 
         except Exception as e:
-            self.log.exception("Error generating tips: %s" % str(e), exc_info=True)
+            self.log.error("Error generating tips: %s" % str(e), exc_info=True)
 
         return None
 
     async def _get_exercise(self, user: User):
-        SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant women do today.\n"
+        SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant woman do today.\n"
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
 
         SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format(
@@ -310,7 +316,7 @@ class GoogleAPIHandler:
                 return exercise
 
         except Exception as e:
-            self.log.exception("Error generating exercise: %s" % str(e), exc_info=True)
+            self.log.error("Error generating exercise: %s" % str(e), exc_info=True)
         return None
 
     async def get_exercise(self, user: User):
