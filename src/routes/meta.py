@@ -42,16 +42,6 @@ async def get_version(request: Request):
 
 @router.get("/ping")
 async def get_ping(request: Request):
-    start_time = perf_counter()
-    await redis_client.ping()
-    end_time = perf_counter()
-
-    end_time - start_time
-
-    start_time = perf_counter()
-    await mongo_client.admin.command("ping")
-    end_time = perf_counter()
-    end_time - start_time
 
     return {
         "ping": "pong",

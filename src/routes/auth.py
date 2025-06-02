@@ -8,9 +8,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from pymongo import UpdateOne
 
-from src.app import app, cache_handler
+from src.app import app, cache_handler, token_handler
 from src.models import User
-from src.utils import Token, TokenHandler
+from src.utils import Token
 
 
 class ServerResponse(BaseModel):
@@ -31,7 +31,6 @@ class UpdateResponse(BaseModel):
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-token_handler = TokenHandler(os.environ["JWT_SECRET"])
 security = HTTPBearer()
 
 
@@ -41,7 +40,7 @@ def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)
 
 @router.post("/register", response_model=ServerResponse)
 async def register_user(request: Request, user: User) -> ServerResponse:
-    _user = await cache_handler.get_user(user.id)
+    _user = await cache_handler.user_exists(email_address=user.email_address)
     if _user:
         raise HTTPException(status_code=400, detail="User already exists")
 
@@ -50,7 +49,7 @@ async def register_user(request: Request, user: User) -> ServerResponse:
     user.updated_at = current_time
     user.last_login = current_time
 
-    sendable = user.model_dump(mode="json")
+    sendable = user.model_dump()
     sendable["_id"] = str(user.id)
     sendable["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
@@ -111,11 +110,12 @@ async def refresh_token(credentials: ClientRequest) -> ServerResponse:
 async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
     user_id = token.sub
 
-    user_data.pop("id", None)
     user_data.pop("created_at", None)
-    user_data.pop("_id", None)
+    assert user_id == (user_data.get("id") or user_data.get("_id")), "User ID mismatch"
 
-    await cache_handler.update_user(user_id=user_id, update_data=user_data)
+    user = User(**user_data)
+
+    await cache_handler.update_user(user_id=user_id, updated_user=user)
 
     return UpdateResponse(
         success=True,

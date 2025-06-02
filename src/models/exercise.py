@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import List
 
-from pydantic import BaseModel
-
-from .enums import DifficultyType, ExerciseType
+from pydantic import BaseModel, Field
+from pytz import timezone
 
 __all__ = ("Exercise",)
 
@@ -15,12 +15,15 @@ class Exercise(BaseModel):
     """
 
     name: str
-    exercise_type: ExerciseType = ExerciseType.YOGA
+    exercise_type: str = "Yoga"
     duration: float
     description: str = ""
     tags: List[str] = []
 
-    level: DifficultyType
+    level: str = "Beginner"
 
-    exercise_image_uri: str
     duration_completed: float
+
+    assigned_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone("Asia/Kolkata")),
+    )

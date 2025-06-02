@@ -18,7 +18,7 @@ class Token(BaseModel):
     sub: str
     email: str
     name: str
-    iat: int = int(datetime.now(timezone("UTC")).timestamp())
+    iat: int = int(datetime.now(timezone("Asia/Kolkata")).timestamp())
     exp: int
 
 
@@ -26,7 +26,6 @@ class TokenHandler:
     def __init__(self, secret: str, algorithm: str = "HS256"):
         self.secret = secret
         self.algorithm = algorithm
-        log.info("TokenHandler initialized with algorithm: %s", algorithm)
 
     def create_access_token(self, user: User, expire_in: int = 360) -> str:
         log.debug("Creating access token for user: %s", user.id)
@@ -34,7 +33,7 @@ class TokenHandler:
             sub=user.id,
             email=user.email_address,
             name="%s %s" % (user.first_name, user.last_name),
-            exp=int((datetime.now(timezone("UTC")) + timedelta(seconds=expire_in)).timestamp()),
+            exp=int((datetime.now(timezone("Asia/Kolkata")) + timedelta(seconds=expire_in)).timestamp()),
         )
         token = jwt.encode(dict(payload), self.secret, algorithm=self.algorithm)
         log.info("Access token created for user: %s", user.id)
@@ -60,5 +59,5 @@ class TokenHandler:
             log.info("Token successfully decoded")
             return Token(**decoded)
         except jwt.InvalidTokenError:
-            log.exception("Token decoding failed due to invalid token", exc_info=True)
-            raise
+            log.error("Token decoding failed due to invalid token", exc_info=True)
+            return None

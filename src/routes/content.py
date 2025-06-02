@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
@@ -9,14 +8,13 @@ from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
-from src.app import app, cache_handler, genai_handler
+from src.app import app, cache_handler, genai_handler, token_handler
 from src.models import MyPlan, Song, SongMetadata
-from src.utils import S3, ImageGeneratorHandler, Token, TokenHandler
+from src.utils import S3, ImageGeneratorHandler, Token
 
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator
 
-token_handler = TokenHandler(os.environ["JWT_SECRET"])
 security = HTTPBearer()
 s3_client = S3(cache_handler=cache_handler)
 image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)

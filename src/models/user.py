@@ -6,13 +6,6 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 from pytz import timezone
 
-from .enums import (
-    Country,
-    DietaryPreference,
-    Intolerance,
-    MoodType,
-    PreExistingCondition,
-)
 from .exercise import Exercise
 from .myplan import MyPlan
 
@@ -20,17 +13,15 @@ __all__ = ("User", "UserMedical", "History", "MoodHistory")
 
 
 class MoodHistory(BaseModel):
-    date: datetime = datetime.now(timezone("Asia/Kolkata"))
-    mood: MoodType
+    date: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
+    mood: str
 
 
 class History(BaseModel):
-    date: datetime = datetime.now(timezone("Asia/Kolkata"))
+    date: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
     plan: Optional[MyPlan] = None
     exercises: List[Exercise] = []
     moods: List[MoodHistory] = []
-
-    created_at: datetime = datetime.now(timezone("Asia/Kolkata"))
 
     class Config:
         json_encoders = {
@@ -46,7 +37,7 @@ class User(BaseModel):
     password: str
 
     country_code: str = "91"
-    country: Country = Country.INDIA
+    country: str = "India"
 
     phone_number: str = ""
 
@@ -54,7 +45,7 @@ class User(BaseModel):
 
     mood_history: List[MoodHistory] = []
     exercises: List[Exercise] = []
-    plan: MyPlan = MyPlan()
+    plan: Optional[MyPlan] = MyPlan()
 
     history: List[History] = []
 
@@ -78,9 +69,9 @@ class UserMedical(BaseModel):
     pre_pregnancy_weight: float
     current_weight: float
     due_date: Optional[datetime] = None
-    pre_existing_conditions: List[PreExistingCondition] = []
-    food_intolerances: List[Intolerance] = []
-    dietary_preferences: List[DietaryPreference] = []
+    pre_existing_conditions: List[str] = []
+    food_intolerances: List[str] = []
+    dietary_preferences: List[str] = []
 
     class Config:
         json_encoders = {

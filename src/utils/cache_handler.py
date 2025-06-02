@@ -10,9 +10,7 @@ from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
 from pytz import all_timezones_set, timezone
 
-from src.models import MoodHistory, MoodType, User
-from src.models.food_item import FoodItem
-from src.models.myplan import MyPlan
+from src.models import FoodItem, History, MoodHistory, MyPlan, User
 
 if TYPE_CHECKING:
     from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
@@ -186,6 +184,23 @@ class CacheHandler(_CacheHandler):
         self.log.warning("User not found in MongoDB for email: %s", email)
         return None
 
+    async def user_exists(self, *, email_address: str) -> bool:
+        self.log.debug("Checking if user exists with email: %s", email_address)
+        user_id = await self.redis_client.get(f"user:by_email:{email_address}")
+        if user_id:
+            self.log.info("User exists in Redis for email: %s", email_address)
+            return True
+
+        self.log.info("Checking MongoDB for user with email: %s", email_address)
+        user = await self.users_collection.find_one({"email_address": email_address})
+        if user:
+            self.log.debug("User found in MongoDB for email: %s", email_address)
+            await self.set_user(user=User(**user))
+            return True
+
+        self.log.warning("User not found for email: %s", email_address)
+        return False
+
     async def set_user(self, *, user: User):
         self.log.debug("Setting user in Redis with id: %s", user.id)
         await self.redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=3600)
@@ -232,12 +247,12 @@ class CacheHandler(_CacheHandler):
         await self.set_user(user=User(**user))
 
     async def set_plan(self, *, user_id: str, plan: BaseModel) -> None:
-        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        expiration = datetime.now(timezone("Asia/Kolkata")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         self.log.debug("Setting plan in Redis for user id: %s", user_id)
         await self.redis_client.set(
             "plan:%s" % user_id,
             plan.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
+            ex=int(expiration.timestamp() - datetime.now(timezone("Asia/Kolkata")).timestamp()),
         )
         update_operation = UpdateOne(
             {"_id": user_id},
@@ -274,7 +289,7 @@ class CacheHandler(_CacheHandler):
         *,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        mood: Optional[MoodType] = None,
+        mood: Optional[str] = None,
     ) -> List[MoodHistory]:
         # TODO: Implement filtering based on start_date, end_date, and mood
         self.log.debug("Getting mood history for user id: %s", user_id)
@@ -284,12 +299,12 @@ class CacheHandler(_CacheHandler):
             return []
         return []
 
-    async def update_user(self, *, user_id: str, update_data: dict) -> None:
+    async def update_user(self, *, user_id: str, updated_user: BaseModel) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
-        await self._update_user_cache(user_id=user_id, update_data=update_data)
+        await self._update_user_cache(user_id=user_id, update_data=updated_user.model_dump(mode="json"))
         update_operation = UpdateOne(
             {"_id": user_id},
-            {"$set": update_data},
+            {"$set": updated_user.model_dump()},
         )
         await self.users_collection_operations.put(update_operation)
 
@@ -297,14 +312,13 @@ class CacheHandler(_CacheHandler):
         user = await self.get_user(user_id=user_id)
         if not user:
             return
-
         self.log.debug("Updating user cache for id: %s", user_id)
-
         self.log.debug("User: %s data before update: %s", user_id, user.model_dump(mode="json"))
+
         user_data = user.model_dump(mode="json")
         user_data.update(update_data)
-        self.log.debug("User: %s data after update: %s", user_id, user_data)
 
+        self.log.debug("User: %s data after update: %s", user_id, user_data)
         self.log.debug("Setting updated user data in Redis for id: %s", user_id)
 
         plan_data = update_data.get("plan")
@@ -330,11 +344,11 @@ class CacheHandler(_CacheHandler):
 
     async def set_tips(self, *, user_id: str, tips: BaseModel) -> None:
         self.log.debug("Setting tips for user id: %s", user_id)
-        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        expiration = datetime.now(timezone("Asia/Kolkata")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         await self.redis_client.set(
             f"tips:{user_id}",
             tips.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
+            ex=int(expiration.timestamp() - datetime.now(timezone("Asia/Kolkata")).timestamp()),
         )
         self.log.info(
             "Tips set in Redis for user id: %s with data: %s",
@@ -354,11 +368,11 @@ class CacheHandler(_CacheHandler):
 
     async def set_exercise(self, *, user_id: str, exercise: BaseModel) -> None:
         self.log.debug("Setting exercise for user id: %s", user_id)
-        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        expiration = datetime.now(timezone("Asia/Kolkata")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         await self.redis_client.set(
             f"exercise:{user_id}",
             exercise.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
+            ex=int(expiration.timestamp() - datetime.now(timezone("Asia/Kolkata")).timestamp()),
         )
         self.log.info(
             "Exercise set in Redis for user id: %s with data: %s",
@@ -380,7 +394,7 @@ class CacheHandler(_CacheHandler):
         ttl = await self.redis_client.ttl(key)
         if ttl is not None:
             self.log.info("Key expiry found for key: %s with ttl: %s", key, ttl)
-            return datetime.now(timezone("UTC")) + timedelta(seconds=ttl)
+            return datetime.now(timezone("Asia/Kolkata")) + timedelta(seconds=ttl)
 
         self.log.warning("Key expiry not found for key: %s", key)
         return None
@@ -415,39 +429,50 @@ class CacheHandler(_CacheHandler):
     @staticmethod
     async def background_worker(google_api_handler: GoogleAPIHandler):
         collection = google_api_handler.cache_handler.mongo_client["MomCare"]["users"]
-        UTC_NOW = datetime.now(timezone("UTC"))
+        now = datetime.now(timezone("Asia/Kolkata"))
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        async for user in collection.find({}):
-            user_timezone = user.get("timezone", "Asia/Kolkata")
+        def is_old(date: datetime) -> bool:
+            native_date = date.astimezone(timezone("Asia/Kolkata"))
+            return native_date < midnight
 
-            if user_timezone not in all_timezones_set:
-                await asyncio.sleep(0)
-                continue
+        async for user_data in collection.find({}):
+            user = User(**user_data)
 
-            user_tz = timezone(user_timezone)
-            user_now = UTC_NOW.replace(tzinfo=timezone("UTC")).astimezone(user_tz)
+            history = History()
+            moods = []
+            for mood in user.mood_history:
+                if is_old(mood.date):
+                    moods.append(mood)
 
-            if not (user_now.hour == 0 and user_now.minute == 0):
-                continue
+            history.moods = moods
 
-            history_entry = {
-                "date": user_now,
-                "plan": user.get("plan"),
-                "exercises": user.get("exercises", []),
-                "moods": user.get("mood_history", []),
-            }
+            if user.plan and is_old(user.plan.created_at):
+                history.plan = user.plan
 
-            update_one_operation = UpdateOne(
-                {"_id": user["_id"]},
-                {
-                    "$set": {
-                        "mood_history": [],
-                        "exercises": [],
-                        "plan": await google_api_handler.generate_plan(user=user, force_create=True),
+            exercises = []
+            for exercise in user.exercises:
+                if is_old(exercise.assigned_at):
+                    exercises.append(exercise)
+
+            history.exercises = exercises
+
+            update_payload = {
+                "$addToSet": {
+                    "history": history.model_dump(),
+                },
+                "$pull": {
+                    "mood_history": {
+                        "date": {"$lt": midnight},
                     },
-                    "$addToSet": {
-                        "history": history_entry,
+                    "exercises": {
+                        "assigned_at": {"$lt": midnight},
                     },
                 },
-            )
-            await _CacheHandler.users_collection_operations.put(update_one_operation)
+                "$set": {
+                    "plan": MyPlan().model_dump(),
+                    "updated_at": now,
+                },
+            }
+
+            await collection.update_one({"_id": user.id}, update_payload)

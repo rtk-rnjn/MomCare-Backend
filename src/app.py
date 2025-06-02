@@ -10,7 +10,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 
-from src.utils import CacheHandler, GoogleAPIHandler
+from src.utils import CacheHandler, GoogleAPIHandler, TokenHandler
 
 load_dotenv()
 
@@ -59,5 +59,6 @@ app.add_middleware(
     allowed_hosts=["*"],
 )
 
+token_handler = TokenHandler(os.environ["JWT_SECRET"])
 
 from .routes import *  # noqa: E402, F401, F403

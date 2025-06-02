@@ -288,9 +288,7 @@ class GoogleAPIHandler:
         SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant woman do today.\n"
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
 
-        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format(
-            [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
-        )
+        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format([YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS])
 
         try:
             response = self.client.models.generate_content(
