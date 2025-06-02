@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
-from pytz import all_timezones_set, timezone
+from pytz import timezone
 
 from src.models import FoodItem, History, MoodHistory, MyPlan, User
 

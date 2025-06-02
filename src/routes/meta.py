@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from time import perf_counter
-
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
-from src.app import app, mongo_client, redis_client
+from src.app import app
 
 router = APIRouter()
 
