@@ -148,6 +148,10 @@ class GoogleAPIHandler:
         return tips
 
     def _generate_plan(self, user_data: dict) -> Optional[_TempMyPlan]:
+        user_data.pop("history", None)
+        user_data.pop("mood_history", None)
+        user_data.pop("exercises", None)
+
         try:
             response = self.client.models.generate_content(
                 model="gemini-2.0-flash-001",
