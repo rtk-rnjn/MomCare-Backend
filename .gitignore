@@ -174,3 +174,4 @@ cython_debug/
 .pypirc
 test.py
 *.rdb
+.DS_Store
