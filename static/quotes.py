@@ -48,7 +48,7 @@ SAD_QUOTES = [
     "It's normal to feel like your body isn't yours anymore - it's working for both of you now.",
     "You don't have to enjoy every pregnancy symptom to be grateful for your baby.",
     "It's okay to feel unprepared - no one is ever truly ready to become a parent.",
-    "Your love for your baby doesn't have to be constant to be real and powerful."
+    "Your love for your baby doesn't have to be constant to be real and powerful.",
 ]
 
 HAPPY_QUOTES = [

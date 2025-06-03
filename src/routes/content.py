@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
@@ -7,12 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-import random
 
 from src.app import app, cache_handler, genai_handler, token_handler
 from src.models import MyPlan, Song, SongMetadata
 from src.utils import S3, ImageGeneratorHandler, Token
-from static.quotes import SAD_QUOTES, HAPPY_QUOTES, ANGRY_QUOTES, STRESSED_QUOTES
+from static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator
@@ -134,16 +134,13 @@ async def get_song(path: str):
         metadata=SongMetadata(**metadata) if metadata else None,
     )
 
+
 @router.get("/quotes/{mood}")
 async def get_quote(mood: str):
     mood = mood.lower()
-    mapper = {
-        "happy": HAPPY_QUOTES,
-        "sad": SAD_QUOTES,
-        "angry": ANGRY_QUOTES,
-        "stressed": STRESSED_QUOTES
-    }
+    mapper = {"happy": HAPPY_QUOTES, "sad": SAD_QUOTES, "angry": ANGRY_QUOTES, "stressed": STRESSED_QUOTES}
 
     return random.choice(mapper[mood])
+
 
 app.include_router(router)
