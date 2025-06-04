@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 from pytz import timezone
@@ -16,13 +16,16 @@ class Exercise(BaseModel):
 
     name: str
     exercise_type: str = "Yoga"
-    duration: float
+    duration: Optional[float] = None
     description: str = ""
     tags: List[str] = []
 
     level: str = "Beginner"
+    week: str
 
-    duration_completed: float
+    targeted_body_parts: List[str] = []
+
+    duration_completed: float = 0
 
     assigned_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone("Asia/Kolkata")),

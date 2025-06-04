@@ -8,9 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from yt_dlp import YoutubeDL
 
 from src.app import app, cache_handler, genai_handler, token_handler
-from src.models import MyPlan, Song, SongMetadata
+from src.models import Exercise, MyPlan, Song, SongMetadata
 from src.utils import S3, ImageGeneratorHandler, Token
 from static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 
@@ -20,6 +21,13 @@ if TYPE_CHECKING:
 security = HTTPBearer()
 s3_client = S3(cache_handler=cache_handler)
 image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)
+
+ydl_opts = {
+    "format": "bestaudio/best",
+    "quiet": True,
+    "skip_download": True,
+    "forceurl": True,
+}
 
 
 def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -59,6 +67,34 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> 
         raise HTTPException(status_code=404, detail="User not found")
 
     return await genai_handler.generate_plan(user)
+
+
+@router.get("/exercises")
+async def get_exercises(token: Token = Depends(get_user_token)):
+    user_id = token.sub
+
+    user = await cache_handler.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    data = await genai_handler.get_exercises(user)
+    yoga_sets = data.yoga_sets if data else []
+    if not yoga_sets:
+        return []
+
+    sendable = []
+    for yoga_set in yoga_sets:
+        exercise = Exercise(
+            name=yoga_set.name,
+            description=yoga_set.description,
+            level=yoga_set.level,
+            targeted_body_parts=yoga_set.targeted_body_parts,
+            week=yoga_set.week,
+            tags=yoga_set.tags,
+        )
+        sendable.append(exercise)
+
+    return sendable
 
 
 @router.get("/search")
@@ -141,6 +177,28 @@ async def get_quote(mood: str):
     mapper = {"happy": HAPPY_QUOTES, "sad": SAD_QUOTES, "angry": ANGRY_QUOTES, "stressed": STRESSED_QUOTES}
 
     return random.choice(mapper[mood])
+
+
+@router.get("/youtube")
+async def get_youtube_video(request: Request, video_link: str):
+    # Sorry Youtube
+    if not video_link:
+        raise HTTPException(status_code=400, detail="Video link is required")
+
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(video_link, download=False)
+        if not info:
+            raise HTTPException(status_code=404, detail="Video not found")
+
+        video_url = info["url"]
+        title = info.get("title", "Unknown Title")
+        duration = info.get("duration", 0)
+
+    return {
+        "video_url": video_url,
+        "title": title,
+        "duration": duration,
+    }
 
 
 app.include_router(router)

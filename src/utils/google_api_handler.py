@@ -54,12 +54,16 @@ Constraints:
 
 
 class YogaSet(BaseModel):
-    yoga_name: str
-    strength_level: str
-    target_body_part: List[str]
-    benefits: str
+    name: str
+    level: str
+    description: str
+    targeted_body_parts: List[str]
     week: str
     tags: List[str]
+
+
+class YogaSets(BaseModel):
+    yoga_sets: List[YogaSet] = []
 
 
 class _TempMyPlan(BaseModel):
@@ -291,10 +295,14 @@ class GoogleAPIHandler:
     async def _get_exercise(self, user: User):
         SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant woman do today.\n"
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
+        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format([YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS])
 
-        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format(
-            [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
-        )
+        user_data = user.model_dump(mode="json")
+
+        user_data.pop("history", None)
+        user_data.pop("plan", None)
+        user_data.pop("mood_history", None)
+        user_data.pop("exercises", None)
 
         try:
             response = self.client.models.generate_content(
@@ -302,7 +310,7 @@ class GoogleAPIHandler:
                 contents=[
                     Content(
                         parts=[
-                            Part.from_text(text="User Data: {}".format(user.model_dump(mode="json"))),
+                            Part.from_text(text="User Data: {}".format(user_data)),
                             Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
                         ]
                     )
@@ -310,12 +318,12 @@ class GoogleAPIHandler:
                 config=GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTION,
                     response_mime_type="application/json",
-                    response_schema=YogaSet,
+                    response_schema=YogaSets,
                 ),
             )
 
             if response:
-                exercise = YogaSet(**json.loads(response.text or "{}"))
+                exercise = YogaSets(**json.loads(response.text or "{}"))
                 await self.cache_handler.set_exercise(user_id=user.id, exercise=exercise)
                 return exercise
 
@@ -323,7 +331,7 @@ class GoogleAPIHandler:
             self.log.error("Error generating exercise: %s" % str(e), exc_info=True)
         return None
 
-    async def get_exercise(self, user: User):
+    async def get_exercises(self, user: User):
         self.log.info("Generating exercise for user ID: %s" % user.id)
         exercise = await self.cache_handler.get_exercise(user_id=user.id)
         if exercise:

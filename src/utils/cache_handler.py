@@ -22,6 +22,19 @@ with open("static/foods.txt", "r") as file:
     FOODS = file.read().replace("\n", ",").split(",")
 
 
+class YogaSet(BaseModel):
+    name: str
+    level: str
+    description: str
+    targeted_body_parts: List[str]
+    week: str
+    tags: List[str]
+
+
+class YogaSets(BaseModel):
+    yoga_sets: List[YogaSet] = []
+
+
 class _TempDailyInsight(BaseModel):
     todays_focus: str
     daily_tip: str
@@ -380,12 +393,12 @@ class CacheHandler(_CacheHandler):
             exercise.model_dump_json(),
         )
 
-    async def get_exercise(self, *, user_id: str) -> Optional[BaseModel]:
+    async def get_exercise(self, *, user_id: str) -> Optional[YogaSets]:
         self.log.debug("Getting exercise for user id: %s", user_id)
         exercise_data = await self.redis_client.get(f"exercise:{user_id}")
         if exercise_data:
             self.log.info("Exercise found in Redis for user id: %s", user_id)
-            return BaseModel(**json.loads(exercise_data))
+            return YogaSets(**json.loads(exercise_data))
         self.log.warning("Exercise not found for user id: %s", user_id)
         return None
 
@@ -435,7 +448,7 @@ class CacheHandler(_CacheHandler):
         def is_old(date: datetime) -> bool:
             native_date = date.astimezone(timezone("Asia/Kolkata"))
             return native_date < midnight
-        
+
         if not is_old(now):
             return
 
