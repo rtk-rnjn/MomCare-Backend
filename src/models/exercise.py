@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from pytz import timezone
 
 __all__ = ("Exercise",)
@@ -30,3 +30,7 @@ class Exercise(BaseModel):
     assigned_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone("Asia/Kolkata")),
     )
+
+    @field_serializer("assigned_at")
+    def serialize_assigned_at(self, value: datetime) -> str:
+        return value.strftime("%Y-%m-%dT%H:%M:%SZ")

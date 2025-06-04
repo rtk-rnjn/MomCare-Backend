@@ -8,12 +8,10 @@ from src.app import app
 router = APIRouter()
 
 
-@app.route("/")
+@app.get("/")
 async def root(request: Request):
     if app.docs_url:
         return RedirectResponse(url=app.docs_url)
-
-    return {"message": "Welcome to the API!"}
 
 
 @router.get("/")

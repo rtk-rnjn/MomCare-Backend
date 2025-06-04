@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_serializer
 from pytz import timezone
 
 from .exercise import Exercise
@@ -23,10 +23,9 @@ class History(BaseModel):
     exercises: List[Exercise] = []
     moods: List[MoodHistory] = []
 
-    class Config:
-        json_encoders = {
-            datetime: lambda datetime_object: datetime_object.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
+    @field_serializer("date")
+    def serialize_created_at(self, value: datetime) -> str:
+        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class User(BaseModel):
@@ -57,10 +56,9 @@ class User(BaseModel):
     is_active: bool = True
     is_verified: bool = False
 
-    class Config:
-        json_encoders = {
-            datetime: lambda datetime_object: datetime_object.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
+    @field_serializer("created_at")
+    def serialize_created_at(self, value: datetime) -> str:
+        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class UserMedical(BaseModel):
@@ -73,7 +71,6 @@ class UserMedical(BaseModel):
     food_intolerances: List[str] = []
     dietary_preferences: List[str] = []
 
-    class Config:
-        json_encoders = {
-            datetime: lambda datetime_object: datetime_object.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
+    @field_serializer("date_of_birth")
+    def serialize_created_at(self, value: datetime) -> str:
+        return value.strftime("%Y-%m-%dT%H:%M:%SZ")

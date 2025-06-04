@@ -89,9 +89,6 @@ class ItemModel(BaseModel):
 class RootModel(BaseModel):
     items: List[ItemModel]
 
-    class Config:
-        validate_by_name = True
-
 
 class GoogleAPIHandler:
     def __init__(self, cache_handler: CacheHandler):

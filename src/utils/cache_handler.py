@@ -54,9 +54,6 @@ class ItemModel(BaseModel):
 class RootModel(BaseModel):
     items: List[ItemModel]
 
-    class Config:
-        validate_by_name = True
-
 
 class _CacheHandler:
     redis_client: Redis
@@ -89,7 +86,7 @@ class _CacheHandler:
         self.log.info("Cancelling queued operations")
         await self.users_collection_operations.put(None)
 
-    def on_startup(self, genai_handler: GoogleAPIHandler) -> List[Callable]:
+    async def on_startup(self, genai_handler: GoogleAPIHandler):
         async def ping_redis():
             try:
                 result = await self.redis_client.ping()
@@ -115,9 +112,14 @@ class _CacheHandler:
             self.log.info("Starting async operation queue processor")
             asyncio.create_task(self.process_operations())
 
-        return [ping_redis, ping_mongo, start_scheduler, start_operations]
+        await asyncio.gather(
+            ping_redis(),
+            ping_mongo(),
+            start_scheduler(),
+            start_operations(),
+        )
 
-    def on_shutdown(self) -> List[Callable]:
+    async def on_shutdown(self):
         async def close_redis():
             self.log.info("Closing Redis connection")
             await self.redis_client.close()
@@ -126,7 +128,15 @@ class _CacheHandler:
             self.log.info("Closing MongoDB connection")
             self.mongo_client.close()
 
-        return [close_redis, close_mongo, self.cancel_operations]
+        async def cancel_operations():
+            self.log.info("Cancelling queued operations")
+            await self.cancel_operations()
+
+        await asyncio.gather(
+            close_redis(),
+            close_mongo(),
+            cancel_operations(),
+        )
 
 
 class CacheHandler(_CacheHandler):

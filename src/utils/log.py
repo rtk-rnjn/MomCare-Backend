@@ -16,7 +16,7 @@ filehandler = logging.handlers.RotatingFileHandler(
     encoding="utf-8",
 )
 filehandler.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 filehandler.setFormatter(formatter)
 
 
