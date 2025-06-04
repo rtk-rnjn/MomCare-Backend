@@ -435,6 +435,9 @@ class CacheHandler(_CacheHandler):
         def is_old(date: datetime) -> bool:
             native_date = date.astimezone(timezone("Asia/Kolkata"))
             return native_date < midnight
+        
+        if not is_old(now):
+            return
 
         async for user_data in collection.find({}):
             user = User(**user_data)
@@ -456,6 +459,9 @@ class CacheHandler(_CacheHandler):
                     exercises.append(exercise)
 
             history.exercises = exercises
+
+            if not history.moods and not history.plan and not history.exercises:
+                continue
 
             update_payload = {
                 "$addToSet": {
