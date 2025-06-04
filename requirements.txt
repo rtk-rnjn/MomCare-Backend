@@ -2,6 +2,7 @@ APScheduler
 dnspython
 email_validator
 fastapi
+"fastapi[all]"
 google-api-python-client
 google-genai
 hiredis
@@ -19,3 +20,4 @@ boto3
 aiohttp
 aiodns
 yt-dlp
+pytest

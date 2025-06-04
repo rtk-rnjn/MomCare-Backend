@@ -75,7 +75,9 @@ class CustomLogger:
                 args=args[1:],
                 exc_info=kwargs.get("exc_info", None),
             )
-            yield Record(time=time, name=formatted_message.name, levelname=formatted_message.levelname, msg=formatted_message.getMessage())
+            yield Record(
+                time=time, name=formatted_message.name, levelname=formatted_message.levelname, msg=formatted_message.getMessage()
+            )
 
 
 def get_logger(name: str) -> CustomLogger:
