@@ -2,7 +2,6 @@ APScheduler
 dnspython
 email_validator
 fastapi
-"fastapi[all]"
 google-api-python-client
 google-genai
 hiredis
