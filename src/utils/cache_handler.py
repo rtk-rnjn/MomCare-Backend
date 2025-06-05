@@ -327,7 +327,7 @@ class CacheHandler(_CacheHandler):
         await self._update_user_cache(user_id=user_id, update_data=updated_user.model_dump(mode="json"))
         update_operation = UpdateOne(
             {"_id": user_id},
-            {"$set": dict(updated_user)},
+            {"$set": updated_user.model_dump()},
         )
         await self.users_collection_operations.put(update_operation)
 
@@ -488,7 +488,7 @@ class CacheHandler(_CacheHandler):
 
             update_payload = {
                 "$addToSet": {
-                    "history": dict(history),
+                    "history": history.model_dump(),
                 },
                 "$pull": {
                     "mood_history": {
@@ -499,7 +499,7 @@ class CacheHandler(_CacheHandler):
                     },
                 },
                 "$set": {
-                    "plan": dict(MyPlan()),
+                    "plan": MyPlan().model_dump(),
                     "updated_at": now,
                 },
             }

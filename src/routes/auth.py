@@ -48,7 +48,7 @@ async def register_user(request: Request, user: User) -> ServerResponse:
     user.updated_at = current_time
     user.last_login = current_time
 
-    sendable = dict(user)
+    sendable = user.model_dump()
     sendable["_id"] = str(user.id)
     sendable["last_login_ip"] = request.client.host if request.client is not None else "unknown"
 
