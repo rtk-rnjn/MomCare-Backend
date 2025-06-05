@@ -74,3 +74,9 @@ class UserMedical(BaseModel):
     @field_serializer("date_of_birth")
     def serialize_created_at(self, value: datetime) -> str:
         return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    @field_serializer("due_date")
+    def serialize_due_date(self, value: Optional[datetime]) -> Optional[str]:
+        if value:
+            return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+        return None
