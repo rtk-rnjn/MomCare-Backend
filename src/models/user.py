@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_serializer
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from pytz import timezone
 
 from .exercise import Exercise
@@ -16,9 +16,11 @@ class MoodHistory(BaseModel):
     date: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
     mood: str
 
-    @field_serializer("date")
-    def serialize_created_at(self, value: datetime) -> str:
-        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
+        },
+    )
 
 
 class History(BaseModel):
@@ -27,9 +29,11 @@ class History(BaseModel):
     exercises: List[Exercise] = []
     moods: List[MoodHistory] = []
 
-    @field_serializer("date")
-    def serialize_created_at(self, value: datetime) -> str:
-        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
+        },
+    )
 
 
 class User(BaseModel):
@@ -60,9 +64,11 @@ class User(BaseModel):
     is_active: bool = True
     is_verified: bool = False
 
-    @field_serializer("created_at")
-    def serialize_created_at(self, value: datetime) -> str:
-        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
+        },
+    )
 
 
 class UserMedical(BaseModel):
@@ -75,12 +81,8 @@ class UserMedical(BaseModel):
     food_intolerances: List[str] = []
     dietary_preferences: List[str] = []
 
-    @field_serializer("date_of_birth")
-    def serialize_created_at(self, value: datetime) -> str:
-        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    @field_serializer("due_date")
-    def serialize_due_date(self, value: Optional[datetime]) -> Optional[str]:
-        if value:
-            return value.strftime("%Y-%m-%dT%H:%M:%SZ")
-        return None
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
+        },
+    )

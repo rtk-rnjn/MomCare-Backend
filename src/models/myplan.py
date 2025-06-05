@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, ConfigDict
 from pytz import timezone
 
 from .food_item import FoodItem
@@ -26,6 +26,8 @@ class MyPlan(BaseModel):
     def is_empty(self) -> bool:
         return not any([self.breakfast, self.lunch, self.dinner, self.snacks])
 
-    @field_serializer("created_at")
-    def serialize_created_at(self, value: datetime) -> str:
-        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
+        },
+    )

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, ConfigDict
 from yt_dlp import YoutubeDL
 
 from src.app import app, cache_handler, genai_handler, token_handler
@@ -44,11 +44,11 @@ class S3Response(BaseModel):
     link: str
     link_expiry_at: Optional[datetime]
 
-    @field_serializer("link_expiry_at")
-    def serialize_link_expiry_at(self, value: Optional[datetime]) -> Optional[str]:
-        if value is None:
-            return None
-        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
+        },
+    )
 
 
 async def _search_food(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
