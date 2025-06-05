@@ -16,6 +16,10 @@ class MoodHistory(BaseModel):
     date: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
     mood: str
 
+    @field_serializer("date")
+    def serialize_created_at(self, value: datetime) -> str:
+        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 class History(BaseModel):
     date: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
