@@ -67,7 +67,7 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
-    current_time = datetime.now(timezone.utc).isoformat()
+    current_time = datetime.now(timezone.utc)
 
     await cache_handler.users_collection_operations.put(
         UpdateOne(
