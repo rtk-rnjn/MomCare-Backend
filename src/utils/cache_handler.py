@@ -104,7 +104,7 @@ class _CacheHandler:
         async def start_scheduler():
             self.log.info("Starting background scheduler")
             scheduler = AsyncIOScheduler()
-            scheduler.add_job(CacheHandler.background_worker, "cron", [genai_handler], minute="*")
+            scheduler.add_job(CacheHandler.background_worker, "cron", [genai_handler], minute="*", id="background_worker")
             scheduler.start()
             self.log.debug("Scheduler started with cron job")
 
@@ -226,8 +226,8 @@ class CacheHandler(_CacheHandler):
 
     async def set_user(self, *, user: User):
         self.log.debug("Setting user in Redis with id: %s", user.id)
-        await self.redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=3600)
-        await self.redis_client.set(f"user:by_email:{user.email_address}", user.id, ex=3600)
+        await self.redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=300)
+        await self.redis_client.set(f"user:by_email:{user.email_address}", user.id, ex=300)
         self.log.info(
             "User set in Redis with id: %s with data: %s",
             user.id,
@@ -349,7 +349,7 @@ class CacheHandler(_CacheHandler):
             plan = MyPlan(**plan_data)
             await self.set_plan(user_id=user_id, plan=plan)
 
-        await self.redis_client.set(f"user:{user_id}", json.dumps(user_data), ex=3600)
+        await self.redis_client.set(f"user:{user_id}", json.dumps(user_data), ex=300)
 
     async def set_food_image(self, *, food_name: str, image_link: str) -> None:
         self.log.debug("Setting food image for food: %s", food_name)
@@ -459,9 +459,6 @@ class CacheHandler(_CacheHandler):
             native_date = date.astimezone(timezone("Asia/Kolkata"))
             return native_date < midnight
 
-        if not is_old(now):
-            return
-
         async for user_data in collection.find({}):
             user = User(**user_data)
 
@@ -482,13 +479,16 @@ class CacheHandler(_CacheHandler):
                     exercises.append(exercise)
 
             history.exercises = exercises
+            history.date = midnight
 
             if not history.moods and not history.plan and not history.exercises:
                 continue
 
             update_payload = {
                 "$addToSet": {
-                    "history": history.model_dump(),
+                    "history": {
+                        "$each": [history.model_dump()]
+                    },
                 },
                 "$pull": {
                     "mood_history": {
@@ -503,5 +503,5 @@ class CacheHandler(_CacheHandler):
                     "updated_at": now,
                 },
             }
-
+        
             await collection.update_one({"_id": user.id}, update_payload)
