@@ -237,7 +237,22 @@ class CacheHandler(_CacheHandler):
 
     async def delete_user(self, *, user_id: str) -> None:
         self.log.debug("Deleting user from Redis with id: %s", user_id)
-        await self.redis_client.delete(f"user:{user_id}", f"user:by_email:{user_id}")
+        await self.redis_client.delete(f"user:{user_id}", f"user:by_email:{user_id}", f"plan:{user_id}", f"tips:{user_id}", f"exercise:{user_id}")
+
+    async def refresh_cache(self, *, user_id: str) -> None:
+        self.log.debug("Refreshing cache for user id: %s", user_id)
+        user = await self.get_user(user_id=user_id)
+        if not user:
+            self.log.warning("User not found for id: %s", user_id)
+            return
+
+        user_data = await self.users_collection.find_one({"_id": user_id})
+        if user_data:
+            self.log.debug("User data found in MongoDB for id: %s", user_id)
+            await self.redis_client.set(f"user:{user_id}", json.dumps(user_data), ex=300)
+        else:
+            self.log.warning("User data not found in MongoDB for id: %s", user_id)
+            await self.delete_user(user_id=user_id)
 
     async def get_foods(self, food_name: str, *, fuzzy_search: bool = True, limit: int = 10):
         self.log.debug("Fetching foods matching name: %s | Fuzzy: %s", food_name, fuzzy_search)
@@ -505,3 +520,4 @@ class CacheHandler(_CacheHandler):
             }
         
             await collection.update_one({"_id": user.id}, update_payload)
+            await google_api_handler.cache_handler.refresh_cache(user_id=user.id)
