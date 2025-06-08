@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import random
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
@@ -241,6 +242,8 @@ class CacheHandler(_CacheHandler):
 
     async def refresh_cache(self, *, user_id: str) -> None:
         self.log.debug("Refreshing cache for user id: %s", user_id)
+        await self.redis_client.publish("cache_refresh", user_id)
+
         user = await self.get_user(user_id=user_id)
         if not user:
             self.log.warning("User not found for id: %s", user_id)
@@ -312,59 +315,14 @@ class CacheHandler(_CacheHandler):
         self.log.warning("No plan found in Redis for user id: %s", user_id)
         return None
 
-    async def set_user_mood(self, *, user_id: str, mood_history: MoodHistory) -> None:
-        self.log.debug("Setting mood history for user id: %s", user_id)
-        await self._update_user_cache(user_id=user_id, update_data={"mood_history": mood_history})
-        update_operation = UpdateOne(
-            {"_id": user_id},
-            {"$set": {"mood_history": mood_history.model_dump(mode="json")}},
-        )
-        await self.users_collection_operations.put(update_operation)
-
-    async def get_user_mood(
-        self,
-        user_id: str,
-        *,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        mood: Optional[str] = None,
-    ) -> List[MoodHistory]:
-        # TODO: Implement filtering based on start_date, end_date, and mood
-        self.log.debug("Getting mood history for user id: %s", user_id)
-        user = await self.get_user(user_id=user_id)
-        if not user:
-            self.log.warning("User not found for id: %s", user_id)
-            return []
-        return []
-
     async def update_user(self, *, user_id: str, updated_user: BaseModel) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
-        await self._update_user_cache(user_id=user_id, update_data=updated_user.model_dump(mode="json"))
         update_operation = UpdateOne(
             {"_id": user_id},
             {"$set": updated_user.model_dump()},
         )
         await self.users_collection_operations.put(update_operation)
-
-    async def _update_user_cache(self, *, user_id: str, update_data: dict) -> None:
-        user = await self.get_user(user_id=user_id)
-        if not user:
-            return
-        self.log.debug("Updating user cache for id: %s", user_id)
-        self.log.debug("User: %s data before update: %s", user_id, user.model_dump(mode="json"))
-
-        user_data = user.model_dump(mode="json")
-        user_data.update(update_data)
-
-        self.log.debug("User: %s data after update: %s", user_id, user_data)
-        self.log.debug("Setting updated user data in Redis for id: %s", user_id)
-
-        plan_data = update_data.get("plan")
-        if plan_data:
-            plan = MyPlan(**plan_data)
-            await self.set_plan(user_id=user_id, plan=plan)
-
-        await self.redis_client.set(f"user:{user_id}", json.dumps(user_data), ex=300)
+        await self.refresh_cache(user_id=user_id)
 
     async def set_food_image(self, *, food_name: str, image_link: str) -> None:
         self.log.debug("Setting food image for food: %s", food_name)
@@ -463,6 +421,30 @@ class CacheHandler(_CacheHandler):
 
         self.log.warning("Song metadata not found for key: %s", key)
         return None
+    
+    def _generate_otp(self) -> str:
+        self.log.debug("Generating OTP")
+        otp = str(random.randint(100000, 999999))
+        self.log.info("Generated OTP: %s", otp)
+        return otp
+    
+    async def generate_otp(self, *, email_address: str) -> str:
+        self.log.debug("Generating OTP for email: %s", email_address)
+        otp = self._generate_otp()
+        await self.redis_client.set(f"otp:{email_address}", otp, ex=300)
+        self.log.info("OTP generated and stored for email: %s", email_address)
+        return otp
+
+    async def verify_otp(self, *, email_address: str, otp: str) -> bool:
+        self.log.debug("Verifying OTP for email: %s", email_address)
+        stored_otp = await self.redis_client.get(f"otp:{email_address}")
+        if stored_otp and stored_otp == otp:
+            self.log.info("OTP verified successfully for email: %s", email_address)
+            await self.redis_client.delete(f"otp:{email_address}")
+            return True
+
+        self.log.warning("OTP verification failed for email: %s", email_address)
+        return False
 
     @staticmethod
     async def background_worker(google_api_handler: GoogleAPIHandler):
