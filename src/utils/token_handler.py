@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional
 
 import jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pytz import timezone
 
 from src.models import User
@@ -17,8 +17,9 @@ if TYPE_CHECKING:
 class Token(BaseModel):
     sub: str
     email: str
+    verified: bool
     name: str
-    iat: int = int(datetime.now(timezone("Asia/Kolkata")).timestamp())
+    iat: int = Field(default_factory=lambda: int(datetime.now(timezone("Asia/Kolkata")).timestamp()))
     exp: int
 
 
@@ -32,6 +33,7 @@ class TokenHandler:
         payload = Token(
             sub=user.id,
             email=user.email_address,
+            verified=user.is_verified,
             name="%s %s" % (user.first_name, user.last_name),
             exp=int((datetime.now(timezone("Asia/Kolkata")) + timedelta(seconds=expire_in)).timestamp()),
         )
@@ -44,7 +46,12 @@ class TokenHandler:
         try:
             decoded = jwt.decode(token, self.secret, algorithms=[self.algorithm])
             log.info("Token successfully validated")
-            return Token(**decoded)
+            obj = Token(**decoded)
+            if not obj.verified:
+                log.warning("Token is not verified")
+                return None
+            return obj
+
         except jwt.ExpiredSignatureError:
             log.warning("Token has expired")
             return None
@@ -53,11 +60,4 @@ class TokenHandler:
             return None
 
     def decode_token(self, token: str) -> Optional[Token]:
-        log.debug("Decoding token")
-        try:
-            decoded = jwt.decode(token, self.secret, algorithms=[self.algorithm])
-            log.info("Token successfully decoded")
-            return Token(**decoded)
-        except jwt.InvalidTokenError:
-            log.error("Token decoding failed due to invalid token", exc_info=True)
-            return None
+        return self.validate_token(token)
