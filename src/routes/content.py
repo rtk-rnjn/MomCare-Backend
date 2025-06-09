@@ -45,9 +45,7 @@ class S3Response(BaseModel):
     link_expiry_at: Optional[datetime]
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
-        },
+        json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
 

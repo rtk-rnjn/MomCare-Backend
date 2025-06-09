@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
 from pytz import timezone
 
-from src.models import FoodItem, History, MoodHistory, MyPlan, User
+from src.models import FoodItem, History, MyPlan, User
 
 if TYPE_CHECKING:
     from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
@@ -238,7 +238,9 @@ class CacheHandler(_CacheHandler):
 
     async def delete_user(self, *, user_id: str) -> None:
         self.log.debug("Deleting user from Redis with id: %s", user_id)
-        await self.redis_client.delete(f"user:{user_id}", f"user:by_email:{user_id}", f"plan:{user_id}", f"tips:{user_id}", f"exercise:{user_id}")
+        await self.redis_client.delete(
+            f"user:{user_id}", f"user:by_email:{user_id}", f"plan:{user_id}", f"tips:{user_id}", f"exercise:{user_id}"
+        )
 
     async def refresh_cache(self, *, user_id: str) -> None:
         self.log.debug("Refreshing cache for user id: %s", user_id)
@@ -421,13 +423,13 @@ class CacheHandler(_CacheHandler):
 
         self.log.warning("Song metadata not found for key: %s", key)
         return None
-    
+
     def _generate_otp(self) -> str:
         self.log.debug("Generating OTP")
         otp = str(random.randint(100000, 999999))
         self.log.info("Generated OTP: %s", otp)
         return otp
-    
+
     async def generate_otp(self, *, email_address: str) -> str:
         self.log.debug("Generating OTP for email: %s", email_address)
         otp = self._generate_otp()
@@ -483,9 +485,7 @@ class CacheHandler(_CacheHandler):
 
             update_payload = {
                 "$addToSet": {
-                    "history": {
-                        "$each": [history.model_dump()]
-                    },
+                    "history": {"$each": [history.model_dump()]},
                 },
                 "$pull": {
                     "mood_history": {
@@ -500,6 +500,6 @@ class CacheHandler(_CacheHandler):
                     "updated_at": now,
                 },
             }
-        
+
             await collection.update_one({"_id": user.id}, update_payload)
             await google_api_handler.cache_handler.refresh_cache(user_id=user.id)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pytz import timezone
 
 from .food_item import FoodItem
@@ -27,7 +27,5 @@ class MyPlan(BaseModel):
         return not any([self.breakfast, self.lunch, self.dinner, self.snacks])
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
-        },
+        json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )

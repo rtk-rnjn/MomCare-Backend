@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from aiosmtplib import send
-from email.message import EmailMessage
 import os
+from email.message import EmailMessage
+
+from aiosmtplib import send
 
 with open("static/otp-content.html", "r") as file:
     OTP_CONTENT = file.read()
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
 
 async def send_otp_mail(email_address: str, otp: str) -> None:
     """
@@ -27,11 +29,4 @@ async def send_otp_mail(email_address: str, otp: str) -> None:
     message["Subject"] = "Your MomCare OTP - Secure Access"
     message.set_content(OTP_CONTENT.format(otp=otp), subtype="html")
 
-    await send(
-        message,
-        hostname="smtp.gmail.com",
-        port=587,
-        start_tls=True,
-        username=EMAIL_ADDRESS,
-        password=EMAIL_PASSWORD
-    )
+    await send(message, hostname="smtp.gmail.com", port=587, start_tls=True, username=EMAIL_ADDRESS, password=EMAIL_PASSWORD)

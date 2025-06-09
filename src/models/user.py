@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from pytz import timezone
 
 from .exercise import Exercise
@@ -17,9 +17,7 @@ class MoodHistory(BaseModel):
     mood: str
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
-        },
+        json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
 
@@ -30,9 +28,7 @@ class History(BaseModel):
     moods: List[MoodHistory] = []
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
-        },
+        json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
 
@@ -65,9 +61,7 @@ class User(BaseModel):
     is_verified: bool = False
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
-        },
+        json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
 
@@ -82,7 +76,5 @@ class UserMedical(BaseModel):
     dietary_preferences: List[str] = []
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")
-        },
+        json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )

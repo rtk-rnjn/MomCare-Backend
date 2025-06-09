@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-from pymongo import UpdateOne
 
-from src.app import app, cache_handler, token_handler
-from src.models import User
+from src.app import cache_handler, token_handler
 from src.utils import Token, send_otp_mail
-
 
 router = APIRouter(prefix="/auth/otp", tags=["Authentication"])
 security = HTTPBearer()
@@ -18,6 +14,7 @@ security = HTTPBearer()
 
 def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     return token_handler.decode_token(credentials.credentials)
+
 
 @router.post("")
 async def send_otp(request: Request, email_address: str):
@@ -34,12 +31,7 @@ async def send_otp(request: Request, email_address: str):
 
 
 @router.post("/verify")
-async def verify_otp(
-    request: Request,
-    email_address: str,
-    otp: str,
-    token: Token = Depends(get_user_token)
-):
+async def verify_otp(request: Request, email_address: str, otp: str, token: Token = Depends(get_user_token)):
     _user = await cache_handler.user_exists(email_address=email_address)
     if not _user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -48,9 +40,6 @@ async def verify_otp(
         return False
 
     # Update the user's last login time
-    await cache_handler.update_user(
-        user_id=token.sub,
-        updated_user=BaseModel(is_verified=True)
-    )
+    await cache_handler.update_user(user_id=token.sub, updated_user=BaseModel(is_verified=True))
 
     return True
