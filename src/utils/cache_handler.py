@@ -187,6 +187,22 @@ class CacheHandler(_CacheHandler):
 
         self.log.warning("User not found with id: %s", user_id)
         return None
+    
+    async def __get_user_id_by_email(self, email: str) -> Optional[str]:
+        self.log.debug("Fetching user ID by email: %s", email)
+        user_id = await self.redis_client.get(f"user:by_email:{email}")
+        if user_id:
+            self.log.info("User ID found in Redis for email: %s", email)
+            return user_id.decode("utf-8") if isinstance(user_id, bytes) else user_id
+
+        self.log.info("User ID not found in Redis. Querying MongoDB...")
+        user = await self.users_collection.find_one({"email_address": email})
+        if user:
+            self.log.debug("User found in MongoDB for email: %s", email)
+            return str(user["_id"])
+
+        self.log.warning("User not found for email: %s", email)
+        return None
 
     async def _search_user(self, *, email: str, password: str) -> Optional[User]:
         user_id = await self.redis_client.get(f"user:by_email:{email}")
@@ -242,8 +258,13 @@ class CacheHandler(_CacheHandler):
             f"user:{user_id}", f"user:by_email:{user_id}", f"plan:{user_id}", f"tips:{user_id}", f"exercise:{user_id}"
         )
 
-    async def refresh_cache(self, *, user_id: str) -> None:
+    async def refresh_cache(self, *, user_id: Optional[str] = None, email_address: Optional[str] = None) -> None:
         self.log.debug("Refreshing cache for user id: %s", user_id)
+        user_id = user_id or await self.__get_user_id_by_email(email=email_address) if email_address else None
+        if not user_id:
+            self.log.warning("No user_id provided or found for email: %s", email_address)
+            return
+
         await self.redis_client.publish("cache_refresh", user_id)
 
         user = await self.get_user(user_id=user_id)
@@ -317,10 +338,15 @@ class CacheHandler(_CacheHandler):
         self.log.warning("No plan found in Redis for user id: %s", user_id)
         return None
 
-    async def update_user(self, *, user_id: str, updated_user: BaseModel) -> None:
+    async def update_user(self, *, user_id: Optional[str] = None, email_address: Optional[str] = None, updated_user: BaseModel) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
         update_operation = UpdateOne(
-            {"_id": user_id},
+            {
+                "$or": [
+                    {"_id": user_id},
+                    {"email_address": email_address},
+                ]
+            },
             {"$set": updated_user.model_dump()},
         )
         await self.users_collection_operations.put(update_operation)
