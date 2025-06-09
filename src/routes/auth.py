@@ -115,7 +115,7 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
     user = await cache_handler.get_user(user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     data = user.model_dump()
     data.update(user_data)
     user = User(**data)
