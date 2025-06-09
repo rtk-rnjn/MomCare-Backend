@@ -47,9 +47,9 @@ class TokenHandler:
             decoded = jwt.decode(token, self.secret, algorithms=[self.algorithm])
             log.info("Token successfully validated")
             obj = Token(**decoded)
-            # if not obj.verified:
-            #     log.warning("Token is not verified")
-            #     return None
+            if not obj.verified:
+                log.warning("Token is not verified")
+                return None
             return obj
 
         except jwt.ExpiredSignatureError:
