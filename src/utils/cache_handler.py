@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Union
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
+from pymongo.results import BulkWriteResult
 from pytz import timezone
 
 from src.models import FoodItem, History, MyPlan, User
@@ -78,8 +79,8 @@ class _CacheHandler:
                 break
 
             try:
-                await self.users_collection.bulk_write([operation])
-                self.log.debug("Processed operation: %s", str(operation))
+                result: BulkWriteResult = await self.users_collection.bulk_write([operation])
+                self.log.debug("Bulk operation executed: %s", result.bulk_api_result)
             except Exception as e:
                 self.log.error("Failed to execute bulk operation: %s", str(e))
 
