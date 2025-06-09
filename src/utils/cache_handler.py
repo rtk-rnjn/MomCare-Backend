@@ -187,7 +187,7 @@ class CacheHandler(_CacheHandler):
 
         self.log.warning("User not found with id: %s", user_id)
         return None
-    
+
     async def __get_user_id_by_email(self, email: str) -> Optional[str]:
         self.log.debug("Fetching user ID by email: %s", email)
         user_id = await self.redis_client.get(f"user:by_email:{email}")
@@ -338,7 +338,9 @@ class CacheHandler(_CacheHandler):
         self.log.warning("No plan found in Redis for user id: %s", user_id)
         return None
 
-    async def update_user(self, *, user_id: Optional[str] = None, email_address: Optional[str] = None, updated_user: BaseModel) -> None:
+    async def update_user(
+        self, *, user_id: Optional[str] = None, email_address: Optional[str] = None, updated_user: BaseModel
+    ) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
         update_operation = UpdateOne(
             {
