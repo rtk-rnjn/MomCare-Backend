@@ -112,7 +112,15 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
     user_data.pop("created_at", None)
     assert user_id == (user_data.get("id") or user_data.get("_id")), "User ID mismatch"
 
-    user = User(**user_data)
+    user = await cache_handler.get_user(user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    data = user.model_dump()
+    data.update(user_data)
+    user = User(**data)
+    user.updated_at = datetime.now(timezone.utc)
+    user.last_login = datetime.now(timezone.utc)
 
     await cache_handler.update_user(user_id=user_id, updated_user=user)
 
