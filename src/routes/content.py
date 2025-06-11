@@ -173,7 +173,12 @@ async def get_song(path: str):
 @router.get("/quotes/{mood}")
 async def get_quote(mood: str):
     mood = mood.lower()
-    mapper = {"happy": HAPPY_QUOTES, "sad": SAD_QUOTES, "angry": ANGRY_QUOTES, "stressed": STRESSED_QUOTES}
+    mapper = {
+        "happy": HAPPY_QUOTES,
+        "sad": SAD_QUOTES,
+        "angry": ANGRY_QUOTES,
+        "stressed": STRESSED_QUOTES,
+    }
 
     return random.choice(mapper[mood])
 

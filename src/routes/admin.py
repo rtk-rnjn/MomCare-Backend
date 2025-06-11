@@ -75,7 +75,13 @@ async def login(request: Request, credentials: Credentials):
     if credentials.email_address != ADMIN_EMAIL or credentials.password != ADMIN_PASSWORD:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    user = User(id=ADMIN_EMAIL, first_name="MomCare", last_name="Admin", email_address=ADMIN_EMAIL, password=ADMIN_PASSWORD)
+    user = User(
+        id=ADMIN_EMAIL,
+        first_name="MomCare",
+        last_name="Admin",
+        email_address=ADMIN_EMAIL,
+        password=ADMIN_PASSWORD,
+    )
     token = token_handler.create_access_token(user)
 
     return {"token": token}
@@ -89,7 +95,13 @@ async def get_all_users(
     sort_order: SortOrder = SortOrder.DESCENDING,
 ):
     collection: AsyncIOMotorCollection = cache_handler.users_collection
-    return await stream_data(collection=collection, limit=limit, offset=offset, sort_by=sort_by, sort_order=sort_order)
+    return await stream_data(
+        collection=collection,
+        limit=limit,
+        offset=offset,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
 
 
 @router.get("/users/search", dependencies=[Depends(get_admin_token)])
@@ -118,7 +130,13 @@ async def get_all_foods(
     sort_order: SortOrder = SortOrder.DESCENDING,
 ):
     collection: AsyncIOMotorCollection = cache_handler.foods_collection
-    return await stream_data(collection=collection, limit=limit, offset=offset, sort_by=sort_by, sort_order=sort_order)
+    return await stream_data(
+        collection=collection,
+        limit=limit,
+        offset=offset,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
 
 
 @router.get("/foods/metadata")

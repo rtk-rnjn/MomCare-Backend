@@ -106,7 +106,13 @@ class _CacheHandler:
         async def start_scheduler():
             self.log.info("Starting background scheduler")
             scheduler = AsyncIOScheduler()
-            scheduler.add_job(CacheHandler.background_worker, "cron", [genai_handler], minute="*", id="background_worker")
+            scheduler.add_job(
+                CacheHandler.background_worker,
+                "cron",
+                [genai_handler],
+                minute="*",
+                id="background_worker",
+            )
             scheduler.start()
             self.log.debug("Scheduler started with cron job")
 
@@ -157,7 +163,7 @@ class CacheHandler(_CacheHandler):
         *,
         email: Optional[str] = None,
         password: Optional[str] = None,
-        force: bool = False
+        force: bool = False,
     ) -> Optional[User]:
         if not (user_id or (email and password)):
             raise ValueError("Either user_id or email and password must be provided")
@@ -258,7 +264,11 @@ class CacheHandler(_CacheHandler):
     async def delete_user(self, *, user_id: Optional[str], email_address: Optional[str] = None) -> None:
         self.log.debug("Deleting user from Redis with id: %s", user_id)
         await self.redis_client.delete(
-            f"user:{user_id}", f"user:by_email:{email_address}", f"plan:{user_id}", f"tips:{user_id}", f"exercise:{user_id}"
+            f"user:{user_id}",
+            f"user:by_email:{email_address}",
+            f"plan:{user_id}",
+            f"tips:{user_id}",
+            f"exercise:{user_id}",
         )
 
     async def refresh_cache(self, *, user_id: Optional[str] = None, email_address: Optional[str] = None) -> None:
@@ -324,7 +334,11 @@ class CacheHandler(_CacheHandler):
         return None
 
     async def update_user(
-        self, *, user_id: Optional[str] = None, email_address: Optional[str] = None, updated_user: Union[BaseModel, dict]
+        self,
+        *,
+        user_id: Optional[str] = None,
+        email_address: Optional[str] = None,
+        updated_user: Union[BaseModel, dict],
     ) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
         update_operation = UpdateOne(
@@ -334,7 +348,7 @@ class CacheHandler(_CacheHandler):
                     {"email_address": email_address},
                 ]
             },
-            {"$set": updated_user if isinstance(updated_user, dict) else updated_user.model_dump()},
+            {"$set": (updated_user if isinstance(updated_user, dict) else updated_user.model_dump())},
         )
         await self.users_collection_operations.put(update_operation)
         await self.refresh_cache(user_id=user_id, email_address=email_address)

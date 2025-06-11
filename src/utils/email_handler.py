@@ -22,4 +22,11 @@ async def send_otp_mail(email_address: str, otp: str) -> None:
     message["Subject"] = "Your MomCare OTP - Secure Access"
     message.set_content(OTP_CONTENT.format(otp=otp), subtype="html")
 
-    await send(message, hostname=EMAIL_HOST, port=EMAIL_PORT, start_tls=True, username=EMAIL_ADDRESS, password=EMAIL_PASSWORD)
+    await send(
+        message,
+        hostname=EMAIL_HOST,
+        port=EMAIL_PORT,
+        start_tls=True,
+        username=EMAIL_ADDRESS,
+        password=EMAIL_PASSWORD,
+    )

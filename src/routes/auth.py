@@ -104,6 +104,7 @@ async def refresh_token(credentials: ClientRequest) -> ServerResponse:
         access_token=new_access_token,
     )
 
+
 @router.post("/update/medical-data")
 async def update_medical_data(user_medical_data: dict, token: Token = Depends(get_user_token)):
     user_id = token.sub

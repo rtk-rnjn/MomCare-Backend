@@ -76,7 +76,10 @@ class CustomLogger:
                 exc_info=kwargs.get("exc_info", None),
             )
             yield Record(
-                time=time, name=formatted_message.name, levelname=formatted_message.levelname, msg=formatted_message.getMessage()
+                time=time,
+                name=formatted_message.name,
+                levelname=formatted_message.levelname,
+                msg=formatted_message.getMessage(),
             )
 
 
