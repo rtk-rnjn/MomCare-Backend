@@ -157,6 +157,7 @@ class CacheHandler(_CacheHandler):
         *,
         email: Optional[str] = None,
         password: Optional[str] = None,
+        force: bool = False
     ) -> Optional[User]:
         if not (user_id or (email and password)):
             raise ValueError("Either user_id or email and password must be provided")
@@ -174,11 +175,12 @@ class CacheHandler(_CacheHandler):
         if not isinstance(user_id, str):
             user_id = str(user_id)
 
-        self.log.debug("Attempting to get user from Redis with id: %s", user_id)
-        user_data = await self.redis_client.get(f"user:{user_id}")  # type: ignore
-        if user_data:
-            self.log.info("Cache hit for user id: %s", user_id)
-            return User(**json.loads(user_data))
+        if not force:
+            self.log.debug("Attempting to get user from Redis with id: %s", user_id)
+            user_data = await self.redis_client.get(f"user:{user_id}")  # type: ignore
+            if user_data:
+                self.log.info("Cache hit for user id: %s", user_id)
+                return User(**json.loads(user_data))
 
         self.log.info("Cache miss for user id: %s. Querying MongoDB...", user_id)
         user = await self.users_collection.find_one({"_id": user_id})
@@ -253,20 +255,14 @@ class CacheHandler(_CacheHandler):
         )
         return user
 
-    async def delete_user(self, *, user_id: str, email_address: Optional[str] = None) -> None:
+    async def delete_user(self, *, user_id: Optional[str], email_address: Optional[str] = None) -> None:
         self.log.debug("Deleting user from Redis with id: %s", user_id)
         await self.redis_client.delete(
             f"user:{user_id}", f"user:by_email:{email_address}", f"plan:{user_id}", f"tips:{user_id}", f"exercise:{user_id}"
         )
 
     async def refresh_cache(self, *, user_id: Optional[str] = None, email_address: Optional[str] = None) -> None:
-        self.log.debug("Refreshing cache for user id: %s | email_address: %s", user_id, email_address)
-        user_id = user_id or await self.__get_user_id_by_email(email=email_address) if email_address else None
-        if not user_id:
-            self.log.warning("No user_id provided or found for email: %s", email_address)
-            return
-
-        await self.redis_client.publish("cache_refresh", user_id)
+        await self.redis_client.publish("cache_refresh", str(user_id))
         await self.delete_user(user_id=user_id, email_address=email_address)
 
     async def get_foods(self, food_name: str, *, fuzzy_search: bool = True, limit: int = 10):
@@ -328,7 +324,7 @@ class CacheHandler(_CacheHandler):
         return None
 
     async def update_user(
-        self, *, user_id: Optional[str] = None, email_address: Optional[str] = None, updated_user: BaseModel
+        self, *, user_id: Optional[str] = None, email_address: Optional[str] = None, updated_user: Union[BaseModel, dict]
     ) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
         update_operation = UpdateOne(
@@ -338,7 +334,7 @@ class CacheHandler(_CacheHandler):
                     {"email_address": email_address},
                 ]
             },
-            {"$set": updated_user.model_dump()},
+            {"$set": updated_user if isinstance(updated_user, dict) else updated_user.model_dump()},
         )
         await self.users_collection_operations.put(update_operation)
         await self.refresh_cache(user_id=user_id, email_address=email_address)

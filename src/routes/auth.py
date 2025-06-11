@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from pymongo import UpdateOne
 
 from src.app import app, cache_handler, token_handler
-from src.models import User
+from src.models import User, UserMedical
 from src.utils import Token
 
 
@@ -104,25 +104,35 @@ async def refresh_token(credentials: ClientRequest) -> ServerResponse:
         access_token=new_access_token,
     )
 
+@router.post("/update/medical-data")
+async def update_medical_data(user_medical_data: dict, token: Token = Depends(get_user_token)):
+    user_id = token.sub
+
+    user = await cache_handler.get_user(user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.medical_data = UserMedical(**user_medical_data)
+    await cache_handler.update_user(user_id=user_id, updated_user=user)
+
+    return UpdateResponse(
+        success=True,
+        modified_count=1,
+        matched_count=1,
+    )
+
 
 @router.post("/update", response_model=UpdateResponse)
 async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
     user_id = token.sub
 
-    user_data.pop("created_at", None)
     assert user_id == (user_data.get("id") or user_data.get("_id")), "User ID mismatch"
 
     user = await cache_handler.get_user(user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    data = user.model_dump()
-    data.update(user_data)
-    user = User(**data)
-    user.updated_at = datetime.now(timezone.utc)
-    user.last_login = datetime.now(timezone.utc)
-
-    await cache_handler.update_user(user_id=user_id, updated_user=user)
+    await cache_handler.update_user(user_id=user_id, updated_user=user_data)
 
     return UpdateResponse(
         success=True,
@@ -135,7 +145,7 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
 async def fetch_user(token: Token = Depends(get_user_token)) -> User:
     user_id = token.sub
 
-    user = await cache_handler.get_user(user_id=user_id)
+    user = await cache_handler.get_user(user_id=user_id, force=True)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
