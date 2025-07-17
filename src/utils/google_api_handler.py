@@ -149,9 +149,10 @@ class GoogleAPIHandler:
         return tips
 
     def _generate_plan(self, user_data: dict) -> Optional[_TempMyPlan]:
-        user_data.pop("history", None)
+        history = user_data.pop("history", None)
         user_data.pop("mood_history", None)
         user_data.pop("exercises", None)
+        user_data["history"] = history[:7]
 
         try:
             response = self.client.models.generate_content(
@@ -166,20 +167,18 @@ class GoogleAPIHandler:
                     )
                 ],
                 config=GenerateContentConfig(
-                    system_instruction="""
-                You are a certified AI dietician. Your role is to generate daily meal plans personalized for pregnant users based on their medical history, food intolerances, dietary preferences, mood, available food items, and their current pregnancy stage.
+                    system_instruction="""You are a certified AI dietician. Your role is to generate daily meal plans personalized for pregnant users based on their medical history, food intolerances, dietary preferences, mood, available food items, and their current pregnancy stage.
 
-                First, determine the user's day, week, and trimester based on their due date or conception information. Use this to define today's specific nutritional goal based on fetal development needs and maternal health at that stage.
+First, determine the user's day, week, and trimester based on their due date or conception information. Use this to define today's specific nutritional goal based on fetal development needs and maternal health at that stage.
 
-                Generate a meal plan that:
-                - Aligns with that goal.
-                - Is diverse and non-repetitive—do not repeat any meal within the same week.
-                - Considers what meals have already been suggested to the user in the past.
-                - Incorporates available food items to ensure feasibility.
-                - Reflects user's mood if applicable (e.g., comfort foods during emotional days, light meals during nausea).
+Generate a meal plan that:
+- Aligns with that goal.
+- Is diverse and non-repetitive—do not repeat any meal within the same week.
+- Considers what meals have already been suggested to the user in the past.
+- Incorporates available food items to ensure feasibility.
+- Reflects user's mood if applicable (e.g., comfort foods during emotional days, light meals during nausea).
 
-                Continuously adapt each day’s plan based on prior meal suggestions and changes in the user’s health, food preferences, or inventory.
-                """,
+Continuously adapt each day’s plan based on prior meal suggestions and changes in the user’s health, food preferences, or inventory.""",
                     response_mime_type="application/json",
                     response_schema=_TempMyPlan,
                 ),
