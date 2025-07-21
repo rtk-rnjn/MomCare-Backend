@@ -10,6 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
 from pymongo.results import BulkWriteResult
+import arrow
 from pytz import timezone
 
 from src.models import FoodItem, History, MyPlan, User
@@ -483,6 +484,10 @@ class CacheHandler(_CacheHandler):
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
         def is_old(date: datetime) -> bool:
+            date = arrow.get(date).datetime
+            if date.tzinfo is None:
+                date = timezone("UTC").localize(date)
+
             native_date = date.astimezone(timezone("UTC"))
             return native_date < midnight
 
