@@ -57,6 +57,11 @@ async def _search_food(request: Request, food_name: str, limit: int = 10) -> Asy
         yield food.model_dump_json() + "\n"
 
 
+async def _search_food_name(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
+    async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
+        yield food.model_dump_json() + "\n"
+
+
 @router.get("/plan")
 async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
     user_id = token.sub
@@ -100,6 +105,17 @@ async def get_exercises(token: Token = Depends(get_user_token)):
 async def search_food(request: Request, food_name: str, limit: int = 1):
     foods = _search_food(request, food_name=food_name, limit=limit)
     return StreamingResponse(foods, media_type="application/json")
+
+
+@router.get("/search/food-name")
+async def search_food_name(request: Request, food_name: str, limit: int = 10):
+    foods = _search_food_name(request, food_name=food_name, limit=limit)
+    return StreamingResponse(foods, media_type="application/json")
+
+
+@router.get("/search/food-name/{food_name}/image")
+async def search_food_name_image(request: Request, food_name: str, limit: int = 10):
+    return await image_generator_handler.search_image(food_name=food_name)
 
 
 @router.get("/tips")

@@ -537,7 +537,11 @@ class CacheHandler(_CacheHandler):
                 },
             }
 
-            log.debug("Updating user: %s via bulk update with payload: %s", user.id, update_payload)
+            log.debug(
+                "Updating user: %s via bulk update with payload: %s",
+                user.id,
+                update_payload,
+            )
 
             await collection.update_one({"_id": user.id}, update_payload)
             await google_api_handler.cache_handler.refresh_cache(user_id=user.id)

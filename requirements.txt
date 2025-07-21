@@ -21,3 +21,4 @@ aiodns
 yt-dlp
 pytest
 aiosmtplib
+arrow
