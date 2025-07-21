@@ -260,19 +260,19 @@ class CacheHandler(_CacheHandler):
         )
         return user
 
-    async def delete_user(self, *, user_id: Optional[str], email_address: Optional[str] = None) -> None:
+    async def factory_delete_user(self, *, user_id: Optional[str], email_address: Optional[str] = None) -> None:
         self.log.debug("Deleting user from Redis with id: %s", user_id)
         await self.redis_client.delete(
             f"user:{user_id}",
             f"user:by_email:{email_address}",
             f"plan:{user_id}",
-            f"tips:{user_id}",
+            # f"tips:{user_id}",
             f"exercise:{user_id}",
         )
 
     async def refresh_cache(self, *, user_id: Optional[str] = None, email_address: Optional[str] = None) -> None:
         await self.redis_client.publish("cache_refresh", str(user_id))
-        await self.delete_user(user_id=user_id, email_address=email_address)
+        await self.factory_delete_user(user_id=user_id, email_address=email_address)
 
     async def get_foods(self, food_name: str, *, fuzzy_search: bool = True, limit: int = 10):
         self.log.debug("Fetching foods matching name: %s | Fuzzy: %s", food_name, fuzzy_search)
