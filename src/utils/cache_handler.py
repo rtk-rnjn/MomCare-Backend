@@ -305,12 +305,12 @@ class CacheHandler(_CacheHandler):
         await self.set_user(user=User(**user))
 
     async def set_plan(self, *, user_id: str, plan: BaseModel) -> None:
-        expiration = datetime.now(timezone("Asia/Kolkata")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         self.log.debug("Setting plan in Redis for user id: %s", user_id)
         await self.redis_client.set(
             "plan:%s" % user_id,
             plan.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone("Asia/Kolkata")).timestamp()),
+            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
         update_operation = UpdateOne(
             {"_id": user_id},
@@ -368,11 +368,11 @@ class CacheHandler(_CacheHandler):
 
     async def set_tips(self, *, user_id: str, tips: BaseModel) -> None:
         self.log.debug("Setting tips for user id: %s", user_id)
-        expiration = datetime.now(timezone("Asia/Kolkata")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         await self.redis_client.set(
             f"tips:{user_id}",
             tips.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone("Asia/Kolkata")).timestamp()),
+            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
         self.log.info(
             "Tips set in Redis for user id: %s with data: %s",
@@ -392,11 +392,11 @@ class CacheHandler(_CacheHandler):
 
     async def set_exercise(self, *, user_id: str, exercise: BaseModel) -> None:
         self.log.debug("Setting exercise for user id: %s", user_id)
-        expiration = datetime.now(timezone("Asia/Kolkata")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        expiration = datetime.now(timezone("UTC")).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         await self.redis_client.set(
             f"exercise:{user_id}",
             exercise.model_dump_json(),
-            ex=int(expiration.timestamp() - datetime.now(timezone("Asia/Kolkata")).timestamp()),
+            ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
         self.log.info(
             "Exercise set in Redis for user id: %s with data: %s",
@@ -418,7 +418,7 @@ class CacheHandler(_CacheHandler):
         ttl = await self.redis_client.ttl(key)
         if ttl is not None:
             self.log.info("Key expiry found for key: %s with ttl: %s", key, ttl)
-            return datetime.now(timezone("Asia/Kolkata")) + timedelta(seconds=ttl)
+            return datetime.now(timezone("UTC")) + timedelta(seconds=ttl)
 
         self.log.warning("Key expiry not found for key: %s", key)
         return None
@@ -479,11 +479,11 @@ class CacheHandler(_CacheHandler):
         from src.utils.log import log
 
         collection = google_api_handler.cache_handler.mongo_client["MomCare"]["users"]
-        now = datetime.now(timezone("Asia/Kolkata"))
+        now = datetime.now(timezone("UTC"))
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
         def is_old(date: datetime) -> bool:
-            native_date = date.astimezone(timezone("Asia/Kolkata"))
+            native_date = date.astimezone(timezone("UTC"))
             return native_date < midnight
 
         log.debug("Starting bluk user update")

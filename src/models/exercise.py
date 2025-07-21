@@ -28,7 +28,7 @@ class Exercise(BaseModel):
     duration_completed: float = 0
 
     assigned_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone("Asia/Kolkata")),
+        default_factory=lambda: datetime.now(timezone("UTC")),
     )
 
     model_config = ConfigDict(

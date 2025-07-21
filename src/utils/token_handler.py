@@ -19,7 +19,7 @@ class Token(BaseModel):
     email: str
     verified: bool
     name: str
-    iat: int = Field(default_factory=lambda: int(datetime.now(timezone("Asia/Kolkata")).timestamp()))
+    iat: int = Field(default_factory=lambda: int(datetime.now(timezone("UTC")).timestamp()))
     exp: int
 
 
@@ -35,7 +35,7 @@ class TokenHandler:
             email=user.email_address,
             verified=user.is_verified,
             name="%s %s" % (user.first_name, user.last_name),
-            exp=int((datetime.now(timezone("Asia/Kolkata")) + timedelta(seconds=expire_in)).timestamp()),
+            exp=int((datetime.now(timezone("UTC")) + timedelta(seconds=expire_in)).timestamp()),
         )
         token = jwt.encode(dict(payload), self.secret, algorithm=self.algorithm)
         log.info("Access token created for user: %s", user.id)

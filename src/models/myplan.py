@@ -21,7 +21,7 @@ class MyPlan(BaseModel):
     dinner: List[FoodItem] = []
     snacks: List[FoodItem] = []
 
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("UTC")))
 
     def is_empty(self) -> bool:
         return not any([self.breakfast, self.lunch, self.dinner, self.snacks])

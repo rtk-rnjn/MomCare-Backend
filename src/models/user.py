@@ -13,7 +13,7 @@ __all__ = ("User", "UserMedical", "History", "MoodHistory")
 
 
 class MoodHistory(BaseModel):
-    date: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
+    date: datetime = Field(default_factory=lambda: datetime.now(timezone("UTC")))
     mood: str
 
     model_config = ConfigDict(
@@ -22,7 +22,7 @@ class MoodHistory(BaseModel):
 
 
 class History(BaseModel):
-    date: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
+    date: datetime = Field(default_factory=lambda: datetime.now(timezone("UTC")))
     plan: Optional[MyPlan] = None
     exercises: List[Exercise] = []
     moods: List[MoodHistory] = []
@@ -56,7 +56,7 @@ class User(BaseModel):
     history: List[History] = []
 
     # Server stuff
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("Asia/Kolkata")))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("UTC")))
     last_login: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     last_login_ip: Optional[str] = None

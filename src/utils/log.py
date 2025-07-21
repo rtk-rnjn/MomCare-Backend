@@ -42,23 +42,23 @@ class CustomLogger:
 
     def debug(self, *args, **kwargs):
         self.logger.debug(*args, **kwargs)
-        self._recent_logs.append((datetime.now(timezone("Asia/Kolkata")), "debug", args, kwargs))
+        self._recent_logs.append((datetime.now(timezone("UTC")), "debug", args, kwargs))
 
     def info(self, *args, **kwargs):
         self.logger.info(*args, **kwargs)
-        self._recent_logs.append((datetime.now(timezone("Asia/Kolkata")), "info", args, kwargs))
+        self._recent_logs.append((datetime.now(timezone("UTC")), "info", args, kwargs))
 
     def warning(self, *args, **kwargs):
         self.logger.warning(*args, **kwargs)
-        self._recent_logs.append((datetime.now(timezone("Asia/Kolkata")), "warning", args, kwargs))
+        self._recent_logs.append((datetime.now(timezone("UTC")), "warning", args, kwargs))
 
     def error(self, *args, **kwargs):
         self.logger.error(*args, **kwargs)
-        self._recent_logs.append((datetime.now(timezone("Asia/Kolkata")), "error", args, kwargs))
+        self._recent_logs.append((datetime.now(timezone("UTC")), "error", args, kwargs))
 
     def critical(self, *args, **kwargs):
         self.logger.critical(*args, **kwargs)
-        self._recent_logs.append((datetime.now(timezone("Asia/Kolkata")), "critical", args, kwargs))
+        self._recent_logs.append((datetime.now(timezone("UTC")), "critical", args, kwargs))
 
     @property
     def recent_logs(self) -> Iterable[Record]:
