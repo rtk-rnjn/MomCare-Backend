@@ -476,6 +476,8 @@ class CacheHandler(_CacheHandler):
 
     @staticmethod
     async def background_worker(google_api_handler: GoogleAPIHandler):
+        from src.utils.log import log
+
         collection = google_api_handler.cache_handler.mongo_client["MomCare"]["users"]
         now = datetime.now(timezone("Asia/Kolkata"))
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -483,6 +485,8 @@ class CacheHandler(_CacheHandler):
         def is_old(date: datetime) -> bool:
             native_date = date.astimezone(timezone("Asia/Kolkata"))
             return native_date < midnight
+
+        log.debug("Starting bluk user update")
 
         async for user_data in collection.find({}):
             user = User(**user_data)
@@ -507,6 +511,7 @@ class CacheHandler(_CacheHandler):
             history.date = midnight
 
             if not history.moods and not history.plan and not history.exercises:
+                log.debug("Exiting bulk update. No new changes.")
                 continue
 
             update_payload = {
@@ -526,6 +531,8 @@ class CacheHandler(_CacheHandler):
                     "updated_at": now,
                 },
             }
+
+            log.debug("Updating user: %s via bulk update", user.id)
 
             await collection.update_one({"_id": user.id}, update_payload)
             await google_api_handler.cache_handler.refresh_cache(user_id=user.id)
