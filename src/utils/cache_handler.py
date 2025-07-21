@@ -255,9 +255,8 @@ class CacheHandler(_CacheHandler):
         await self.redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=300)
         await self.redis_client.set(f"user:by_email:{user.email_address}", user.id, ex=300)
         self.log.info(
-            "User set in Redis with id: %s with data: %s",
+            "User set in Redis with id: %s",
             user.id,
-            user.model_dump_json(),
         )
         return user
 

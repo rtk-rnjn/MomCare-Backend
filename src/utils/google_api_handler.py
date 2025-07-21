@@ -178,7 +178,7 @@ Generate a meal plan that:
 - Incorporates available food items to ensure feasibility.
 - Reflects user's mood if applicable (e.g., comfort foods during emotional days, light meals during nausea).
 
-Continuously adapt each day’s plan based on prior meal suggestions and changes in the user’s health, food preferences, or inventory.""",
+Continuously adapt each day's plan based on prior meal suggestions and changes in the user's health, food preferences, or inventory.""",
                     response_mime_type="application/json",
                     response_schema=_TempMyPlan,
                 ),
