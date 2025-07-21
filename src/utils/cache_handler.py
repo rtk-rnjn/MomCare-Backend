@@ -510,8 +510,8 @@ class CacheHandler(_CacheHandler):
             history.exercises = exercises
             history.date = midnight
 
-            if not history.moods and not history.plan and not history.exercises:
-                log.debug("Exiting bulk update. No new changes.")
+            if history.is_empty():
+                log.debug("Skipping bulk update for user %s. No new changes.", user.id)
                 continue
 
             update_payload = {
@@ -532,7 +532,7 @@ class CacheHandler(_CacheHandler):
                 },
             }
 
-            log.debug("Updating user: %s via bulk update", user.id)
+            log.debug("Updating user: %s via bulk update with payload: %s", user.id, update_payload)
 
             await collection.update_one({"_id": user.id}, update_payload)
             await google_api_handler.cache_handler.refresh_cache(user_id=user.id)

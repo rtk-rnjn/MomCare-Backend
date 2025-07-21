@@ -31,6 +31,9 @@ class History(BaseModel):
         json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
+    def is_empty(self) -> bool:
+        return not (self.plan or self.exercises or self.moods)
+
 
 class User(BaseModel):
     id: str
