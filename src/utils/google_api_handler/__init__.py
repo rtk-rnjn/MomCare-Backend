@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 
+import arrow
 from dotenv import load_dotenv
 from google import genai
 from google.genai.types import Content, GenerateContentConfig, Part
@@ -15,11 +16,11 @@ from pydantic import BaseModel, Field
 from src.models import MyPlan, User
 from src.models.food_item import FoodItem
 
-from .image_generator_handler import ImageGeneratorHandler
+from ..image_generator_handler import ImageGeneratorHandler
 
 if TYPE_CHECKING:
 
-    from .cache_handler import CacheHandler
+    from ..cache_handler import CacheHandler
 
 load_dotenv()
 
@@ -40,6 +41,8 @@ with open("static/foods.txt", "r") as file:
 with open("static/yoga_set.json", "r") as file:
     YOGA_SETS = json.load(file)
 
+with open("src/utils/google_api_handler/diet_plan_prompt.txt") as file:
+    DIET_PLAN_PROMPT = file.read()
 
 CONSTRAINTS = """
 Constraints:
@@ -152,7 +155,13 @@ class GoogleAPIHandler:
         history = user_data.pop("history", None)
         user_data.pop("mood_history", None)
         user_data.pop("exercises", None)
-        user_data["history"] = history[:7]
+        plan_history = []
+        if history:
+            for item in history:
+                if "plan" in item:
+                    plan_history.append(item["plan"])
+        
+        plan_history = plan_history[:7]
 
         try:
             response = self.client.models.generate_content(
@@ -161,24 +170,16 @@ class GoogleAPIHandler:
                     Content(
                         parts=[
                             Part.from_text(text=f"User Data: {user_data}"),
+                            Part.from_text(
+                                text=f"User Plan History: {plan_history if plan_history else 'No previous plans found.'}"
+                            ),
                             Part.from_text(text=f"List of available food items: {FOODS}"),
                             Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
                         ]
                     )
                 ],
                 config=GenerateContentConfig(
-                    system_instruction="""You are a certified AI dietician. Your role is to generate daily meal plans personalized for pregnant users based on their medical history, food intolerances, dietary preferences, mood, available food items, and their current pregnancy stage.
-
-First, determine the user's day, week, and trimester based on their due date or conception information. Use this to define today's specific nutritional goal based on fetal development needs and maternal health at that stage.
-
-Generate a meal plan that:
-- Aligns with that goal.
-- Is diverse and non-repetitive—do not repeat any meal within the same week.
-- Considers what meals have already been suggested to the user in the past.
-- Incorporates available food items to ensure feasibility.
-- Reflects user's mood if applicable (e.g., comfort foods during emotional days, light meals during nausea).
-
-Continuously adapt each day's plan based on prior meal suggestions and changes in the user's health, food preferences, or inventory.""",
+                    system_instruction=DIET_PLAN_PROMPT,
                     response_mime_type="application/json",
                     response_schema=_TempMyPlan,
                 ),
