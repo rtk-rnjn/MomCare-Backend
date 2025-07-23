@@ -1,6 +1,7 @@
 [
     {
         "name": "Tree Pose",
+        "image_uri": "Tree pose.png",
         "level": "Beginner",
         "description": "Improves balance and posture, strengthens thighs and calves, mental focus",
         "week": "1-12",
@@ -17,6 +18,7 @@
     },
     {
         "name": "Lotus Pose",
+        "image_uri": "Lotus pose.png",
         "level": "Intermediate",
         "description": "Lotus Pose is great for meditation and Pranayama practice. Much more stable than its counterparts. This asana allows the entire body to remain steady during a long period of time",
         "week": "13-27",
@@ -32,6 +34,7 @@
     },
     {
         "name": "Warrior I",
+        "image_uri": "Warrior I.png",
         "level": "Beginner",
         "description": "improve the rotation of the hips and mobilize the spine. This pose offers a full body stretch and strengthening and improves breathing and circulation.",
         "week": "13-27",
@@ -46,6 +49,7 @@
     },
     {
         "name": "Chair Pose",
+        "image_uri": "Chair pose.png",
         "level": "Beginner",
         "description": "mproves posture, tones the nervous system. Reinforce the legs, gluts and abdominal muscles. Stimulates the heart and diaphragm",
         "week": "28-40",
@@ -60,6 +64,7 @@
     },
     {
         "name": "Bridge Pose",
+        "image_uri": "Bridge pose.png",
         "level": "Beginner",
         "description": "relieves back pain, improves blood circulation, and calms the mind and the nervous system.",
         "week": "13-27",
@@ -75,6 +80,7 @@
     },
     {
         "name": "Supine Spinal Twist",
+        "image_uri": "Supine Spinal Twist.png",
         "level": "Beginner",
         "description": "massages and tones the abdominal organs and muscles.Relaxing the spine. Stretches the obliques, glutes and chest.",
         "week": "28-40",
@@ -90,6 +96,7 @@
     },
     {
         "name": "Triangle Pose",
+        "image_uri": "Triangle pose.png",
         "level": "Beginner",
         "description": "greatly improves hip joints rotation. Strengthen legs, upper back and shoulders. Also improve the digestion and tones the reproductive organs.",
         "week": "13-27",
@@ -104,6 +111,7 @@
     },
     {
         "name": "Half Standing forward Bend",
+        "image_uri": "Half Standing forward Bend.png",
         "level": "Beginner",
         "description": "corrects hyper kyphosis and tones abdominal muscles. Use as a transition pose during the flow",
         "week": "13-27",
@@ -118,6 +126,7 @@
     },
     {
         "name": "Warrior II",
+        "image_uri": "Warrior II.png",
         "level": "Beginner",
         "description": "Improves circulation, strengthen your whole body, and open your hips. it also relieves your neck and back pain. This pose allows you to experiment with your centre of gravity as you align your body.",
         "week": "13-27",
@@ -133,6 +142,7 @@
     },
     {
         "name": "Child's Pose",
+        "image_uri": "Child's pose.png",
         "level": "Beginner",
         "description": "This relaxing pose stretches your shoulders, chest, and low back. It increases flexibility in your spine, hips and thighs.",
         "week": "1-12",
@@ -147,6 +157,7 @@
     },
     {
         "name": "Butterfly Pose",
+        "image_uri": "Butterfly pose.png",
         "level": "Beginner",
         "description": "It increases hip and groin flexibility, improved circulation in the pelvic area and potential release from menstrual discomfort and lower back pain.",
         "week": "1-12",
@@ -162,6 +173,7 @@
     },
     {
         "name": "Down Dog Pose",
+        "image_uri": "Down Dog pose.png",
         "level": "Intermediate",
         "description": "It is a wonderful stretch for the entire back of the body from head to toe. Inversion helps to bring oxygenated blood to the brain as well as giving a new perspective on the world.",
         "week": "13-27",
@@ -176,6 +188,7 @@
     },
     {
         "name": "Seated Side bend Pose",
+        "image_uri": "Seated Side bend pose.png",
         "level": "Beginner",
         "description": "It is a soothing yoga pose that stretches neck, shoulders, back and obliques. This pose helps to relax the mind and relieve stress and anxiety.",
         "week": "1-12",
@@ -192,6 +205,7 @@
     },
     {
         "name": "Meditation pose",
+        "image_uri": "Meditation pose.png",
         "level": "Beginner",
         "description": "calm the mind, reduce stress, and improve cognitive function.",
         "week": "1-12",
@@ -207,6 +221,7 @@
     },
     {
         "name": "Basic yoga sitting",
+        "image_uri": "Basic yoga sitting.png",
         "level": "Beginner",
         "description": "improved flexibility, enhanced core strength, better posture, reduced stress, and improved focus",
         "week": "1-12",
@@ -225,6 +240,7 @@
     },
     {
         "name": "Kneeling chair",
+        "image_uri": "Kneeling chair.png",
         "level": "Beginner",
         "description": "improved flexibility, posture, and spinal alignment.",
         "week": "13-27",
@@ -242,6 +258,7 @@
     },
     {
         "name": "Extending chair",
+        "image_uri": "Extending chair.png",
         "level": "Beginner",
         "description": "Scratch legs ,calves",
         "week": "28-40",
@@ -256,6 +273,7 @@
     },
     {
         "name": "Leg stretching",
+        "image_uri": "Leg stretching.png",
         "level": "Beginner",
         "description": "Stretch and relax legs knees pain",
         "week": "1-12",
@@ -270,6 +288,7 @@
     },
     {
         "name": "Peacock pose",
+        "image_uri": "Peacock pose.png",
         "level": "Advanced",
         "description": "Improved digestion, enhanced strength, in the arms and wrists and increased balance and coordination.",
         "week": "1-2",
@@ -290,6 +309,7 @@
     },
     {
         "name": "Tiger pose",
+        "image_uri": "Tiger pose.png",
         "level": "Beginner",
         "description": "improved spinal flexibility, stronger core muscles, enhanced digestion, and stress relief.",
         "week": "13-27",
@@ -311,6 +331,7 @@
     },
     {
         "name": "Half tortoise pose",
+        "image_uri": "Half tortoise pose.png",
         "level": "Beginner",
         "description": "It stretches the back, shoulder, neck, and hip, improves blood flow to the brain, enhance mental clarity and aids in digestion and elimination.",
         "week": "13-27",
@@ -328,6 +349,7 @@
     },
     {
         "name": "Cobra pose",
+        "image_uri": "Cobra pose.png",
         "level": "Beginner",
         "description": "strengthening the back and spine, improving flexibility and posture, and reducing stress and anxiety.",
         "week": "1-15",
@@ -342,6 +364,7 @@
     },
     {
         "name": "Cow pose",
+        "image_uri": "Cow pose.png",
         "level": "Beginner",
         "description": "improved spinal flexibility, back and neck pain relief, and improved digestion",
         "week": "1-12",
@@ -358,6 +381,7 @@
     },
     {
         "name": "Plow pose",
+        "image_uri": "Plow pose.png",
         "level": "Advanced",
         "description": "strengthens the spine, improves flexibility in the shoulders, neck, and back, stimulates the thyroid gland, and can help alleviate stress and anxiety.",
         "week": "1-7",
@@ -374,6 +398,7 @@
     },
     {
         "name": "Half Split",
+        "image_uri": "Half Split.png",
         "level": "Beginner",
         "description": "Improve digestion, stress relief, increased spinal flexibility, and better circulation",
         "week": "1-12",
@@ -389,6 +414,7 @@
     },
     {
         "name": "Wheel",
+        "image_uri": "Wheel.png",
         "level": "Beginner",
         "description": "enable efficient movement, improve vehicle handling and stability, and can even be used for exercises like yoga.",
         "week": "1-15",
@@ -405,6 +431,7 @@
     },
     {
         "name": "Twisting triangle",
+        "image_uri": "Twisting triangle.png",
         "level": "Beginner",
         "description": "strengthens and stretches the legs, opens the chest to improve breathing, relieves mild back pain, and improves your sense of balance.",
         "week": "1-15",
@@ -423,6 +450,7 @@
     },
     {
         "name": "Camel pose",
+        "image_uri": "Camel pose.png",
         "level": "Intermediate",
         "description": "Improves digestion, relief from lower back pain, and increased hip flexibility, help with menstrual discomfort and even boost confidence.",
         "week": "13-27",
@@ -439,6 +467,7 @@
     },
     {
         "name": "Lizard pose",
+        "image_uri": "Lizard pose.png",
         "level": "Advanced",
         "description": "Increases Hip flexibility, Releases tension in Groin, build strength in legs, open shoulders.",
         "week": "1-15",
@@ -457,6 +486,7 @@
     },
     {
         "name": "Side leg raises",
+        "image_uri": "Side leg raises.png",
         "level": "Beginner",
         "description": "Strengthen the outer hip muscles, tone the thighs, contribute to better posture, reduce risk of knee and hip injuries.",
         "week": "13-27",
@@ -473,6 +503,7 @@
     },
     {
         "name": "Single Leg Lift",
+        "image_uri": "Single Leg Lift.png",
         "level": "Beginner",
         "description": "Improves balance, enhance core strength, increase hip flexor strength, better overall stability.",
         "week": "1-20",
@@ -487,6 +518,7 @@
     },
     {
         "name": "Spine Stretch Forward",
+        "image_uri": "Spine Stretch Forward.png",
         "level": "Beginner",
         "description": "Improves spinal flexibility, reduce back pain, improve posture and muscle tension.",
         "week": "1-12",
@@ -502,6 +534,7 @@
     },
     {
         "name": "Lunge",
+        "image_uri": "Lunge.png",
         "level": "Intermediate",
         "description": "Increase lower body strength, improves balance, enhance flexibility, and increase core strength.",
         "week": "13-27",
@@ -516,6 +549,7 @@
     },
     {
         "name": "Full body Stretch",
+        "image_uri": "Full body Stretch.png",
         "level": "Intermediate",
         "description": "Increase Flexibility",
         "week": "1-8",
