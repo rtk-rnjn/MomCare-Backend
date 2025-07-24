@@ -330,6 +330,14 @@ class CacheHandler(_CacheHandler):
                 self.log.warning("Plan is empty for user id: %s", user_id)
                 return None
             return plan
+        
+        user = await self.get_user(user_id=user_id, force=True)
+        if user and user.plan:
+            self.log.info("Plan found in MongoDB for user id: %s", user_id)
+            if user.plan.is_old() or user.plan.is_empty():
+                self.log.warning("Plan is old for user id: %s", user_id)
+                return None
+            return user.plan
 
         self.log.warning("No plan found in Redis for user id: %s", user_id)
         return None

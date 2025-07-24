@@ -29,3 +29,9 @@ class MyPlan(BaseModel):
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
+
+    def is_old(self) -> bool:
+        """If the plan is older than a day. Means crossed midnight."""
+        now = datetime.now(timezone("UTC"))
+        created_at = self.created_at.replace(tzinfo=timezone("UTC"))
+        return (now - created_at).days > 0
