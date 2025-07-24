@@ -80,6 +80,7 @@ class _CacheHandler:
                 break
 
             try:
+                self.log.debug("Executing operation: %s", operation)
                 result: BulkWriteResult = await self.users_collection.bulk_write([operation])
                 self.log.debug("Bulk operation executed: %s", result.bulk_api_result)
             except Exception as e:
@@ -315,7 +316,7 @@ class CacheHandler(_CacheHandler):
         )
         update_operation = UpdateOne(
             {"_id": user_id},
-            {"$set": {"plan": plan.model_dump(mode="json")}},
+            {"$set": {"plan": plan.model_dump()}},
         )
         await self.users_collection_operations.put(update_operation)
 
@@ -339,6 +340,7 @@ class CacheHandler(_CacheHandler):
         user_id: Optional[str] = None,
         email_address: Optional[str] = None,
         updated_user: Union[BaseModel, dict],
+        **extra_fields: dict[str, Any]
     ) -> None:
         self.log.debug("Updating user data for id: %s", user_id)
         update_operation = UpdateOne(
@@ -348,8 +350,15 @@ class CacheHandler(_CacheHandler):
                     {"email_address": email_address},
                 ]
             },
-            {"$set": (updated_user if isinstance(updated_user, dict) else updated_user.model_dump())},
+            {
+                "$set": {
+                    **(updated_user if isinstance(updated_user, dict) else updated_user.model_dump()),
+                    "updated_at": datetime.now(timezone("UTC")),
+                    **extra_fields,
+                }
+            },
         )
+
         await self.users_collection_operations.put(update_operation)
         await self.refresh_cache(user_id=user_id, email_address=email_address)
 
@@ -480,18 +489,12 @@ class CacheHandler(_CacheHandler):
         from src.utils.log import log
 
         collection = google_api_handler.cache_handler.mongo_client["MomCare"]["users"]
-        now = datetime.now(timezone("UTC"))
-        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
         def is_old(date: datetime) -> bool:
-            date = arrow.get(date).datetime
-            if date.tzinfo is None:
-                date = timezone("UTC").localize(date)
+            midnight = date.replace(hour=0, minute=0, second=0, microsecond=0)
+            return date < midnight
 
-            native_date = date.astimezone(timezone("UTC"))
-            return native_date < midnight
-
-        log.debug("Starting bluk user update")
+        log.debug("Starting bulk user update")
 
         async for user_data in collection.find({}):
             user = User(**user_data)
@@ -513,11 +516,14 @@ class CacheHandler(_CacheHandler):
                     exercises.append(exercise)
 
             history.exercises = exercises
-            history.date = midnight
-
             if history.is_empty():
                 log.debug("Skipping bulk update for user %s. No new changes.", user.id)
                 continue
+
+            now = datetime.now(timezone("UTC"))
+            midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            history.date = midnight
 
             update_payload = {
                 "$addToSet": {

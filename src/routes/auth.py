@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from pymongo import UpdateOne
 
 from src.app import app, cache_handler, token_handler
-from src.models import User, UserMedical
+from src.models import User, UserMedical, PartialUser
 from src.utils import Token
 
 
@@ -132,8 +132,10 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
     user = await cache_handler.get_user(user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    _new_user = PartialUser(**user_data)
 
-    await cache_handler.update_user(user_id=user_id, updated_user=user_data)
+    await cache_handler.update_user(user_id=user_id, updated_user=_new_user)
 
     return UpdateResponse(
         success=True,
