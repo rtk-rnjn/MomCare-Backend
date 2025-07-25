@@ -82,6 +82,7 @@ class UserMedical(BaseModel):
         json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
+
 class PartialUser(BaseModel):
     first_name: str
     last_name: Optional[str] = None

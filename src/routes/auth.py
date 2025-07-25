@@ -132,7 +132,7 @@ async def update_user(user_data: dict, token: Token = Depends(get_user_token)) -
     user = await cache_handler.get_user(user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     _new_user = PartialUser(**user_data)
 
     await cache_handler.update_user(user_id=user_id, updated_user=_new_user)
