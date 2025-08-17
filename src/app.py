@@ -36,7 +36,14 @@ genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
 async def lifespan(app: FastAPI):
     genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
     await cache_handler.on_startup(genai_handler)
+
+    if hasattr(app, "sqlite_handler"):
+        await app.sqlite_handler.connect("logs.db")  # pyright: ignore[reportAttributeAccessIssue]
+
     yield
+    if hasattr(app, "sqlite_handler"):
+        await app.sqlite_handler.shutdown()  # pyright: ignore[reportAttributeAccessIssue]
+
     await cache_handler.on_shutdown()
 
 
