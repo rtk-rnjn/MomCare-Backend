@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import sqlite3
 import traceback
 import types
+from collections import deque
 
 import aiosqlite
 from rich.logging import RichHandler
@@ -28,12 +28,6 @@ DEVELOPMENT = os.getenv("DEVELOPMENT", "True").lower() == "true"
 
 with open("log.schema.sql") as schema:
     schema_sql = schema.read()
-
-import asyncio
-import logging
-from collections import deque
-
-import aiosqlite
 
 
 class _SQLiteLoggingHandler(logging.Handler):
