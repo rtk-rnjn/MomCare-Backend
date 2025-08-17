@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 if TYPE_CHECKING:
     from src.utils.cache_handler import CacheHandler
 
+
 load_dotenv()
 
 

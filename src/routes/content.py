@@ -31,7 +31,11 @@ ydl_opts = {
 
 
 def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    return token_handler.decode_token(credentials.credentials)
+    token = token_handler.decode_token(credentials.credentials)
+    if token is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    return token
 
 
 router = APIRouter(prefix="/content", tags=["Content"])

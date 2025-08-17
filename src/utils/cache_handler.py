@@ -9,14 +9,12 @@ from typing import TYPE_CHECKING, Any, List, Optional, Union
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
-from pymongo.results import BulkWriteResult
-import arrow
+from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from pytz import timezone
 
 from src.models import FoodItem, History, MyPlan, User
 
 if TYPE_CHECKING:
-    from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
     from redis.asyncio import Redis
 
     from .google_api_handler import GoogleAPIHandler
@@ -60,11 +58,11 @@ class RootModel(BaseModel):
 
 class _CacheHandler:
     redis_client: Redis
-    mongo_client: AsyncIOMotorClient
+    mongo_client: AsyncMongoClient
 
     users_collection_operations: asyncio.Queue[Union[InsertOne, UpdateOne, None]] = asyncio.Queue()
 
-    def __init__(self, *, mongo_client: AsyncIOMotorClient):
+    def __init__(self, *, mongo_client: AsyncMongoClient):
         self.mongo_client = mongo_client
         self.users_collection = mongo_client["MomCare"]["users"]
 
@@ -73,34 +71,22 @@ class _CacheHandler:
         while True:
             operation = await self.users_collection_operations.get()
             if operation is None:
-
                 break
 
             try:
-
-                result: BulkWriteResult = await self.users_collection.bulk_write([operation])
-
-            except Exception as e:
+                await self.users_collection.bulk_write([operation])
+            except Exception:
                 pass
 
     async def cancel_operations(self) -> None:
-
         await self.users_collection_operations.put(None)
 
     async def on_startup(self, genai_handler: GoogleAPIHandler):
         async def ping_redis():
-            try:
-                result = await self.redis_client.ping()
-
-            except Exception as e:
-                pass
+            await self.redis_client.ping()
 
         async def ping_mongo():
-            try:
-                result = await self.mongo_client.admin.command("ping")
-
-            except Exception as e:
-                pass
+            await self.mongo_client.admin.command("ping")
 
         async def start_scheduler():
 
@@ -127,15 +113,12 @@ class _CacheHandler:
 
     async def on_shutdown(self):
         async def close_redis():
-
             await self.redis_client.close()
 
         async def close_mongo():
-
-            self.mongo_client.close()
+            await self.mongo_client.close()
 
         async def cancel_operations():
-
             await self.cancel_operations()
 
         await asyncio.gather(
@@ -146,14 +129,14 @@ class _CacheHandler:
 
 
 class CacheHandler(_CacheHandler):
-    def __init__(self, *, redis_client: Redis, mongo_client: AsyncIOMotorClient):
+    def __init__(self, *, redis_client: Redis, mongo_client: AsyncMongoClient):
         super().__init__(mongo_client=mongo_client)
 
         self.redis_client = redis_client
         self.mongo_client = mongo_client
-        self.users_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["users"]
-        self.foods_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["foods"]
-        self.misc_collection: AsyncIOMotorCollection[dict[str, Any]] = mongo_client["MomCare"]["misc"]
+        self.users_collection = mongo_client["MomCare"]["users"]
+        self.foods_collection = mongo_client["MomCare"]["foods"]
+        self.misc_collection = mongo_client["MomCare"]["misc"]
 
     async def get_user(
         self,
@@ -210,7 +193,6 @@ class CacheHandler(_CacheHandler):
     async def _search_user(self, *, email: str, password: str) -> Optional[User]:
         user_id = await self.redis_client.get(f"user:by_email:{email}")
         if user_id:
-
             user = await self.get_user(user_id=user_id)
             if user and user.password == password:
 
@@ -218,13 +200,11 @@ class CacheHandler(_CacheHandler):
 
         user = await self.users_collection.find_one({"email_address": email, "password": password})
         if user:
-
             return await self.set_user(user=User(**user))
 
         return None
 
     async def user_exists(self, *, email_address: str) -> bool:
-
         user_id = await self.redis_client.get(f"user:by_email:{email_address}")
         if user_id:
 
@@ -232,21 +212,18 @@ class CacheHandler(_CacheHandler):
 
         user = await self.users_collection.find_one({"email_address": email_address})
         if user:
-
             await self.set_user(user=User(**user))
             return True
 
         return False
 
     async def set_user(self, *, user: User):
-
         await self.redis_client.set(f"user:{user.id}", user.model_dump_json(), ex=300)
         await self.redis_client.set(f"user:by_email:{user.email_address}", user.id, ex=300)
 
         return user
 
     async def factory_delete_user(self, *, user_id: Optional[str], email_address: Optional[str] = None) -> None:
-
         await self.redis_client.delete(
             f"user:{user_id}",
             f"user:by_email:{email_address}",

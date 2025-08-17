@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
@@ -12,7 +12,13 @@ security = HTTPBearer()
 
 
 def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    return token_handler.decode_token(credentials.credentials)
+
+    token = token_handler.decode_token(credentials.credentials)
+
+    if token is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    return token
 
 
 class StatusUpdate(BaseModel):
@@ -28,7 +34,7 @@ class OTPRequest(BaseModel):
     otp: str
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(get_user_token)])
 async def send_otp(request: Request, data: EmailAddress):
     email_address = data.email_address
 
@@ -46,7 +52,7 @@ async def send_otp(request: Request, data: EmailAddress):
     return True
 
 
-@router.post("/verify")
+@router.post("/verify", dependencies=[Depends(get_user_token)])
 async def verify_otp(
     request: Request,
     data: OTPRequest,

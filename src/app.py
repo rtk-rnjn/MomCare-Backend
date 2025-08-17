@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from redis.asyncio import Redis
 
 from src.utils import CacheHandler, GoogleAPIHandler, TokenHandler
@@ -20,7 +20,7 @@ URI = os.getenv("MONGODB_URI")
 if URI is None:
     raise ValueError("MONGODB_URI is not set")
 
-mongo_client = AsyncIOMotorClient(URI, document_class=dict[str, Any])
+mongo_client = AsyncMongoClient(URI, document_class=dict[str, Any])
 database = mongo_client["MomCare"]
 redis_client = Redis(decode_responses=True)
 
@@ -42,7 +42,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="MomCare API Documentation",
-    description="API documentation for the MomCare project - a health and fitness application. The API is used to manage users, exercises, and plans.",
+    description=(
+        "API documentation for the MomCare project - a health and fitness application. "
+        "The API is used to manage users, exercises, and plans."
+    ),
     version="0.1",
     contact={
         "name": "Team 05 - Vision",

@@ -6,7 +6,6 @@ import os
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-import arrow
 from dotenv import load_dotenv
 from google import genai
 from google.genai.types import Content, GenerateContentConfig, Part
@@ -178,7 +177,7 @@ class GoogleAPIHandler:
 
             if response:
                 return _TempMyPlan(**json.loads(response.text or "{}"))
-        except Exception as e:
+        except Exception:
             return None
 
         return None
@@ -240,7 +239,7 @@ class GoogleAPIHandler:
 
             return image_link
 
-        except Exception as e:
+        except Exception:
 
             pixel_image_uri = await self.image_generator_handler.search_image(food_name=food_name)
             if pixel_image_uri:
@@ -282,7 +281,7 @@ class GoogleAPIHandler:
                 await self.cache_handler.set_tips(user_id=user.id, tips=tips)
                 return tips
 
-        except Exception as e:
+        except Exception:
 
             return None
 
@@ -323,7 +322,7 @@ class GoogleAPIHandler:
                 await self.cache_handler.set_exercise(user_id=user.id, exercise=exercise)
                 return exercise
 
-        except Exception as e:
+        except Exception:
 
             return None
 

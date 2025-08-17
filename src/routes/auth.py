@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from pymongo import UpdateOne
 
 from src.app import app, cache_handler, token_handler
-from src.models import User, UserMedical, PartialUser
+from src.models import PartialUser, User, UserMedical
 from src.utils import Token
 
 
@@ -34,7 +34,11 @@ security = HTTPBearer()
 
 
 def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    return token_handler.decode_token(credentials.credentials)
+    token = token_handler.decode_token(credentials.credentials)
+    if token is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    return token
 
 
 @router.post("/register", response_model=ServerResponse)
