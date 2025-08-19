@@ -38,12 +38,7 @@ async def get_version(request: Request):
 
 @router.get("/ping")
 async def get_ping(request: Request):
-
-    return {
-        "ping": "pong",
-        # "redis": redis_ping,
-        # "mongo": mongo_ping,
-    }
+    return {"ping": "pong"}
 
 
 app.include_router(router, prefix="/meta", tags=["Meta"])
