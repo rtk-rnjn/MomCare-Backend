@@ -38,11 +38,11 @@ async def lifespan(app: FastAPI):
     await cache_handler.on_startup(genai_handler)
 
     if hasattr(app, "sqlite_handler"):
-        await app.sqlite_handler.connect("logs.db")  # pyright: ignore[reportAttributeAccessIssue]
+        app.sqlite_handler.connect("logs.db")  # pyright: ignore[reportAttributeAccessIssue]
 
     yield
     if hasattr(app, "sqlite_handler"):
-        await app.sqlite_handler.shutdown()  # pyright: ignore[reportAttributeAccessIssue]
+        app.sqlite_handler.shutdown()  # pyright: ignore[reportAttributeAccessIssue]
 
     await cache_handler.on_shutdown()
 
