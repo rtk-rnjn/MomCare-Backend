@@ -369,7 +369,7 @@ class CacheHandler(_CacheHandler):
             ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
 
-    async def get_exercise(self, *, user_id: str) -> Optional[YogaSets]:
+    async def get_exercises(self, *, user_id: str) -> Optional[YogaSets]:
 
         exercise_data = await self.redis_client.get(f"exercise:{user_id}")
         if exercise_data:

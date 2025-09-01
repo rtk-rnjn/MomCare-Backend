@@ -16,6 +16,7 @@ class Exercise(BaseModel):
 
     name: str
     exercise_type: str = "Yoga"
+    image_uri: Optional[str] = None
     duration: Optional[float] = None
     description: str = ""
     tags: List[str] = []

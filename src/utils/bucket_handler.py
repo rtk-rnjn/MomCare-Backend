@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, overload
 
 import boto3
 from dotenv import load_dotenv
 
 if TYPE_CHECKING:
+    from typing_extensions import Self
+
     from src.utils.cache_handler import CacheHandler
 
 
@@ -15,7 +17,7 @@ load_dotenv()
 
 
 class S3:
-    def __init__(self, cache_handler: CacheHandler):
+    def __init__(self, cache_handler: CacheHandler | None = None):
         AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
         AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 
@@ -26,6 +28,8 @@ class S3:
         REGION = os.environ["AWS_REGION"]
         self.bucket_name = BUCKET_NAME
         self.region = REGION
+
+        self._prefix: str = ""
 
         self.s3_client = boto3.client(
             "s3",
@@ -77,3 +81,34 @@ class S3:
             return response
         except Exception:
             return {}
+
+    def songs(self) -> Self:
+        self._prefix += "Songs/"
+        return self
+
+    def exercises(self) -> Self:
+        self._prefix += "Exercises/"
+        return self
+
+    def __getattr__(self, key: str):
+        if hasattr(self, key):
+            return getattr(self, key)
+
+        self._prefix += key
+        return self
+
+    def __getitem__(self, path) -> Self:
+        self._prefix += path + "/"
+        return self
+
+    @overload
+    async def execute(self) -> list[str]: ...
+
+    @overload
+    async def execute(self) -> str | None: ...
+
+    async def execute(self) -> list[str] | str | None:
+        if self._prefix.endswith("/"):
+            return await self.list_folder(self._prefix) or await self.list_files(self._prefix)
+
+        return await self.get_presigned_url(self._prefix)

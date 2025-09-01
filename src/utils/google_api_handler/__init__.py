@@ -38,7 +38,7 @@ with open("static/foods.txt", "r") as file:
 
 
 with open("static/yoga_set.json", "r") as file:
-    YOGA_SETS = json.load(file)
+    YOGA_SETS: list[dict] = json.load(file)
 
 with open("src/utils/google_api_handler/diet_plan_prompt.txt") as file:
     DIET_PLAN_PROMPT = file.read()
@@ -285,9 +285,9 @@ class GoogleAPIHandler:
 
             return None
 
-    async def _get_exercise(self, user: User):
+    async def _get_exercises(self, user: User):
         SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant woman do today.\n"
-        SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date.\n"
+        SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date. 4-5 Exercises would be enough.\n"
         SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format(
             [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
         )
@@ -323,19 +323,16 @@ class GoogleAPIHandler:
                 return exercise
 
         except Exception:
-
             return None
 
     async def get_exercises(self, user: User):
 
-        exercise = await self.cache_handler.get_exercise(user_id=user.id)
+        exercise = await self.cache_handler.get_exercises(user_id=user.id)
         if exercise:
-
             return exercise
 
-        exercise = await self._get_exercise(user=user)
+        exercise = await self._get_exercises(user=user)
         if not exercise:
-
             return None
 
         return exercise

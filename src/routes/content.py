@@ -13,6 +13,7 @@ from yt_dlp import YoutubeDL
 from src.app import app, cache_handler, genai_handler, token_handler
 from src.models import Exercise, MyPlan, Song, SongMetadata
 from src.utils import S3, ImageGeneratorHandler, Token
+from src.utils.google_api_handler import YOGA_SETS
 from static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 
 if TYPE_CHECKING:
@@ -92,8 +93,15 @@ async def get_exercises(token: Token = Depends(get_user_token)):
 
     sendable = []
     for yoga_set in yoga_sets:
+        yoga = list(filter(lambda x: x["name"] == yoga_set.name, YOGA_SETS))
+        if yoga:
+            image_uri = await s3_client.get_presigned_url(f"ExerciseImages/{yoga[0]['image_uri']}")
+        else:
+            image_uri = None
+
         exercise = Exercise(
             name=yoga_set.name,
+            image_uri=image_uri,
             description=yoga_set.description,
             level=yoga_set.level,
             targeted_body_parts=yoga_set.targeted_body_parts,

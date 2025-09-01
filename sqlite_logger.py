@@ -1,9 +1,9 @@
 import logging
+import queue
 import sqlite3
+import threading
 import traceback
 import types
-import threading
-import queue
 
 with open("log.schema.sql") as schema:
     schema_sql = schema.read()
@@ -76,7 +76,10 @@ class _SQLiteLoggingHandler(logging.Handler):
             self._db = None
         super().close()
 
-    def _format_exc(self, exc_info: tuple[type[BaseException], BaseException, types.TracebackType] | None) -> str:
+    def _format_exc(
+        self,
+        exc_info: tuple[type[BaseException], BaseException, types.TracebackType] | None,
+    ) -> str:
         if exc_info is None:
             return "<no traceback>"
         return "".join(traceback.format_exception(*exc_info))
