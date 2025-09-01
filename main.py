@@ -26,7 +26,7 @@ DEVELOPMENT = os.getenv("DEVELOPMENT", "True").lower() == "true"
 
 sqlite_handler = _SQLiteLoggingHandler()
 
-logging.basicConfig(level=logging.DEBUG, format="%(message)s", handlers=[RichHandler(), sqlite_handler])
+logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler(), sqlite_handler])
 
 LOGGING_CONFIG: dict[str, object] = {
     "version": 1,
