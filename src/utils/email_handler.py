@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from email.message import EmailMessage
+import logging
 
 from aiosmtplib import send
 
@@ -10,9 +11,13 @@ with open("static/otp-content.html", "r") as file:
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
-EMAIL_FROM = os.getenv("EMAIL_FROM", "MomCare <no-reply@momcare.com>")
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_FROM = "MomCare <no-reply@momcare.com>"
+
+if EMAIL_ADDRESS is None or EMAIL_PASSWORD is None:
+    logging.critical("Email credentials are not set in environment variables.")
 
 
 async def send_otp_mail(email_address: str, otp: str) -> None:
@@ -20,6 +25,7 @@ async def send_otp_mail(email_address: str, otp: str) -> None:
     message["From"] = EMAIL_FROM
     message["To"] = email_address
     message["Subject"] = "Your MomCare OTP - Secure Access"
+
     message.set_content(OTP_CONTENT.format(otp=otp), subtype="html")
 
     await send(
