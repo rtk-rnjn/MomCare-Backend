@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import logging
 import os
 from email.message import EmailMessage
-import logging
 
 from aiosmtplib import send
 

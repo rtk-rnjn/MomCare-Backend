@@ -441,7 +441,11 @@ class CacheHandler(_CacheHandler):
         collection = google_api_handler.cache_handler.mongo_client["MomCare"]["users"]
 
         def is_old(date: datetime) -> bool:
-            midnight = date.replace(hour=0, minute=0, second=0, microsecond=0)
+            if date.tzinfo is None:
+                date = date.replace(tzinfo=timezone("UTC"))
+
+            now = datetime.now(timezone("UTC"))
+            midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
             return date < midnight
 
         async for user_data in collection.find({}):
