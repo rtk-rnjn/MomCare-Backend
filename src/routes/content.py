@@ -12,7 +12,7 @@ from yt_dlp import YoutubeDL
 
 from src.app import app, cache_handler, genai_handler, token_handler
 from src.models import Exercise, MyPlan, Song, SongMetadata
-from src.utils import S3, ImageGeneratorHandler, Token
+from src.utils import S3, Finder, ImageGeneratorHandler, Token
 from src.utils.google_api_handler import YOGA_SETS
 from static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 security = HTTPBearer()
 s3_client = S3(cache_handler=cache_handler)
 image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)
+finder = Finder(cache_handler)
 
 ydl_opts = {
     "format": "bestaudio/best",
@@ -128,6 +129,11 @@ async def search_food_name(request: Request, food_name: str, limit: int = 10):
 @router.get("/search/food-name/{food_name}/image")
 async def search_food_name_image(request: Request, food_name: str, limit: int = 10):
     return await image_generator_handler.search_image(food_name=food_name)
+
+
+@router.get("/search/symptoms")
+async def search_symptoms(request: Request, query: str = "", limit: int | None = None):
+    return finder.search_symptoms(query=query, limit=limit)
 
 
 @router.get("/tips")

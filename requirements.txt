@@ -14,11 +14,10 @@ redis
 setuptools
 uvicorn
 uvloop
-motor
+thefuzz
 boto3
 aiohttp
 aiodns
 yt-dlp
 pytest
 aiosmtplib
-arrow
