@@ -10,12 +10,37 @@ router = APIRouter()
 
 @app.get("/")
 async def root(request: Request):
+    """
+    Root endpoint redirecting to API documentation.
+    
+    Automatically redirects users to the Swagger UI documentation
+    for easy access to API exploration and testing.
+    
+    Returns:
+        RedirectResponse: Redirect to /docs endpoint
+    """
     if app.docs_url:
         return RedirectResponse(url=app.docs_url)
 
 
-@router.get("/")
+@router.get("/", response_model=dict)
 async def get_meta(request: Request):
+    """
+    Get API metadata and configuration information.
+    
+    Provides basic information about the API including version,
+    available documentation endpoints, and service description.
+    
+    Args:
+        request: HTTP request object
+        
+    Returns:
+        dict: API metadata including name, version, and documentation URLs
+        
+    Example:
+        Returns API name, version, description, and links to documentation
+        endpoints for client applications to discover API capabilities.
+    """
     return {
         "name": app.title,
         "version": app.version,
@@ -28,17 +53,62 @@ async def get_meta(request: Request):
 
 @router.get("/health")
 async def get_health(request: Request):
+    """
+    Health check endpoint for service monitoring.
+    
+    Simple endpoint to verify that the API service is running and responsive.
+    Used by load balancers, monitoring systems, and deployment tools.
+    
+    Args:
+        request: HTTP request object
+        
+    Returns:
+        dict: Health status indicator
+        
+    Example:
+        Returns {"status": "healthy"} when service is operational.
+    """
     return {"status": "healthy"}
 
 
 @router.get("/version")
 async def get_version(request: Request):
+    """
+    Get current API version information.
+    
+    Returns the current version of the API for client applications
+    to verify compatibility and feature availability.
+    
+    Args:
+        request: HTTP request object
+        
+    Returns:
+        dict: Current API version
+        
+    Example:
+        Returns {"version": "1.0.0"} for version tracking.
+    """
     return {"version": app.version}
 
 
 @router.get("/ping")
 async def get_ping(request: Request):
+    """
+    Simple ping endpoint for connectivity testing.
+    
+    Basic connectivity test endpoint that responds immediately
+    to verify network connectivity and basic service responsiveness.
+    
+    Args:
+        request: HTTP request object
+        
+    Returns:
+        dict: Ping response
+        
+    Example:
+        Returns {"ping": "pong"} for connectivity verification.
+    """
     return {"ping": "pong"}
 
 
-app.include_router(router, prefix="/meta", tags=["Meta"])
+app.include_router(router, prefix="/meta", tags=["System & Meta"])

@@ -48,21 +48,67 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="MomCare API Documentation",
-    description=(
-        "API documentation for the MomCare project - a health and fitness application. "
-        "The API is used to manage users, exercises, and plans."
-    ),
-    version="0.1",
+    title="MomCare API",
+    description="""
+    ## MomCare API Documentation
+
+    Welcome to the **MomCare API** - a comprehensive health and fitness application backend designed specifically for maternal wellness and care.
+
+    ### Key Features:
+    * **User Management**: Complete user registration, authentication, and profile management
+    * **Health Tracking**: Medical data tracking, mood monitoring, and history management  
+    * **Nutrition Planning**: AI-powered meal planning with detailed nutritional information
+    * **Exercise Management**: Personalized exercise routines with progress tracking
+    * **Content Discovery**: Food search, exercise recommendations, and wellness tips
+    * **Media Management**: Secure file storage and multimedia content handling
+
+    ### Authentication:
+    Most endpoints require JWT authentication. Include your access token in the `Authorization` header:
+    ```
+    Authorization: Bearer <your-access-token>
+    ```
+
+    ### Getting Started:
+    1. Register a new user account at `/auth/register`
+    2. Login to receive an access token at `/auth/login`  
+    3. Use the token to access protected endpoints
+
+    ### Support:
+    For questions or issues, please visit our [GitHub repository](https://github.com/rtk-rnjn/MomCare).
+    """,
+    version="1.0.0",
     contact={
         "name": "Team 05 - Vision",
         "url": "https://github.com/rtk-rnjn/MomCare",
+        "email": "support@momcare.app"
     },
     license_info={
         "name": "Mozilla Public License Version 2.0",
         "url": "https://opensource.org/licenses/MPL-2.0",
     },
+    terms_of_service="https://github.com/rtk-rnjn/MomCare/blob/main/TERMS.md",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
     lifespan=lifespan,
+    tags_metadata=[
+        {
+            "name": "Authentication",
+            "description": "User registration, login, and profile management operations. Handle user accounts, authentication tokens, and personal information updates."
+        },
+        {
+            "name": "Content Management", 
+            "description": "Access to nutrition plans, exercise routines, food search, wellness tips, and media content. Core functionality for maternal health and fitness."
+        },
+        {
+            "name": "OTP Authentication",
+            "description": "One-time password operations for email verification and account security. Secure account verification workflows."
+        },
+        {
+            "name": "System & Meta",
+            "description": "System health checks, API metadata, versioning information, and service status endpoints for monitoring and integration."
+        }
+    ]
 )
 
 app.add_middleware(
