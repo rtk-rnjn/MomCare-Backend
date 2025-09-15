@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.app import app, cache_handler, token_handler
 from src.utils import send_otp_mail
@@ -12,7 +12,18 @@ security = HTTPBearer()
 
 
 def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-
+    """
+    Extract and validate JWT token from Authorization header.
+    
+    Args:
+        credentials: HTTP Bearer token from Authorization header
+        
+    Returns:
+        Token: Decoded token information
+        
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
     token = token_handler.decode_token(credentials.credentials)
 
     if token is None:
@@ -22,20 +33,65 @@ def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)
 
 
 class StatusUpdate(BaseModel):
-    is_verified: bool
+    """Update model for user verification status."""
+    is_verified: bool = Field(..., description="User verification status")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "is_verified": True
+            }
+        }
+    )
 
 
 class EmailAddress(BaseModel):
-    email_address: str
+    """Request model containing email address for OTP operations."""
+    email_address: str = Field(..., description="User's email address", examples=["user@example.com"])
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email_address": "sarah.johnson@example.com"
+            }
+        }
+    )
 
 
 class OTPRequest(BaseModel):
-    email_address: str
-    otp: str
+    """Request model for OTP verification containing email and OTP code."""
+    email_address: str = Field(..., description="User's email address", examples=["user@example.com"])
+    otp: str = Field(..., description="6-digit OTP code", examples=["123456"], min_length=6, max_length=6)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email_address": "sarah.johnson@example.com",
+                "otp": "123456"
+            }
+        }
+    )
 
 
 @router.post("", dependencies=[Depends(get_user_token)])
 async def send_otp(request: Request, data: EmailAddress):
+    """
+    Send OTP verification code to user's email address.
+    
+    Generates and sends a 6-digit one-time password to the user's email
+    for account verification purposes. Requires authentication.
+    
+    Args:
+        request: HTTP request object
+        data: Email address to send OTP to
+        
+    Returns:
+        bool: True if OTP sent successfully, False if user not found
+        
+    Example:
+        Send OTP to verify email ownership during account setup or
+        when updating sensitive account information.
+    """
     email_address = data.email_address
 
     _user = await cache_handler.user_exists(email_address=email_address)
@@ -57,6 +113,26 @@ async def verify_otp(
     request: Request,
     data: OTPRequest,
 ):
+    """
+    Verify OTP code and update user verification status.
+    
+    Validates the provided OTP code against the generated code and marks
+    the user's account as verified upon successful validation.
+    
+    Args:
+        request: HTTP request object
+        data: Email address and OTP code for verification
+        
+    Returns:
+        bool: True if verification successful, False otherwise
+        
+    Raises:
+        None: Returns False for invalid user or incorrect OTP
+        
+    Example:
+        Complete email verification process by submitting the 6-digit code
+        received via email to confirm account ownership.
+    """
     email_address = data.email_address
     otp = data.otp
 
