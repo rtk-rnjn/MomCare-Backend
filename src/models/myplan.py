@@ -14,15 +14,25 @@ __all__ = ("MyPlan",)
 class MyPlan(BaseModel):
     """
     Represents a comprehensive daily nutrition plan for maternal wellness.
-    
+
     Organizes meals throughout the day with detailed nutritional tracking
     to support healthy eating during pregnancy and postpartum recovery.
     """
 
-    breakfast: List[FoodItem] = Field(default_factory=list, description="Morning meal food items", examples=[[{"name": "Oatmeal with Berries", "calories": 250}]])
-    lunch: List[FoodItem] = Field(default_factory=list, description="Midday meal food items", examples=[[{"name": "Quinoa Salad", "calories": 350}]])
-    dinner: List[FoodItem] = Field(default_factory=list, description="Evening meal food items", examples=[[{"name": "Grilled Chicken with Vegetables", "calories": 400}]])
-    snacks: List[FoodItem] = Field(default_factory=list, description="Snack food items throughout the day", examples=[[{"name": "Greek Yogurt", "calories": 120}]])
+    breakfast: List[FoodItem] = Field(
+        default_factory=list, description="Morning meal food items", examples=[[{"name": "Oatmeal with Berries", "calories": 250}]]
+    )
+    lunch: List[FoodItem] = Field(
+        default_factory=list, description="Midday meal food items", examples=[[{"name": "Quinoa Salad", "calories": 350}]]
+    )
+    dinner: List[FoodItem] = Field(
+        default_factory=list,
+        description="Evening meal food items",
+        examples=[[{"name": "Grilled Chicken with Vegetables", "calories": 400}]],
+    )
+    snacks: List[FoodItem] = Field(
+        default_factory=list, description="Snack food items throughout the day", examples=[[{"name": "Greek Yogurt", "calories": 120}]]
+    )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("UTC")), description="When this meal plan was created")
 
@@ -42,15 +52,15 @@ class MyPlan(BaseModel):
                         "carbs": 45.0,
                         "fat": 4.0,
                         "vitamin_contents": ["Folate", "Iron"],
-                        "type": "Grain"
+                        "type": "Grain",
                     },
                     {
                         "name": "Fresh Orange Juice",
                         "calories": 80.0,
                         "carbs": 20.0,
                         "vitamin_contents": ["Vitamin C"],
-                        "type": "Beverage"
-                    }
+                        "type": "Beverage",
+                    },
                 ],
                 "lunch": [
                     {
@@ -60,7 +70,7 @@ class MyPlan(BaseModel):
                         "carbs": 55.0,
                         "fat": 8.0,
                         "vitamin_contents": ["Folate", "Magnesium"],
-                        "type": "Grain"
+                        "type": "Grain",
                     }
                 ],
                 "dinner": [
@@ -71,7 +81,7 @@ class MyPlan(BaseModel):
                         "fat": 12.0,
                         "vitamin_contents": ["Omega-3", "Vitamin D"],
                         "allergic_ingredients": ["fish"],
-                        "type": "Protein"
+                        "type": "Protein",
                     },
                     {
                         "name": "Steamed Broccoli",
@@ -79,8 +89,8 @@ class MyPlan(BaseModel):
                         "protein": 3.0,
                         "carbs": 8.0,
                         "vitamin_contents": ["Vitamin C", "Folate"],
-                        "type": "Vegetable"
-                    }
+                        "type": "Vegetable",
+                    },
                 ],
                 "snacks": [
                     {
@@ -91,18 +101,18 @@ class MyPlan(BaseModel):
                         "fat": 3.0,
                         "vitamin_contents": ["Calcium", "Probiotics"],
                         "allergic_ingredients": ["dairy"],
-                        "type": "Dairy"
+                        "type": "Dairy",
                     }
                 ],
-                "created_at": "2024-01-15T00:00:00Z"
+                "created_at": "2024-01-15T00:00:00Z",
             }
-        }
+        },
     )
 
     def is_old(self) -> bool:
         """
         Check if the plan is older than a day (crossed midnight).
-        
+
         Returns:
             bool: True if the plan was created more than a day ago
         """

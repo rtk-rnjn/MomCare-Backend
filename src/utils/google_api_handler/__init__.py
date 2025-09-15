@@ -130,7 +130,6 @@ class GoogleAPIHandler:
 
         tips = await self.cache_handler.get_tips(user_id=user.id)
         if tips:
-
             return tips
 
         user_data = user.model_dump(mode="json")

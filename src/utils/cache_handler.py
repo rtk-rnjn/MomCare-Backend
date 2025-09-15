@@ -451,7 +451,7 @@ class CacheHandler(_CacheHandler):
         async for user_data in collection.find({}):
             user = User(**user_data)
 
-            history = History()
+            history = History(plan=None)
             moods = []
             for mood in user.mood_history:
                 if is_old(mood.date):
