@@ -12,7 +12,7 @@ from yt_dlp import YoutubeDL
 
 from src.app import app, cache_handler, genai_handler, token_handler
 from src.models import Exercise, MyPlan, Song, SongMetadata
-from src.utils import S3, Finder, ImageGeneratorHandler, Symptom, Token
+from src.utils import S3, Finder, ImageGeneratorHandler, Symptom, Token, TrimesterData
 from src.utils.google_api_handler import YOGA_SETS, _TempDailyInsight
 from static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 
@@ -186,6 +186,20 @@ async def search_symptoms(request: Request, query: str = "", limit: int | None =
     period with guidance and recommendations.
     """
     return finder.search_symptoms(query=query, limit=limit)
+
+
+@router.get("/trimester-data", response_model=Optional[TrimesterData])
+async def search_trimester_data(request: Request, trimester: int):
+    """
+    Get detailed information about pregnancy trimesters.
+
+    Provides insights into fetal development, maternal health tips, and
+    important milestones for each trimester of pregnancy.
+    """
+    if trimester < 1 or trimester > 3:
+        raise HTTPException(status_code=400, detail="Trimester must be between 1 and 3")
+
+    return finder.search_trimester(week_number=trimester * 13)  # Assuming each trimester is roughly 13 weeks
 
 
 @router.get("/tips", response_model=Optional[_TempDailyInsight])

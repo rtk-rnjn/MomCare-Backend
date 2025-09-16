@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from collections.abc import Hashable
 from functools import lru_cache
-from typing import TYPE_CHECKING, Sequence, TypeVar
+from typing import TYPE_CHECKING, Optional, Sequence, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from thefuzz import process
 
 if TYPE_CHECKING:
@@ -28,10 +28,25 @@ class Symptom(BaseModel, Hashable):
         return hash(self.name)
 
 
+class TrimesterData(BaseModel, Hashable):
+    week_number: int = Field(alias="weekNumber")
+    baby_tip_text: str = Field(alias="babyTipText")
+    mom_tip_text: str = Field(alias="momTipText")
+    quote: Optional[str] = None
+    image_uri: Optional[str] = Field(None, alias="imageUri")
+    baby_image_uri: Optional[str] = Field(None, alias="babyImageUri")
+    baby_height_in_centimeters: Optional[float] = Field(None, alias="babyHeightInCentimeters")
+    baby_weight_in_grams: Optional[float] = Field(None, alias="babyWeightInGrams")
+
+
 with open("static/symptoms_data.json", "r") as f:
     SYMPTOMS_DATA = json.load(f)
 
+with open("static/trimester_data.json", "r") as f:
+    TRIMESTER_DATA = json.load(f)
+
 SYMPTOMS = tuple(Symptom(**item) for item in SYMPTOMS_DATA)
+TRIMESTERS = tuple(TrimesterData(**item) for item in TRIMESTER_DATA)
 
 
 class Finder:  # Imagine using MacOS
@@ -45,3 +60,9 @@ class Finder:  # Imagine using MacOS
 
     def search_symptoms(self, query: str = "", limit: int | None = None) -> list[Symptom]:
         return self.fuzzy_search(query, SYMPTOMS, limit=limit)
+
+    def search_trimester(self, week_number: int) -> Optional[TrimesterData]:
+        for trimester in TRIMESTERS:
+            if trimester.week_number == week_number:
+                return trimester
+        return None
