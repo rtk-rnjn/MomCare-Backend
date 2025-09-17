@@ -8,6 +8,7 @@ hiredis
 pydantic
 PyJWT
 pymongo
+motor
 python-dotenv
 pytz
 redis

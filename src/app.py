@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from pymongo.asynchronous.mongo_client import AsyncMongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 
 from src.utils import CacheHandler, GoogleAPIHandler, TokenHandler
@@ -20,7 +20,7 @@ URI = os.getenv("MONGODB_URI")
 if URI is None:
     raise ValueError("MONGODB_URI is not set")
 
-mongo_client = AsyncMongoClient(URI, document_class=dict[str, Any])
+mongo_client = AsyncIOMotorClient(URI, tz_aware=True, document_class=dict[str, Any])
 database = mongo_client["MomCare"]
 redis_client = Redis(decode_responses=True)
 
@@ -40,9 +40,11 @@ async def lifespan(app: FastAPI):
     if hasattr(app, "sqlite_handler"):
         app.sqlite_handler.connect("logs.db")  # pyright: ignore[reportAttributeAccessIssue]
 
-    yield
-    if hasattr(app, "sqlite_handler"):
-        app.sqlite_handler.shutdown()  # pyright: ignore[reportAttributeAccessIssue]
+    try:
+        yield
+    finally:
+        if hasattr(app, "sqlite_handler"):
+            app.sqlite_handler.shutdown()  # pyright: ignore[reportAttributeAccessIssue]
 
     await cache_handler.on_shutdown()
 

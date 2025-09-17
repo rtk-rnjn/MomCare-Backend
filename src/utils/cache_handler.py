@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
-from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from pytz import timezone
 
 from src.models import FoodItem, History, MyPlan, User
@@ -58,11 +58,11 @@ class RootModel(BaseModel):
 
 class _CacheHandler:
     redis_client: Redis
-    mongo_client: AsyncMongoClient
+    mongo_client: AsyncIOMotorClient
 
     users_collection_operations: asyncio.Queue[Union[InsertOne, UpdateOne, None]] = asyncio.Queue()
 
-    def __init__(self, *, mongo_client: AsyncMongoClient):
+    def __init__(self, *, mongo_client: AsyncIOMotorClient):
         self.mongo_client = mongo_client
         self.users_collection = mongo_client["MomCare"]["users"]
 
@@ -116,7 +116,7 @@ class _CacheHandler:
             await self.redis_client.close()
 
         async def close_mongo():
-            await self.mongo_client.close()
+            self.mongo_client.close()
 
         async def cancel_operations():
             await self.cancel_operations()
@@ -129,7 +129,7 @@ class _CacheHandler:
 
 
 class CacheHandler(_CacheHandler):
-    def __init__(self, *, redis_client: Redis, mongo_client: AsyncMongoClient):
+    def __init__(self, *, redis_client: Redis, mongo_client: AsyncIOMotorClient):
         super().__init__(mongo_client=mongo_client)
 
         self.redis_client = redis_client
