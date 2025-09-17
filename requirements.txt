@@ -21,4 +21,8 @@ aiohttp
 aiodns
 yt-dlp
 pytest
+pytest-asyncio
+pytest-mock
+httpx
 aiosmtplib
+coverage
