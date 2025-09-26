@@ -34,7 +34,8 @@ LOGGING_CONFIG: dict[str, object] = {
     "handlers": {"custom": {"()": RichHandler}},
 }
 
-setattr(app, "sqlite_handler", sqlite_handler)
+app.state.sqlite_handler = sqlite_handler
+
 
 if __name__ == "__main__":
     import uvicorn

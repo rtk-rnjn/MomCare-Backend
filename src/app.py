@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 
@@ -37,14 +39,14 @@ async def lifespan(app: FastAPI):
     genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
     await cache_handler.on_startup(genai_handler)
 
-    if hasattr(app, "sqlite_handler"):
-        app.sqlite_handler.connect("logs.db")  # pyright: ignore[reportAttributeAccessIssue]
+    if hasattr(app.state, "sqlite_handler"):
+        app.state.sqlite_handler.connect("logs.db")
 
     try:
         yield
     finally:
-        if hasattr(app, "sqlite_handler"):
-            app.sqlite_handler.shutdown()  # pyright: ignore[reportAttributeAccessIssue]
+        if hasattr(app.state, "sqlite_handler"):
+            app.state.sqlite_handler.shutdown()
 
     await cache_handler.on_shutdown()
 
@@ -93,6 +95,9 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
+templates = Jinja2Templates(directory="src/templates")
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 

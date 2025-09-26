@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from .google_api_handler import GoogleAPIHandler
 
-with open("static/foods.txt", "r") as file:
+with open("src/static/foods.txt", "r") as file:
     FOODS = file.read().replace("\n", ",").split(",")
 
 

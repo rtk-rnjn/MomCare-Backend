@@ -33,11 +33,11 @@ if GOOGLE_SEARCH_KEY is None or GOOGLE_SEARCH_CX is None:
 if GEMINI_API_KEY is None:
     raise ValueError("GEMINI_API_KEY is not set")
 
-with open("static/foods.txt", "r") as file:
+with open("src/static/foods.txt", "r") as file:
     FOODS = file.read().replace("\n", ",").split(",")
 
 
-with open("static/yoga_set.json", "r") as file:
+with open("src/static/yoga_set.json", "r") as file:
     YOGA_SETS: list[dict] = json.load(file)
 
 with open("src/utils/google_api_handler/diet_plan_prompt.txt") as file:

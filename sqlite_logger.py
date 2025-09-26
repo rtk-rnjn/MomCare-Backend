@@ -67,6 +67,22 @@ class _SQLiteLoggingHandler(logging.Handler):
         )
         self._db.commit()
 
+    def fetch_logs(self, limit: int, offset: int) -> list[list]:
+        if not self._db:
+            return []
+
+        cursor = self._db.execute(
+            """
+            SELECT id, name, level, pathname, lineno, message, exc_info, func, sinfo, created_at
+            FROM logs
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            (limit, offset),
+        )
+        rows = cursor.fetchall()
+        return rows
+
     def shutdown(self) -> None:
         self._running = False
         if self._thread is not None:

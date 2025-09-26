@@ -6,7 +6,7 @@ from email.message import EmailMessage
 
 from aiosmtplib import send
 
-with open("static/otp-content.html", "r") as file:
+with open("src/static/otp-content.html", "r") as file:
     OTP_CONTENT = file.read()
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")

@@ -11,9 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.app import app, cache_handler, genai_handler, token_handler
 from src.models import Exercise, MyPlan, Song, SongMetadata
+from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 from src.utils import S3, Finder, PixabayImageFetcher, Symptom, Token, TrimesterData
 from src.utils.google_api_handler import YOGA_SETS, _TempDailyInsight
-from static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator

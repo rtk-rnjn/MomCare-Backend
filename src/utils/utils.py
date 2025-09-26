@@ -39,10 +39,10 @@ class TrimesterData(BaseModel, Hashable):
     baby_weight_in_grams: Optional[float] = Field(None, alias="babyWeightInGrams")
 
 
-with open("static/symptoms_data.json", "r") as f:
+with open("src/static/symptoms_data.json", "r") as f:
     SYMPTOMS_DATA = json.load(f)
 
-with open("static/trimester_data.json", "r") as f:
+with open("src/static/trimester_data.json", "r") as f:
     TRIMESTER_DATA = json.load(f)
 
 SYMPTOMS = tuple(Symptom(**item) for item in SYMPTOMS_DATA)
