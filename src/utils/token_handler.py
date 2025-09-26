@@ -7,10 +7,8 @@ import jwt
 from pydantic import BaseModel, Field
 from pytz import timezone
 
-from src.models import User
-
 if TYPE_CHECKING:
-    pass
+    from src.models import User
 
 
 class Token(BaseModel):
@@ -41,10 +39,7 @@ class TokenHandler:
     def validate_token(self, token: str) -> Optional[Token]:
         try:
             decoded = jwt.decode(token, self.secret, algorithms=[self.algorithm])
-            obj = Token(**decoded)
-            if not obj.verified:
-                return None
-            return obj
+            return Token(**decoded)
 
         except jwt.ExpiredSignatureError:
             return None

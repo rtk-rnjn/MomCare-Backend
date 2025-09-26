@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from src.utils.cache_handler import CacheHandler
 
 
-load_dotenv()
+load_dotenv(verbose=True)
 
 
 class S3:

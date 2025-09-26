@@ -13,7 +13,7 @@ from redis.asyncio import Redis
 
 from src.utils import CacheHandler, GoogleAPIHandler, TokenHandler
 
-load_dotenv()
+load_dotenv(verbose=True)
 
 URI = os.getenv("MONGODB_URI")
 

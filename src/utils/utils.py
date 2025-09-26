@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Optional, Sequence, TypeVar
 from pydantic import BaseModel, Field
 from thefuzz import process
 
+
 if TYPE_CHECKING:
     from .cache_handler import CacheHandler
 

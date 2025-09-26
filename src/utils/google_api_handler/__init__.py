@@ -15,13 +15,13 @@ from pydantic import BaseModel, Field
 from src.models import MyPlan, User
 from src.models.food_item import FoodItem
 
-from ..image_generator_handler import ImageGeneratorHandler
+from ..image_generator_handler import PixabayImageFetcher
 
 if TYPE_CHECKING:
 
     from ..cache_handler import CacheHandler
 
-load_dotenv()
+load_dotenv(verbose=True)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GOOGLE_SEARCH_KEY = os.getenv("SEARCH_API_KEY")
@@ -100,7 +100,7 @@ class GoogleAPIHandler:
         self.cache_handler = cache_handler
         self.search_service = build("customsearch", "v1", developerKey=GOOGLE_SEARCH_KEY)
 
-        self.image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)
+        self.image_generator_handler = PixabayImageFetcher(cache_handler=cache_handler)
 
     async def generate_plan(self, user: User, *, force_create: bool = False) -> Optional[MyPlan]:
 

@@ -8,11 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
-from yt_dlp import YoutubeDL
 
 from src.app import app, cache_handler, genai_handler, token_handler
 from src.models import Exercise, MyPlan, Song, SongMetadata
-from src.utils import S3, Finder, ImageGeneratorHandler, Symptom, Token, TrimesterData
+from src.utils import S3, Finder, PixabayImageFetcher, Symptom, Token, TrimesterData
 from src.utils.google_api_handler import YOGA_SETS, _TempDailyInsight
 from static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
 
 security = HTTPBearer()
 s3_client = S3(cache_handler=cache_handler)
-image_generator_handler = ImageGeneratorHandler(cache_handler=cache_handler)
+image_generator_handler = PixabayImageFetcher(cache_handler=cache_handler)
 finder = Finder(cache_handler)
 
 ydl_opts = {
@@ -291,11 +290,20 @@ async def get_song(path: str):
     if link is None:
         raise HTTPException(status_code=502, detail="Unable to generate link")
 
-    metadata = await cache_handler.get_song_metadata(key=path)
+    metadata_data = await cache_handler.get_song_metadata(key=path)
+
+    if metadata_data is not None:
+        metadata = SongMetadata(
+            title=metadata_data.get("title"),
+            artist=metadata_data.get("artist"),
+            duration=metadata_data.get("duration"),
+        )
+    else:
+        metadata = None
 
     return Song(
         uri=link,
-        metadata=SongMetadata(**metadata) if metadata else None,
+        metadata=metadata,
         image_uri=None,
     )
 
@@ -317,36 +325,6 @@ async def get_quote(mood: str):
     }
 
     return random.choice(mapper[mood])
-
-
-@router.get("/youtube")
-async def get_youtube_video(request: Request, video_link: str):
-    """
-    Extract YouTube video information for wellness content.
-
-    Processes YouTube links to extract video metadata and direct access URLs
-    for educational content about pregnancy, exercise, and nutrition.
-
-    This endpoint processes YouTube content for educational purposes only.
-    """
-    # Sorry Youtube
-    if not video_link:
-        raise HTTPException(status_code=400, detail="Video link is required")
-
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(video_link, download=False)
-        if not info:
-            raise HTTPException(status_code=404, detail="Video not found")
-
-        video_url = info["url"]
-        title = info.get("title", "Unknown Title")
-        duration = info.get("duration", 0)
-
-    return {
-        "video_url": video_url,
-        "title": title,
-        "duration": duration,
-    }
 
 
 app.include_router(router)

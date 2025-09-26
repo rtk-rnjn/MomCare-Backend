@@ -4,6 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+__all__ = ("Song", "SongMetadata")
+
 
 class SongMetadata(BaseModel):
     """

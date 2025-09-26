@@ -26,14 +26,20 @@ class PixelPhotoSrcResponse(BaseModel):
     original: str
 
 
-load_dotenv()
+load_dotenv(verbose=True)
 
 BASE_URL = URL("https://api.pexels.com/v1")
 
 
-class ImageGeneratorHandler:
-    def __init__(self, cache_handler: CacheHandler):
-        self.cache_handler = cache_handler
+class PixabayImageFetcher:
+    def __init__(self, cache_handler: Optional[CacheHandler] = None):
+        if cache_handler is None:
+            from src.utils.cache_handler import CacheHandler
+
+            self.cache_handler = CacheHandler()
+        else:
+            self.cache_handler = cache_handler
+
         self.api_key = os.environ["PIXEL_API_KEY"]
         self.api_url = BASE_URL / "search"
 

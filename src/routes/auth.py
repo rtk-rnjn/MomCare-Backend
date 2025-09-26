@@ -22,7 +22,7 @@ class ServerResponse(BaseModel):
     success: bool = Field(default=True, description="Whether the operation was successful")
     inserted_id: str = Field(..., description="Unique identifier of the user", examples=["user_123456789"])
     access_token: str = Field(
-        ..., description="JWT access token for authenticated requests", examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."]
+        ..., description="JWT access token for authenticated requests", examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...signature"]
     )
 
     model_config = ConfigDict(

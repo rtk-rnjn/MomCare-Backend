@@ -7,15 +7,17 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 from pydantic import BaseModel, Field
 from pymongo import InsertOne, UpdateOne
 from pytz import timezone
 
-from src.models import FoodItem, History, MyPlan, User
+from src.models import FoodItem, History, MyPlan, User, UserMedical
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
+
+    from src.models import FoodItemDict, UserDict, SongMetadataDict
 
     from .google_api_handler import GoogleAPIHandler
 
@@ -64,7 +66,7 @@ class _CacheHandler:
 
     def __init__(self, *, mongo_client: AsyncIOMotorClient):
         self.mongo_client = mongo_client
-        self.users_collection = mongo_client["MomCare"]["users"]
+        self.users_collection: AsyncIOMotorCollection[UserDict] = mongo_client["MomCare"]["users"]
 
     async def process_operations(self) -> None:
 
@@ -129,14 +131,22 @@ class _CacheHandler:
 
 
 class CacheHandler(_CacheHandler):
-    def __init__(self, *, redis_client: Redis, mongo_client: AsyncIOMotorClient):
+    def __init__(self, *, redis_client: Optional[Redis] = None, mongo_client: Optional[AsyncIOMotorClient] = None):
+        if mongo_client is None:
+            mongo_client = AsyncIOMotorClient(tz_aware=True)
+
         super().__init__(mongo_client=mongo_client)
+
+        if redis_client is None:
+            from redis.asyncio import Redis
+
+            redis_client = Redis(decode_responses=True)
 
         self.redis_client = redis_client
         self.mongo_client = mongo_client
-        self.users_collection = mongo_client["MomCare"]["users"]
-        self.foods_collection = mongo_client["MomCare"]["foods"]
-        self.misc_collection = mongo_client["MomCare"]["misc"]
+        self.users_collection: AsyncIOMotorCollection[UserDict] = mongo_client["MomCare"]["users"]
+        self.foods_collection: AsyncIOMotorCollection[FoodItemDict] = mongo_client["MomCare"]["foods"]
+        self.misc_collection: AsyncIOMotorCollection[SongMetadataDict] = mongo_client["MomCare"]["misc"]
 
     async def get_user(
         self,
@@ -169,10 +179,10 @@ class CacheHandler(_CacheHandler):
 
                 return User(**json.loads(user_data))
 
-        user = await self.users_collection.find_one({"_id": user_id})
-        if user:
-
-            return await self.set_user(user=User(**user))
+        user_data = await self.users_collection.find_one({"_id": user_id})
+        if user_data is not None:
+            user = CacheHandler.from_dict(user_data)
+            return await self.set_user(user=user)
 
         return None
 
@@ -184,9 +194,9 @@ class CacheHandler(_CacheHandler):
             return user_id.decode("utf-8") if isinstance(user_id, bytes) else user_id
 
         user = await self.users_collection.find_one({"email_address": email})
-        if user:
+        if user is not None:
 
-            return str(user["_id"])
+            return user["id"]
 
         return None
 
@@ -198,9 +208,10 @@ class CacheHandler(_CacheHandler):
 
                 return user
 
-        user = await self.users_collection.find_one({"email_address": email, "password": password})
-        if user:
-            return await self.set_user(user=User(**user))
+        user_data = await self.users_collection.find_one({"email_address": email, "password": password})
+        if user_data is not None:
+            user = CacheHandler.from_dict(user_data)
+            return await self.set_user(user=user)
 
         return None
 
@@ -210,9 +221,10 @@ class CacheHandler(_CacheHandler):
 
             return True
 
-        user = await self.users_collection.find_one({"email_address": email_address})
-        if user:
-            await self.set_user(user=User(**user))
+        user_data = await self.users_collection.find_one({"email_address": email_address})
+        if user_data is not None:
+            user = CacheHandler.from_dict(user_data)
+            await self.set_user(user=user)
             return True
 
         return False
@@ -387,7 +399,7 @@ class CacheHandler(_CacheHandler):
 
         return None
 
-    async def get_song_metadata(self, *, key: str) -> Optional[dict]:
+    async def get_song_metadata(self, *, key: str) -> Optional[SongMetadataDict]:
 
         metadata = await self.redis_client.get(f"song_metadata:{key}")
         if metadata:
@@ -496,3 +508,36 @@ class CacheHandler(_CacheHandler):
 
             await collection.update_one({"_id": user.id}, update_payload)
             await google_api_handler.cache_handler.refresh_cache(user_id=user.id)
+
+    @staticmethod
+    def from_dict(data: UserDict) -> User:
+        medical_data = data.get("medical_data")
+        if medical_data is not None:
+            user_medical = UserMedical(
+                date_of_birth=medical_data["date_of_birth"],
+                due_date=medical_data["due_date"],
+                height=medical_data["height"],
+                current_weight=medical_data["current_weight"],
+                pre_existing_conditions=medical_data["pre_existing_conditions"],
+                food_intolerances=medical_data["food_intolerances"],
+                dietary_preferences=medical_data["dietary_preferences"],
+                pre_pregnancy_weight=medical_data["pre_pregnancy_weight"],
+            )
+        else:
+            user_medical = None
+
+        user = User(
+            id=data["id"],
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            email_address=data["email_address"],
+            password=data["password"],
+            country=data["country"],
+            country_code=data["country_code"],
+            phone_number=data["phone_number"],
+            medical_data=user_medical,
+            last_login=data.get("last_login"),
+            updated_at=data.get("updated_at"),
+            last_login_ip=data.get("last_login_ip"),
+        )
+        return user
