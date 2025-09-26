@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import List, NotRequired, Optional, TypedDict
+
 from bson import ObjectId
 
 __all__ = [

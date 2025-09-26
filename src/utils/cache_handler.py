@@ -17,7 +17,7 @@ from src.models import FoodItem, History, MyPlan, User, UserMedical
 if TYPE_CHECKING:
     from redis.asyncio import Redis
 
-    from src.models import FoodItemDict, UserDict, SongMetadataDict
+    from src.models import FoodItemDict, SongMetadataDict, UserDict
 
     from .google_api_handler import GoogleAPIHandler
 
