@@ -5,6 +5,21 @@ import threading
 import traceback
 import types
 
+from collections import namedtuple
+
+LogEntry = namedtuple("LogEntry", [
+    "id",
+    "name",
+    "level",
+    "pathname",
+    "lineno",
+    "message",
+    "exc_info",
+    "func",
+    "sinfo",
+    "created_at",
+])
+
 with open("log.schema.sql") as schema:
     schema_sql = schema.read()
 
@@ -67,7 +82,7 @@ class _SQLiteLoggingHandler(logging.Handler):
         )
         self._db.commit()
 
-    def fetch_logs(self, limit: int, offset: int) -> list[list]:
+    def fetch_logs(self, limit: int, offset: int) -> list[LogEntry]:
         if not self._db:
             return []
 
@@ -81,7 +96,7 @@ class _SQLiteLoggingHandler(logging.Handler):
             (limit, offset),
         )
         rows = cursor.fetchall()
-        return rows
+        return [LogEntry(*row) for row in rows]
 
     def shutdown(self) -> None:
         self._running = False
