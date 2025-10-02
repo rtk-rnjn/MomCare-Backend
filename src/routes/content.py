@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -55,7 +55,7 @@ class S3Response(BaseModel):
     link: str = Field(
         ..., description="Pre-signed URL for file access", examples=["https://momcare-bucket.s3.amazonaws.com/image.jpg?signature=..."]
     )
-    link_expiry_at: Optional[datetime] = Field(None, description="When the link expires", examples=["2024-01-15T18:00:00Z"])
+    link_expiry_at: datetime | None = Field(None, description="When the link expires", examples=["2024-01-15T18:00:00Z"])
 
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
@@ -82,7 +82,7 @@ async def _search_food_name(request: Request, food_name: str, limit: int = 10) -
 
 
 @router.get("/plan", response_model=MyPlan)
-async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> Optional[MyPlan]:
+async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> MyPlan | None:
     """
     Generate AI-powered personalized nutrition plan for the user.
 
@@ -99,7 +99,7 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> 
     return await genai_handler.generate_plan(user)
 
 
-@router.get("/exercises", response_model=List[Exercise])
+@router.get("/exercises", response_model=list[Exercise])
 async def get_exercises(token: Token = Depends(get_user_token)):
     """
     Get personalized exercise recommendations for maternal fitness.
@@ -176,7 +176,7 @@ async def search_food_name_image(request: Request, food_name: str, limit: int = 
     return await image_generator_handler.search_image(food_name=food_name)
 
 
-@router.get("/search/symptoms", response_model=List[Symptom])
+@router.get("/search/symptoms", response_model=list[Symptom])
 async def search_symptoms(request: Request, query: str = "", limit: int | None = None):
     """
     Search for pregnancy and postpartum symptoms information.
@@ -187,7 +187,7 @@ async def search_symptoms(request: Request, query: str = "", limit: int | None =
     return finder.search_symptoms(query=query, limit=limit)
 
 
-@router.get("/trimester-data", response_model=Optional[TrimesterData])
+@router.get("/trimester-data", response_model=TrimesterData | None)
 async def search_trimester_data(request: Request, trimester: int):
     """
     Get detailed information about pregnancy trimesters.
@@ -201,7 +201,7 @@ async def search_trimester_data(request: Request, trimester: int):
     return finder.search_trimester(week_number=trimester * 13)  # Assuming each trimester is roughly 13 weeks
 
 
-@router.get("/tips", response_model=Optional[_TempDailyInsight])
+@router.get("/tips", response_model=_TempDailyInsight | None)
 async def get_tips(token: Token = Depends(get_user_token)):
     """
     Get personalized wellness tips and recommendations.
@@ -243,7 +243,7 @@ async def get_file(path: str):
     )
 
 
-@router.get("/s3/files/{path:path}", response_model=List[str])
+@router.get("/s3/files/{path:path}", response_model=list[str])
 async def get_files(path: str):
     """
     List files in a specific S3 directory.
@@ -259,7 +259,7 @@ async def get_files(path: str):
     return directories
 
 
-@router.get("/s3/directories/{path:path}", response_model=List[str])
+@router.get("/s3/directories/{path:path}", response_model=list[str])
 async def get_directories(path: str):
     """
     List subdirectories within an S3 path.

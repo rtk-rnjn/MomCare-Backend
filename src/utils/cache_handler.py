@@ -4,7 +4,7 @@ import asyncio
 import json
 import random
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
@@ -29,13 +29,13 @@ class YogaSet(BaseModel):
     name: str
     level: str
     description: str
-    targeted_body_parts: List[str]
+    targeted_body_parts: list[str]
     week: str
-    tags: List[str]
+    tags: list[str]
 
 
 class YogaSets(BaseModel):
-    yoga_sets: List[YogaSet] = []
+    yoga_sets: list[YogaSet] = []
 
 
 class _TempDailyInsight(BaseModel):
@@ -55,17 +55,16 @@ class ItemModel(BaseModel):
 
 
 class RootModel(BaseModel):
-    items: List[ItemModel]
+    items: list[ItemModel]
 
 
 class _CacheHandler:
     redis_client: Redis
-    mongo_client: AsyncIOMotorClient
 
-    users_collection_operations: asyncio.Queue[Union[InsertOne, UpdateOne, None]] = asyncio.Queue()
+    users_collection_operations: asyncio.Queue[InsertOne[UserDict] | UpdateOne | None] = asyncio.Queue()
 
-    def __init__(self, *, mongo_client: AsyncIOMotorClient):
-        self.mongo_client = mongo_client
+    def __init__(self, *, mongo_client: AsyncIOMotorClient[UserDict]):
+        self.mongo_client: AsyncIOMotorClient[UserDict] = mongo_client
         self.users_collection: AsyncIOMotorCollection[UserDict] = mongo_client["MomCare"]["users"]
 
     async def process_operations(self) -> None:
@@ -88,7 +87,7 @@ class _CacheHandler:
             await self.redis_client.ping()
 
         async def ping_mongo():
-            await self.mongo_client.admin.command("ping")
+            _ = await self.mongo_client.admin.command("ping")
 
         async def start_scheduler():
 
@@ -106,7 +105,7 @@ class _CacheHandler:
 
             asyncio.create_task(self.process_operations())
 
-        await asyncio.gather(
+        _ = await asyncio.gather(
             ping_redis(),
             ping_mongo(),
             start_scheduler(),
@@ -123,7 +122,7 @@ class _CacheHandler:
         async def cancel_operations():
             await self.cancel_operations()
 
-        await asyncio.gather(
+        _ = await asyncio.gather(
             close_redis(),
             close_mongo(),
             cancel_operations(),
@@ -131,7 +130,7 @@ class _CacheHandler:
 
 
 class CacheHandler(_CacheHandler):
-    def __init__(self, *, redis_client: Optional[Redis] = None, mongo_client: Optional[AsyncIOMotorClient] = None):
+    def __init__(self, *, redis_client: Redis | None = None, mongo_client: AsyncIOMotorClient | None = None):
         if mongo_client is None:
             mongo_client = AsyncIOMotorClient(tz_aware=True)
 
@@ -150,12 +149,12 @@ class CacheHandler(_CacheHandler):
 
     async def get_user(
         self,
-        user_id: Optional[str] = None,
+        user_id: str | None = None,
         *,
-        email: Optional[str] = None,
-        password: Optional[str] = None,
+        email: str | None = None,
+        password: str | None = None,
         force: bool = False,
-    ) -> Optional[User]:
+    ) -> User | None:
         if not (user_id or (email and password)):
             raise ValueError("Either user_id or email and password must be provided")
 
@@ -169,8 +168,6 @@ class CacheHandler(_CacheHandler):
 
         if isinstance(user_id, bytes):
             user_id = user_id.decode("utf-8")
-        if not isinstance(user_id, str):
-            user_id = str(user_id)
 
         if not force:
 
@@ -186,21 +183,7 @@ class CacheHandler(_CacheHandler):
 
         return None
 
-    async def __get_user_id_by_email(self, email: str) -> Optional[str]:
-
-        user_id = await self.redis_client.get(f"user:by_email:{email}")
-        if user_id:
-
-            return user_id.decode("utf-8") if isinstance(user_id, bytes) else user_id
-
-        user = await self.users_collection.find_one({"email_address": email})
-        if user is not None:
-
-            return user["id"]
-
-        return None
-
-    async def _search_user(self, *, email: str, password: str) -> Optional[User]:
+    async def _search_user(self, *, email: str, password: str) -> User | None:
         user_id = await self.redis_client.get(f"user:by_email:{email}")
         if user_id:
             user = await self.get_user(user_id=user_id)
@@ -235,7 +218,7 @@ class CacheHandler(_CacheHandler):
 
         return user
 
-    async def factory_delete_user(self, *, user_id: Optional[str], email_address: Optional[str] = None) -> None:
+    async def factory_delete_user(self, *, user_id: str, email_address: str | None = None) -> None:
         await self.redis_client.delete(
             f"user:{user_id}",
             f"user:by_email:{email_address}",
@@ -244,7 +227,7 @@ class CacheHandler(_CacheHandler):
             f"exercise:{user_id}",
         )
 
-    async def refresh_cache(self, *, user_id: Optional[str] = None, email_address: Optional[str] = None) -> None:
+    async def refresh_cache(self, *, user_id: str | None = None, email_address: str | None = None) -> None:
         await self.redis_client.publish("cache_refresh", str(user_id))
         await self.factory_delete_user(user_id=user_id, email_address=email_address)
 
@@ -260,7 +243,7 @@ class CacheHandler(_CacheHandler):
             food.image_uri = image
             yield food
 
-    async def get_food(self, food_name: str) -> Optional[FoodItem]:
+    async def get_food(self, food_name: str) -> FoodItem | None:
 
         food = await self.foods_collection.find_one({"name": food_name})
         if not food:
@@ -316,9 +299,9 @@ class CacheHandler(_CacheHandler):
     async def update_user(
         self,
         *,
-        user_id: Optional[str] = None,
-        email_address: Optional[str] = None,
-        updated_user: Union[BaseModel, dict],
+        user_id: str | None = None,
+        email_address: str | None = None,
+        updated_user: BaseModel | dict,
         **extra_fields: dict[str, Any],
     ) -> None:
 
@@ -345,7 +328,7 @@ class CacheHandler(_CacheHandler):
 
         await self.redis_client.set(f"food:{food_name}", image_link)  # type: ignore
 
-    async def get_food_image(self, *, food_name: str) -> Optional[str]:
+    async def get_food_image(self, *, food_name: str) -> str | None:
 
         image = await self.redis_client.get(f"food:{food_name}")
         if image:
@@ -381,7 +364,7 @@ class CacheHandler(_CacheHandler):
             ex=int(expiration.timestamp() - datetime.now(timezone("UTC")).timestamp()),
         )
 
-    async def get_exercises(self, *, user_id: str) -> Optional[YogaSets]:
+    async def get_exercises(self, *, user_id: str) -> YogaSets | None:
 
         exercise_data = await self.redis_client.get(f"exercise:{user_id}")
         if exercise_data:
@@ -390,7 +373,7 @@ class CacheHandler(_CacheHandler):
 
         return None
 
-    async def get_key_expiry(self, *, key: str) -> Optional[datetime]:
+    async def get_key_expiry(self, *, key: str) -> datetime | None:
 
         ttl = await self.redis_client.ttl(key)
         if ttl is not None:
@@ -399,7 +382,7 @@ class CacheHandler(_CacheHandler):
 
         return None
 
-    async def get_song_metadata(self, *, key: str) -> Optional[SongMetadataDict]:
+    async def get_song_metadata(self, *, key: str) -> SongMetadataDict | None:
 
         metadata = await self.redis_client.get(f"song_metadata:{key}")
         if metadata:
@@ -506,7 +489,7 @@ class CacheHandler(_CacheHandler):
                 },
             }
 
-            await collection.update_one({"_id": user.id}, update_payload)
+            _ = await collection.update_one({"_id": user.id}, update_payload)
             await google_api_handler.cache_handler.refresh_cache(user_id=user.id)
 
     @staticmethod

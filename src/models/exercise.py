@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from pytz import timezone
@@ -21,16 +20,16 @@ class Exercise(BaseModel):
     exercise_type: str = Field(
         default="Yoga", description="Type/category of exercise", examples=["Yoga", "Cardio", "Strength", "Stretching"]
     )
-    image_uri: Optional[str] = Field(
+    image_uri: str | None = Field(
         None, description="URL to exercise demonstration image", examples=["https://example.com/exercise-image.jpg"]
     )
-    duration: Optional[float] = Field(None, description="Recommended duration in minutes", examples=[30.0], gt=0, le=180)
+    duration: float | None = Field(None, description="Recommended duration in minutes", examples=[30.0], gt=0, le=180)
     description: str = Field(
         default="",
         description="Detailed exercise description and instructions",
         examples=["Gentle yoga poses designed for prenatal wellness and relaxation"],
     )
-    tags: List[str] = Field(
+    tags: list[str] = Field(
         default_factory=list, description="Exercise tags for categorization", examples=[["prenatal", "relaxation", "flexibility"]]
     )
 
@@ -41,7 +40,7 @@ class Exercise(BaseModel):
         examples=["Week 12", "Week 20", "Postpartum Week 6"],
     )
 
-    targeted_body_parts: List[str] = Field(
+    targeted_body_parts: list[str] = Field(
         default_factory=list, description="Body parts targeted by this exercise", examples=[["core", "back", "legs", "pelvic floor"]]
     )
 
@@ -51,7 +50,7 @@ class Exercise(BaseModel):
         default_factory=lambda: datetime.now(timezone("UTC")), description="When this exercise was assigned to the user"
     )
 
-    model_config = ConfigDict(
+    model_config: ConfigDict = ConfigDict(
         json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
         json_schema_extra={
             "example": {

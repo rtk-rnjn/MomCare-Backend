@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import TYPE_CHECKING, Optional, overload
+from typing import TYPE_CHECKING, overload
 
 import boto3
 from dotenv import load_dotenv
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from src.utils.cache_handler import CacheHandler
 
 
-load_dotenv(verbose=True)
+_ = load_dotenv(verbose=True)
 
 
 class S3:
@@ -26,8 +26,8 @@ class S3:
 
         BUCKET_NAME = os.environ["AWS_BUCKET_NAME"]
         REGION = os.environ["AWS_REGION"]
-        self.bucket_name = BUCKET_NAME
-        self.region = REGION
+        self.bucket_name: str = BUCKET_NAME
+        self.region: str = REGION
 
         self._prefix: str = ""
 
@@ -38,9 +38,9 @@ class S3:
             aws_secret_access_key=AWS_SECRET_KEY,
         )
 
-        self.cache_handler = cache_handler
+        self.cache_handler: CacheHandler | None = cache_handler
 
-    async def get_presigned_url(self, file_name: str) -> Optional[str]:
+    async def get_presigned_url(self, file_name: str) -> str | None:
         try:
             response = await asyncio.to_thread(
                 self.s3_client.generate_presigned_url,
@@ -97,7 +97,7 @@ class S3:
         self._prefix += key
         return self
 
-    def __getitem__(self, path) -> Self:
+    def __getitem__(self, path: str) -> Self:
         self._prefix += path + "/"
         return self
 

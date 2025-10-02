@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = ("Song", "SongMetadata")
@@ -15,9 +13,9 @@ class SongMetadata(BaseModel):
     used for relaxation and wellness during pregnancy and postpartum.
     """
 
-    title: Optional[str] = Field(None, description="Song or audio title", examples=["Peaceful Pregnancy Meditation"])
-    artist: Optional[str] = Field(None, description="Artist or creator name", examples=["Wellness Studio"])
-    duration: Optional[float] = Field(None, description="Duration in seconds", examples=[300.0], gt=0)
+    title: str | None = Field(None, description="Song or audio title", examples=["Peaceful Pregnancy Meditation"])
+    artist: str | None = Field(None, description="Artist or creator name", examples=["Wellness Studio"])
+    duration: float | None = Field(None, description="Duration in seconds", examples=[300.0], gt=0)
 
     model_config = ConfigDict(
         json_schema_extra={"example": {"title": "Peaceful Pregnancy Meditation", "artist": "Wellness Studio", "duration": 300.0}}
@@ -33,10 +31,8 @@ class Song(BaseModel):
     """
 
     uri: str = Field(..., description="Direct link to the audio file", examples=["https://example.com/meditation-track.mp3"])
-    image_uri: Optional[str] = Field(
-        None, description="Cover image or thumbnail URL", examples=["https://example.com/cover-image.jpg"]
-    )
-    metadata: Optional[SongMetadata] = Field(None, description="Additional information about the audio content")
+    image_uri: str | None = Field(None, description="Cover image or thumbnail URL", examples=["https://example.com/cover-image.jpg"])
+    metadata: SongMetadata | None = Field(None, description="Additional information about the audio content")
 
     model_config = ConfigDict(
         json_schema_extra={

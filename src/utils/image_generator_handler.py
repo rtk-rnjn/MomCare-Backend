@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 import aiohttp
 from dotenv import load_dotenv
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class PixelRootResponse(BaseModel):
     page: int
-    photos: List[PixelPhotoResponse]
+    photos: list[PixelPhotoResponse]
 
 
 class PixelPhotoResponse(BaseModel):
@@ -26,28 +26,28 @@ class PixelPhotoSrcResponse(BaseModel):
     original: str
 
 
-load_dotenv(verbose=True)
+_ = load_dotenv(verbose=True)
 
 BASE_URL = URL("https://api.pexels.com/v1")
 
 
 class PixabayImageFetcher:
-    def __init__(self, cache_handler: Optional[CacheHandler] = None):
+    def __init__(self, cache_handler: CacheHandler | None = None):
         if cache_handler is None:
             from src.utils.cache_handler import CacheHandler
 
-            self.cache_handler = CacheHandler()
+            self.cache_handler: CacheHandler = CacheHandler()
         else:
             self.cache_handler = cache_handler
 
-        self.api_key = os.environ["PIXEL_API_KEY"]
-        self.api_url = BASE_URL / "search"
+        self.api_key: str = os.environ["PIXEL_API_KEY"]
+        self.api_url: URL = BASE_URL / "search"
 
-        self.headers = {"Authorization": f"{self.api_key}"}
+        self.headers: dict[str, str] = {"Authorization": f"{self.api_key}"}
 
-        self.session = None
+        self.session: aiohttp.ClientSession | None = None
 
-    async def _search_image(self, query: str) -> Optional[PixelRootResponse]:
+    async def _search_image(self, query: str) -> PixelRootResponse | None:
         if self.session is None:
             self.session = aiohttp.ClientSession(headers=self.headers)
 
@@ -57,7 +57,7 @@ class PixabayImageFetcher:
 
                 return PixelRootResponse(**data)
 
-    async def search_image(self, food_name: str) -> Optional[str]:
+    async def search_image(self, food_name: str) -> str | None:
         link = await self.cache_handler.get_food_image(food_name=food_name)
         if link:
             return link

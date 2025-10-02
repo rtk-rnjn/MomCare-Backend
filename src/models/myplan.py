@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel, ConfigDict, Field
 from pytz import timezone
@@ -19,18 +18,18 @@ class MyPlan(BaseModel):
     to support healthy eating during pregnancy and postpartum recovery.
     """
 
-    breakfast: List[FoodItem] = Field(
+    breakfast: list[FoodItem] = Field(
         default_factory=list, description="Morning meal food items", examples=[[{"name": "Oatmeal with Berries", "calories": 250}]]
     )
-    lunch: List[FoodItem] = Field(
+    lunch: list[FoodItem] = Field(
         default_factory=list, description="Midday meal food items", examples=[[{"name": "Quinoa Salad", "calories": 350}]]
     )
-    dinner: List[FoodItem] = Field(
+    dinner: list[FoodItem] = Field(
         default_factory=list,
         description="Evening meal food items",
         examples=[[{"name": "Grilled Chicken with Vegetables", "calories": 400}]],
     )
-    snacks: List[FoodItem] = Field(
+    snacks: list[FoodItem] = Field(
         default_factory=list, description="Snack food items throughout the day", examples=[[{"name": "Greek Yogurt", "calories": 120}]]
     )
 

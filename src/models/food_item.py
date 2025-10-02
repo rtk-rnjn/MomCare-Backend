@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = ("FoodItem",)
@@ -19,24 +17,24 @@ class FoodItem(BaseModel):
         ..., title="Food Name", description="Name of the food item", examples=["Grilled Salmon", "Spinach Salad", "Greek Yogurt"]
     )
 
-    calories: Optional[float] = Field(None, description="Calories per serving", examples=[250.5], ge=0)
-    protein: Optional[float] = Field(None, description="Protein content in grams", examples=[22.0], ge=0)
-    carbs: Optional[float] = Field(None, description="Carbohydrate content in grams", examples=[15.5], ge=0)
-    fat: Optional[float] = Field(None, description="Fat content in grams", examples=[12.3], ge=0)
-    sodium: Optional[float] = Field(None, description="Sodium content in milligrams", examples=[450.0], ge=0)
-    sugar: Optional[float] = Field(None, description="Sugar content in grams", examples=[8.2], ge=0)
-    vitamin_contents: List[str] = Field(
-        default_factory=list, description="List of vitamins present", examples=[["Vitamin D", "Vitamin B12", "Omega-3", "Folate"]]
+    calories: float | None = Field(None, description="Calories per serving", examples=[250.5], ge=0)
+    protein: float | None = Field(None, description="Protein content in grams", examples=[22.0], ge=0)
+    carbs: float | None = Field(None, description="Carbohydrate content in grams", examples=[15.5], ge=0)
+    fat: float | None = Field(None, description="Fat content in grams", examples=[12.3], ge=0)
+    sodium: float | None = Field(None, description="Sodium content in milligrams", examples=[450.0], ge=0)
+    sugar: float | None = Field(None, description="Sugar content in grams", examples=[8.2], ge=0)
+    vitamin_contents: list[str] = Field(
+        default_factory=list, description="list of vitamins present", examples=[["Vitamin D", "Vitamin B12", "Omega-3", "Folate"]]
     )
-    allergic_ingredients: List[str] = Field(
-        default_factory=list, description="List of potential allergens", examples=[["fish", "dairy", "nuts"]]
+    allergic_ingredients: list[str] = Field(
+        default_factory=list, description="list of potential allergens", examples=[["fish", "dairy", "nuts"]]
     )
 
-    image_uri: Optional[str] = Field(default="", description="URL to food item image", examples=["https://example.com/salmon.jpg"])
-    type: Optional[str] = Field(None, description="Food category", examples=["Protein", "Vegetable", "Dairy", "Grain"])
+    image_uri: str | None = Field(default="", description="URL to food item image", examples=["https://example.com/salmon.jpg"])
+    type: str | None = Field(None, description="Food category", examples=["Protein", "Vegetable", "Dairy", "Grain"])
 
-    consumed: Optional[bool] = Field(default=False, description="Whether this food item has been consumed")
-    quantity: Optional[float] = Field(None, description="Quantity consumed (in grams or standard serving)", examples=[150.0], ge=0)
+    consumed: bool | None = Field(default=False, description="Whether this food item has been consumed")
+    quantity: float | None = Field(None, description="Quantity consumed (in grams or standard serving)", examples=[150.0], ge=0)
 
     model_config = ConfigDict(
         json_schema_extra={

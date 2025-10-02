@@ -4,21 +4,23 @@ import sqlite3
 import threading
 import traceback
 import types
-
 from collections import namedtuple
 
-LogEntry = namedtuple("LogEntry", [
-    "id",
-    "name",
-    "level",
-    "pathname",
-    "lineno",
-    "message",
-    "exc_info",
-    "func",
-    "sinfo",
-    "created_at",
-])
+LogEntry = namedtuple(
+    "LogEntry",
+    [
+        "id",
+        "name",
+        "level",
+        "pathname",
+        "lineno",
+        "message",
+        "exc_info",
+        "func",
+        "sinfo",
+        "created_at",
+    ],
+)
 
 with open("log.schema.sql") as schema:
     schema_sql = schema.read()

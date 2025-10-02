@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, NotRequired, Optional, TypedDict
+from typing import NotRequired, TypedDict
 
 from bson import ObjectId
 
@@ -23,9 +23,9 @@ class MoodHistoryDict(TypedDict):
 
 class HistoryDict(TypedDict):
     date: datetime
-    plan: Optional[MyPlanDict]
-    exercises: List[ExerciseDict]
-    moods: List[MoodHistoryDict]
+    plan: MyPlanDict | None
+    exercises: list[ExerciseDict]
+    moods: list[MoodHistoryDict]
 
 
 class UserMedicalDict(TypedDict):
@@ -33,47 +33,47 @@ class UserMedicalDict(TypedDict):
     height: float
     pre_pregnancy_weight: float
     current_weight: float
-    due_date: Optional[datetime]
-    pre_existing_conditions: List[str]
-    food_intolerances: List[str]
-    dietary_preferences: List[str]
+    due_date: datetime | None
+    pre_existing_conditions: list[str]
+    food_intolerances: list[str]
+    dietary_preferences: list[str]
 
 
 class ExerciseDict(TypedDict):
     name: str
     exercise_type: str
-    image_uri: Optional[str]
-    duration: Optional[float]
+    image_uri: str | None
+    duration: float | None
     description: str
-    tags: List[str]
+    tags: list[str]
     level: str
     week: str
-    targeted_body_parts: List[str]
+    targeted_body_parts: list[str]
     duration_completed: float
     assigned_at: datetime
 
 
 class FoodItemDict(TypedDict):
     name: str
-    calories: Optional[float]
-    protein: Optional[float]
-    carbs: Optional[float]
-    fat: Optional[float]
-    sodium: Optional[float]
-    sugar: Optional[float]
-    vitamin_contents: List[str]
-    allergic_ingredients: List[str]
-    image_uri: Optional[str]
-    type: Optional[str]
-    consumed: Optional[bool]
-    quantity: Optional[float]
+    calories: float | None
+    protein: float | None
+    carbs: float | None
+    fat: float | None
+    sodium: float | None
+    sugar: float | None
+    vitamin_contents: list[str]
+    allergic_ingredients: list[str]
+    image_uri: str | None
+    type: str | None
+    consumed: bool | None
+    quantity: float | None
 
 
 class MyPlanDict(TypedDict):
-    breakfast: List[FoodItemDict]
-    lunch: List[FoodItemDict]
-    dinner: List[FoodItemDict]
-    snacks: List[FoodItemDict]
+    breakfast: list[FoodItemDict]
+    lunch: list[FoodItemDict]
+    dinner: list[FoodItemDict]
+    snacks: list[FoodItemDict]
     created_at: datetime
 
 
@@ -89,21 +89,21 @@ class UserDict(TypedDict):
     country: str
 
     phone_number: str
-    medical_data: Optional[UserMedicalDict]
-    exercises: List[ExerciseDict]
-    plan: Optional[MyPlanDict]
+    medical_data: UserMedicalDict | None
+    exercises: list[ExerciseDict]
+    plan: MyPlanDict | None
 
-    history: List[HistoryDict]
+    history: list[HistoryDict]
     created_at: datetime
-    last_login: Optional[datetime]
-    updated_at: Optional[datetime]
-    last_login_ip: Optional[str]
+    last_login: datetime | None
+    updated_at: datetime | None
+    last_login_ip: str | None
     is_active: bool
     is_verified: bool
 
 
 class SongMetadataDict(TypedDict):
     _id: NotRequired[ObjectId]
-    title: Optional[str]
-    artist: Optional[str]
-    duration: Optional[float]
+    title: str | None
+    artist: str | None
+    duration: float | None

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from pytz import timezone
@@ -28,9 +27,9 @@ class History(BaseModel):
     """Represents a day's worth of health and fitness activities."""
 
     date: datetime = Field(default_factory=lambda: datetime.now(timezone("UTC")), description="Date of the recorded activities")
-    plan: Optional[MyPlan] = Field(None, description="Nutrition plan for the day")
-    exercises: List[Exercise] = Field(default_factory=list, description="Exercises completed during the day")
-    moods: List[MoodHistory] = Field(default_factory=list, description="Mood entries for the day")
+    plan: MyPlan | None = Field(None, description="Nutrition plan for the day")
+    exercises: list[Exercise] = Field(default_factory=list, description="Exercises completed during the day")
+    moods: list[MoodHistory] = Field(default_factory=list, description="Mood entries for the day")
 
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},
@@ -63,7 +62,7 @@ class User(BaseModel):
 
     id: str = Field(..., description="Unique user identifier", examples=["user_123456789"])
     first_name: str = Field(..., description="User's first name", examples=["Sarah"])
-    last_name: Optional[str] = Field(None, description="User's last name", examples=["Johnson"])
+    last_name: str | None = Field(None, description="User's last name", examples=["Johnson"])
     email_address: EmailStr = Field(..., description="User's email address", examples=["sarah.johnson@example.com"])
     password: str = Field(..., description="User's encrypted password (hashed)")
 
@@ -72,19 +71,19 @@ class User(BaseModel):
 
     phone_number: str = Field(default="", description="User's phone number", examples=["+1234567890"])
 
-    medical_data: Optional[UserMedical] = Field(None, description="User's medical and health information")
+    medical_data: UserMedical | None = Field(None, description="User's medical and health information")
 
-    mood_history: List[MoodHistory] = Field(default_factory=list, description="Historical mood tracking data")
-    exercises: List[Exercise] = Field(default_factory=list, description="User's current exercise list")
-    plan: Optional[MyPlan] = Field(default_factory=MyPlan, description="Current nutrition plan")
+    mood_history: list[MoodHistory] = Field(default_factory=list, description="Historical mood tracking data")
+    exercises: list[Exercise] = Field(default_factory=list, description="User's current exercise list")
+    plan: MyPlan | None = Field(default_factory=MyPlan, description="Current nutrition plan")
 
-    history: List[History] = Field(default_factory=list, description="Historical daily activity records")
+    history: list[History] = Field(default_factory=list, description="Historical daily activity records")
 
     # Server stuff
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("UTC")), description="Account creation timestamp")
-    last_login: Optional[datetime] = Field(None, description="Last login timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last profile update timestamp")
-    last_login_ip: Optional[str] = Field(None, description="IP address of last login", examples=["192.168.1.1"])
+    last_login: datetime | None = Field(None, description="Last login timestamp")
+    updated_at: datetime | None = Field(None, description="Last profile update timestamp")
+    last_login_ip: str | None = Field(None, description="IP address of last login", examples=["192.168.1.1"])
     is_active: bool = Field(default=True, description="Whether the account is active")
     is_verified: bool = Field(default=False, description="Whether the email is verified")
 
@@ -136,14 +135,14 @@ class UserMedical(BaseModel):
     height: float = Field(..., description="Height in centimeters", examples=[165.0], gt=0, le=300)
     pre_pregnancy_weight: float = Field(..., description="Weight before pregnancy in kilograms", examples=[65.0], gt=0, le=500)
     current_weight: float = Field(..., description="Current weight in kilograms", examples=[70.0], gt=0, le=500)
-    due_date: Optional[datetime] = Field(None, description="Expected due date (if pregnant)", examples=["2024-06-15T00:00:00Z"])
-    pre_existing_conditions: List[str] = Field(
+    due_date: datetime | None = Field(None, description="Expected due date (if pregnant)", examples=["2024-06-15T00:00:00Z"])
+    pre_existing_conditions: list[str] = Field(
         default_factory=list, description="Known medical conditions", examples=[["diabetes", "hypertension"]]
     )
-    food_intolerances: List[str] = Field(
+    food_intolerances: list[str] = Field(
         default_factory=list, description="Food allergies and intolerances", examples=[["lactose", "gluten", "nuts"]]
     )
-    dietary_preferences: List[str] = Field(
+    dietary_preferences: list[str] = Field(
         default_factory=list, description="Dietary choices and preferences", examples=[["vegetarian", "low-sodium", "organic"]]
     )
 
@@ -172,7 +171,7 @@ class PartialUser(BaseModel):
     """
 
     first_name: str = Field(..., description="User's first name", examples=["Sarah"])
-    last_name: Optional[str] = Field(None, description="User's last name", examples=["Johnson"])
+    last_name: str | None = Field(None, description="User's last name", examples=["Johnson"])
     email_address: EmailStr = Field(..., description="User's email address", examples=["sarah.johnson@example.com"])
 
     country_code: str = Field(default="91", description="Country code for phone number", examples=["91", "1", "44"])
@@ -180,13 +179,13 @@ class PartialUser(BaseModel):
 
     phone_number: str = Field(default="", description="User's phone number", examples=["+1234567890"])
 
-    medical_data: Optional[UserMedical] = Field(None, description="User's medical and health information")
+    medical_data: UserMedical | None = Field(None, description="User's medical and health information")
 
-    mood_history: List[MoodHistory] = Field(default_factory=list, description="Historical mood tracking data")
-    exercises: List[Exercise] = Field(default_factory=list, description="User's current exercise list")
-    plan: Optional[MyPlan] = Field(default_factory=MyPlan, description="Current nutrition plan")
+    mood_history: list[MoodHistory] = Field(default_factory=list, description="Historical mood tracking data")
+    exercises: list[Exercise] = Field(default_factory=list, description="User's current exercise list")
+    plan: MyPlan | None = Field(default_factory=MyPlan, description="Current nutrition plan")
 
-    history: List[History] = Field(default_factory=list, description="Historical daily activity records")
+    history: list[History] = Field(default_factory=list, description="Historical daily activity records")
 
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.strftime("%Y-%m-%dT%H:%M:%SZ")},

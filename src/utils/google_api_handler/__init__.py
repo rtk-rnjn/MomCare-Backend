@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
 from google import genai
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from ..cache_handler import CacheHandler
 
-load_dotenv(verbose=True)
+_ = load_dotenv(verbose=True)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GOOGLE_SEARCH_KEY = os.getenv("SEARCH_API_KEY")
@@ -59,20 +59,20 @@ class YogaSet(BaseModel):
     name: str
     level: str
     description: str
-    targeted_body_parts: List[str]
+    targeted_body_parts: list[str]
     week: str
-    tags: List[str]
+    tags: list[str]
 
 
 class YogaSets(BaseModel):
-    yoga_sets: List[YogaSet] = []
+    yoga_sets: list[YogaSet] = []
 
 
 class _TempMyPlan(BaseModel):
-    breakfast: List[str] = []
-    lunch: List[str] = []
-    dinner: List[str] = []
-    snacks: List[str] = []
+    breakfast: list[str] = []
+    lunch: list[str] = []
+    dinner: list[str] = []
+    snacks: list[str] = []
 
 
 class _TempDailyInsight(BaseModel):
@@ -89,7 +89,7 @@ class ItemModel(BaseModel):
 
 
 class RootModel(BaseModel):
-    items: List[ItemModel]
+    items: list[ItemModel]
 
 
 class GoogleAPIHandler:
@@ -102,7 +102,7 @@ class GoogleAPIHandler:
 
         self.image_generator_handler = PixabayImageFetcher(cache_handler=cache_handler)
 
-    async def generate_plan(self, user: User, *, force_create: bool = False) -> Optional[MyPlan]:
+    async def generate_plan(self, user: User, *, force_create: bool = False) -> MyPlan | None:
 
         plan = await self.cache_handler.get_plan(user_id=user.id)
         if plan and not force_create:
@@ -142,7 +142,7 @@ class GoogleAPIHandler:
 
         return tips
 
-    def _generate_plan(self, user_data: dict) -> Optional[_TempMyPlan]:
+    def _generate_plan(self, user_data: dict) -> _TempMyPlan | None:
         history = user_data.pop("history", None)
         user_data.pop("mood_history", None)
         user_data.pop("exercises", None)
@@ -181,7 +181,7 @@ class GoogleAPIHandler:
 
         return None
 
-    async def _parse_plan(self, plan: Optional[_TempMyPlan]):
+    async def _parse_plan(self, plan: _TempMyPlan | None):
         if not plan:
 
             return None
@@ -215,7 +215,7 @@ class GoogleAPIHandler:
 
         return ""
 
-    async def _fetch_food_image(self, food_name: str) -> Optional[str]:
+    async def _fetch_food_image(self, food_name: str) -> str | None:
         cached_image = await self.cache_handler.get_food_image(food_name=food_name)
         if cached_image:
 

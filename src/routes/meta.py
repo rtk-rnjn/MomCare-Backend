@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
-
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
@@ -22,7 +20,7 @@ async def root(request: Request):
         return RedirectResponse(url=app.docs_url)
 
 
-@router.get("/", response_model=dict[Literal["name", "version", "description", "docs_url", "redoc_url", "openapi_url"], str | None])
+@router.get("/")
 async def get_meta(request: Request):
     """
     Get API metadata and configuration information.
@@ -40,7 +38,7 @@ async def get_meta(request: Request):
     }
 
 
-@router.get("/health", response_model=dict[Literal["status"], Literal["healthy"]])
+@router.get("/health")
 async def get_health(request: Request):
     """
     Health check endpoint for service monitoring.
@@ -51,7 +49,7 @@ async def get_health(request: Request):
     return {"status": "healthy"}
 
 
-@router.get("/version", response_model=dict[Literal["version"], str])
+@router.get("/version")
 async def get_version(request: Request):
     """
     Get current API version information.
@@ -62,7 +60,7 @@ async def get_version(request: Request):
     return {"version": app.version}
 
 
-@router.get("/ping", response_model=dict[Literal["ping"], Literal["pong"]])
+@router.get("/ping")
 async def get_ping(request: Request):
     """
     Simple ping endpoint for connectivity testing.
