@@ -69,8 +69,12 @@ app = FastAPI(
             "description": "Operations for updating user medical data, preferences, and account settings. Manage user-specific information and configurations.",  # noqa: E501
         },
         {
+            "name": "AI Content",
+            "description": "AI-generated content and recommendations for maternal health, including personalized meal plans, exercise routines, and wellness tips.",  # noqa: E501
+        },
+        {
             "name": "Content Management",
-            "description": "Access to nutrition plans, exercise routines, food search, wellness tips, and media content. Core functionality for maternal health and fitness.",  # noqa: E501
+            "description": "Access to media content, including images, videos, and articles related to maternal health and wellness.",
         },
         {
             "name": "OTP Authentication",
