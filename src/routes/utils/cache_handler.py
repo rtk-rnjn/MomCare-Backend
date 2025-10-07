@@ -43,12 +43,12 @@ class CacheHandler:
             await self._cache_user_medical_data(user)
 
         if user.plan is not None:
-            await self._cache_user_plan(user)
+            await self.cache_user_plan(user)
 
         if user.exercises:
-            await self._cache_user_exercises(user)
+            await self.cache_user_exercises(user)
 
-    async def _cache_user_plan(self, /, user: User):
+    async def cache_user_plan(self, /, user: User):
         plan = user.plan
         if plan is None or plan.is_empty():
             return
@@ -57,7 +57,7 @@ class CacheHandler:
         if inspect.isawaitable(maybe_awaitable):
             await maybe_awaitable
 
-    async def _cache_user_exercises(self, /, user: User):
+    async def cache_user_exercises(self, /, user: User):
         exercises = user.exercises
         if not exercises:
             return
