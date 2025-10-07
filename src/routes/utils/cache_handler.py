@@ -7,11 +7,10 @@ from typing import TYPE_CHECKING
 from pytz import timezone
 from redis.asyncio import Redis
 
+from .hints import ArrayField, FieldType, UserField
 from .redis_key_manager import RedisKeyManager
 
 if TYPE_CHECKING:
-    from database_handler import ArrayField, FieldType, UserField
-
     from src.models import SongMetadata, SongMetadataDict, User
 
 
@@ -178,24 +177,6 @@ class CacheHandler:
 
         return await self.get_user_by_id(user_id)
 
-    # Updating
-    async def update_basics(self, /, user_id: str, field: UserField, value) -> bool:
-        maybe_awaitable = self.redis_client.hset(self._key_manager.user_id(user_id), mapping={field: value})
-        if inspect.isawaitable(maybe_awaitable):
-            await maybe_awaitable
-        return True
-
-    async def update_medical_data(self, /, user_id: str, field: UserField, value) -> bool:
-        true_field = field.split(".")[-1]
-
-        if field in {"date_of_birth", "due_date"} and hasattr(value, "isoformat"):
-            value = value.isoformat()
-
-        maybe_awaitable = self.redis_client.hset(self._key_manager.user_medical_data(user_id), mapping={field: value})
-        if inspect.isawaitable(maybe_awaitable):
-            await maybe_awaitable
-        return True
-
     async def cache_song_metadata(self, /, key: str, *, data: SongMetadataDict):
         await self._cache_mapping(self._key_manager.song_metadata(key), mapping={**data})
 
@@ -221,3 +202,12 @@ class CacheHandler:
             return image
 
         return None
+
+    async def update_user(
+        self,
+        email_address: str,
+        set_fields: dict[UserField, str | int | float | bool] | None = None,
+        add_to_set: dict[ArrayField, str] | None = None,
+        pull_from_set: dict[ArrayField, str] | None = None,
+    ):
+        pass

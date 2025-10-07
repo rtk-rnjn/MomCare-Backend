@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from .cache_handler import CacheHandler
 from .database_handler import DatabaseHandler
+from .hints import ArrayField, FieldType, UserField
 
 if TYPE_CHECKING:
     from src.models import User
@@ -121,6 +122,27 @@ class DataHandler:
             image_uri = await self.get_food_image(food_name=food_name)
             food.image_uri = image_uri
             yield food
+
+    async def update_user(
+        self,
+        email_address: str,
+        set_fields: dict[UserField, str | int | float | bool] | None = None,
+        add_to_set: dict[ArrayField, str] | None = None,
+        pull_from_set: dict[ArrayField, str] | None = None,
+    ):
+        await self.database_handler.update_user(
+            email_address=email_address,
+            set_fields=set_fields,
+            add_to_set=add_to_set,
+            pull_from_set=pull_from_set,
+        )
+        await self.cache_handler.update_user(
+            email_address=email_address,
+            set_fields=set_fields,
+            add_to_set=add_to_set,
+            pull_from_set=pull_from_set,
+        )
+        return True
 
 
 data_handler = DataHandler()

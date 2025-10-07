@@ -3,15 +3,14 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
-from pymongo import UpdateOne
 
 from src.app import app, token_handler
-from src.models import PartialUser, User, UserMedical
+from src.models import User
 from src.utils import Token
 
-from .utils import data_handler
+from .utils import data_handler, get_user_token
 
 
 class ServerResponse(BaseModel):
@@ -71,14 +70,6 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
 
 
-def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = token_handler.decode_token(credentials.credentials)
-    if token is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    return token
-
-
 @router.post("/register", response_model=ServerResponse)
 async def register_user(request: Request, user: User) -> ServerResponse:
     """
@@ -117,8 +108,6 @@ async def login_user(request: Request, credentials: ClientRequest) -> ServerResp
     user = await data_handler.get_user(email=credentials.email_address, password=credentials.password)
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
-
-    current_time = datetime.now(timezone.utc)
 
     await data_handler.update_login_meta(
         email_address=credentials.email_address,

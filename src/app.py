@@ -65,6 +65,10 @@ app = FastAPI(
             "description": "User registration, login, and profile management operations. Handle user accounts, authentication tokens, and personal information updates.",  # noqa: E501
         },
         {
+            "name": "Update Management",
+            "description": "Operations for updating user medical data, preferences, and account settings. Manage user-specific information and configurations.",  # noqa: E501
+        },
+        {
             "name": "Content Management",
             "description": "Access to nutrition plans, exercise routines, food search, wellness tips, and media content. Core functionality for maternal health and fitness.",  # noqa: E501
         },

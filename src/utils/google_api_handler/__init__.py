@@ -102,11 +102,11 @@ class GoogleAPIHandler:
         user_data.pop("plan", None)
 
         plan = await asyncio.to_thread(self._generate_plan, user_data=user_data)
-        if not plan:
+        if plan is None:
             return None
 
         parsed_plan = await self._parse_plan(plan=plan, foods_collection=foods_collection)
-        if not parsed_plan:
+        if parsed_plan is None:
             return None
 
         return parsed_plan
@@ -116,7 +116,7 @@ class GoogleAPIHandler:
         user_data.pop("plan", None)
 
         tips = await self._generate_tips(user=user)
-        if not tips:
+        if tips is None:
 
             return None
 

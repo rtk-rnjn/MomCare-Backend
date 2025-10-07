@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Literal, cast
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
+from .hints import ArrayField, FieldType, UserField
+
 _ = load_dotenv(verbose=True)
 MONGO_URI = os.environ["MONGODB_URI"]
 
@@ -20,29 +22,6 @@ if TYPE_CHECKING:
         UserDict,
     )
 
-UserField = Literal[
-    "email_address",
-    "first_name",
-    "last_name",
-    "password",
-    "country_code",
-    "country",
-    "phone_number",
-    "is_verified",
-    "medical_data.date_of_birth",
-    "medical_data.height",
-    "medical_data.pre_pregnancy_weight",
-    "medical_data.current_weight",
-    "medical_data.due_date",
-]
-
-ArrayField = Literal[
-    "medical_data.pre_existing_conditions",
-    "medical_data.food_intolerances",
-    "medical_data.dietary_preferences",
-]
-
-FieldType = UserField | ArrayField
 
 logger = logging.Logger(__file__)
 
