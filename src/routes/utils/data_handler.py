@@ -28,7 +28,7 @@ class DataHandler:
         return True
 
     async def create_user(self, user: User) -> bool:
-        if self.user_exists(user.email_address):
+        if await self.user_exists(user.email_address):
             return False
 
         ack = await self.database_handler.insert_user(user)
