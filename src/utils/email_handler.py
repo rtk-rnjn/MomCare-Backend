@@ -34,7 +34,7 @@ class EmailHandler:
                 username=self.EMAIL_ADDRESS,
                 password=self.EMAIL_PASSWORD,
             )
-        except Exception as e:
+        except Exception:
             return False
 
         return True

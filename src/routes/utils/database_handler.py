@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
-from .hints import ArrayField, FieldType, UserField
+from .hints import ArrayField, FieldType
 
 _ = load_dotenv(verbose=True)
 MONGO_URI = os.environ["MONGODB_URI"]

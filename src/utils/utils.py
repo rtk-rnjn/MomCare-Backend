@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Hashable
 from functools import lru_cache
-from typing import TYPE_CHECKING, Optional, Sequence, TypeVar
+from typing import Optional, Sequence, TypeVar
 
 from pydantic import BaseModel, Field
 from thefuzz import process

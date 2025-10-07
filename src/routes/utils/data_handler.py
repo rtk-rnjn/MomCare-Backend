@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from .cache_handler import CacheHandler
 from .database_handler import DatabaseHandler
-from .hints import ArrayField, FieldType, UserField
+from .hints import ArrayField, FieldType
 
 if TYPE_CHECKING:
     from src.models import User

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import NotRequired, TypedDict
-
-from bson import ObjectId
+from typing import TypedDict
 
 __all__ = [
     "UserDict",

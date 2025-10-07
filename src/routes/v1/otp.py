@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.app import app
 from src.utils import EmailHandler
 
 from ..utils import data_handler, get_user_token

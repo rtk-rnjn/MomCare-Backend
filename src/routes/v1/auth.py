@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.app import app, token_handler
+from src.app import token_handler
 from src.models import User
 from src.utils import Token
 

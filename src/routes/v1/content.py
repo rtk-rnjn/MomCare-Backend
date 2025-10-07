@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.app import app, genai_handler, pixelbay_image_fetcher, s3_client
-from src.models import Exercise, MyPlan, Song, SongMetadata
+from src.app import genai_handler, pixelbay_image_fetcher, s3_client
+from src.models import Exercise, MyPlan, Song
 from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 from src.utils import Finder, Symptom, Token, TrimesterData
 from src.utils.google_api_handler import YOGA_SETS, DailyInsight

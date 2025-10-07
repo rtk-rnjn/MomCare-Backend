@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.app import app
 from src.utils import Token
 
 from ..utils import data_handler, get_user_token
