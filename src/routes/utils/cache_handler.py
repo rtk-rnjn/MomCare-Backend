@@ -300,20 +300,20 @@ class CacheHandler:
             conditions,
         )
 
-    async def add_dietary_preference(self, email_address: str, prefrence: str):
+    async def add_dietary_preference(self, email_address: str, preference: str):
         await self._update_set_field(
             email_address,
             lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.DIETARY_PREFERENCES),
             "sadd",
-            prefrence,
+            preference,
         )
 
-    async def remove_dietary_preference(self, email_address: str, prefrence: str):
+    async def remove_dietary_preference(self, email_address: str, preference: str):
         await self._update_set_field(
             email_address,
             lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.DIETARY_PREFERENCES),
             "srem",
-            prefrence,
+            preference,
         )
 
     async def set_dietary_preferences(self, email_address: str, preferences: list[str]):
