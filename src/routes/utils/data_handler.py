@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from random import uniform
+from random import randint
 from typing import TYPE_CHECKING, Any
 
 from .cache_handler import CacheHandler
@@ -63,7 +63,7 @@ class DataHandler:
         return None
 
     async def generate_otp(self, email_address: str) -> str:
-        otp = str(int(uniform(100000, 999999)))
+        otp = str(randint(100000, 999999))
         await self.redis_client.set(self._key_manager.otp(email_address), otp, ex=300)
         return otp
 
