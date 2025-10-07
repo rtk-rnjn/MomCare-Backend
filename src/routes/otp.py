@@ -1,31 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.app import app, cache_handler, token_handler
-from src.utils import send_otp_mail
+from src.app import app
+from src.utils import EmailHandler
+
+from .utils import data_handler, get_user_token
 
 router = APIRouter(prefix="/auth/otp", tags=["OTP Authentication"])
-security = HTTPBearer()
-
-
-def get_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = token_handler.decode_token(credentials.credentials)
-
-    if token is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    return token
-
-
-class StatusUpdate(BaseModel):
-    """Update model for user verification status."""
-
-    is_verified: bool = Field(..., description="User verification status")
-
-    model_config = ConfigDict(json_schema_extra={"example": {"is_verified": True}})
+email_handler = EmailHandler()
 
 
 class EmailAddress(BaseModel):
@@ -55,13 +39,13 @@ async def send_otp(request: Request, data: EmailAddress):
     """
     email_address = data.email_address
 
-    _user = await cache_handler.user_exists(email_address=email_address)
-    if not _user:
+    user_exists = await data_handler.user_exists(email_address=email_address)
+    if not user_exists:
         return False
 
-    otp = await cache_handler.generate_otp(email_address=email_address)
+    otp = await data_handler.generate_otp(email_address=email_address)
 
-    await send_otp_mail(
+    await email_handler.send_otp_mail(
         email_address=email_address,
         otp=otp,
     )
@@ -83,16 +67,15 @@ async def verify_otp(
     email_address = data.email_address
     otp = data.otp
 
-    _user = await cache_handler.user_exists(email_address=email_address)
-    if not _user:
+    user_exists = await data_handler.user_exists(email_address=email_address)
+    if not user_exists:
         return False
 
-    if not await cache_handler.verify_otp(email_address=email_address, otp=otp):
-        return False
+    valid = await data_handler.verify_otp(email_address=email_address, otp=otp)
+    if valid:
+        await data_handler.verify_user(email_address=email_address)
 
-    await cache_handler.update_user(email_address=email_address, updated_user=StatusUpdate(is_verified=True))
-
-    return True
+    return valid
 
 
 app.include_router(router)

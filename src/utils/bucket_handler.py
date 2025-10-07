@@ -10,14 +10,12 @@ from dotenv import load_dotenv
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-    from src.utils.cache_handler import CacheHandler
-
 
 _ = load_dotenv(verbose=True)
 
 
 class S3:
-    def __init__(self, cache_handler: CacheHandler | None = None):
+    def __init__(self):
         AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
         AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 
@@ -37,8 +35,6 @@ class S3:
             aws_access_key_id=AWS_ACCESS_KEY,
             aws_secret_access_key=AWS_SECRET_KEY,
         )
-
-        self.cache_handler: CacheHandler | None = cache_handler
 
     async def get_presigned_url(self, file_name: str) -> str | None:
         try:

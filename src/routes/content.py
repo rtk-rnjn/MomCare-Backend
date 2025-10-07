@@ -6,37 +6,21 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.app import app, cache_handler, genai_handler, token_handler
+from src.app import app, genai_handler, pixelbay_image_fetcher, s3_client
 from src.models import Exercise, MyPlan, Song, SongMetadata
 from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
-from src.utils import S3, Finder, PixabayImageFetcher, Symptom, Token, TrimesterData
-from src.utils.google_api_handler import YOGA_SETS, _TempDailyInsight
+from src.utils import Finder, Symptom, Token, TrimesterData
+from src.utils.google_api_handler import YOGA_SETS, DailyInsight
+
+from .utils import data_handler, get_user_token
 
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator
 
-security = HTTPBearer()
-s3_client = S3(cache_handler=cache_handler)
-image_generator_handler = PixabayImageFetcher(cache_handler=cache_handler)
-finder = Finder(cache_handler)
 
-ydl_opts = {
-    "format": "bestaudio/best",
-    "quiet": True,
-    "skip_download": True,
-    "forceurl": True,
-}
-
-
-def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = token_handler.decode_token(credentials.credentials)
-    if token is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    return token
+finder = Finder()
 
 
 router = APIRouter(prefix="/content", tags=["Content Management"])
@@ -69,15 +53,15 @@ class S3Response(BaseModel):
 
 
 async def _search_food(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
-    async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
+    async for food in data_handler.get_foods(food_name=food_name, limit=limit):
         if food.image_uri is None or food.image_uri == "":
-            food.image_uri = await image_generator_handler.search_image(food_name=food.name)
+            food.image_uri = await pixelbay_image_fetcher.search_image(food_name=food.name)
 
         yield food.model_dump_json() + "\n"
 
 
 async def _search_food_name(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
-    async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
+    async for food in data_handler.get_foods(food_name=food_name, limit=limit):
         yield food.model_dump_json() + "\n"
 
 
@@ -92,11 +76,11 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> 
     """
     user_id = token.sub
 
-    user = await cache_handler.get_user(user_id)
+    user = await data_handler.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return await genai_handler.generate_plan(user)
+    return await genai_handler.generate_plan(user, foods_collection=data_handler.database_handler.foods_collection)
 
 
 @router.get("/exercises", response_model=list[Exercise])
@@ -109,7 +93,7 @@ async def get_exercises(token: Token = Depends(get_user_token)):
     """
     user_id = token.sub
 
-    user = await cache_handler.get_user(user_id)
+    user = await data_handler.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -173,7 +157,7 @@ async def search_food_name_image(request: Request, food_name: str, limit: int = 
     Retrieves or generates appropriate food images for meal planning
     and nutrition tracking visualization.
     """
-    return await image_generator_handler.search_image(food_name=food_name)
+    return await pixelbay_image_fetcher.search_image(food_name=food_name)
 
 
 @router.get("/search/symptoms", response_model=list[Symptom])
@@ -201,7 +185,7 @@ async def search_trimester_data(request: Request, trimester: int):
     return finder.search_trimester(week_number=trimester * 13)  # Assuming each trimester is roughly 13 weeks
 
 
-@router.get("/tips", response_model=_TempDailyInsight | None)
+@router.get("/tips", response_model=DailyInsight | None)
 async def get_tips(token: Token = Depends(get_user_token)):
     """
     Get personalized wellness tips and recommendations.
@@ -211,7 +195,7 @@ async def get_tips(token: Token = Depends(get_user_token)):
     """
     user_id = token.sub
 
-    user = await cache_handler.get_user(user_id)
+    user = await data_handler.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -239,7 +223,7 @@ async def get_file(path: str):
 
     return S3Response(
         link=link,
-        link_expiry_at=await cache_handler.get_key_expiry(key=f"file:{path}"),
+        link_expiry_at=await data_handler.get_key_expiry(key=f"file:{path}"),
     )
 
 
@@ -290,16 +274,7 @@ async def get_song(path: str):
     if link is None:
         raise HTTPException(status_code=502, detail="Unable to generate link")
 
-    metadata_data = await cache_handler.get_song_metadata(key=path)
-
-    if metadata_data is not None:
-        metadata = SongMetadata(
-            title=metadata_data.get("title"),
-            artist=metadata_data.get("artist"),
-            duration=metadata_data.get("duration"),
-        )
-    else:
-        metadata = None
+    metadata = await data_handler.get_song_metadata(key=path)
 
     return Song(
         uri=link,

@@ -33,7 +33,7 @@ class UserMedicalDict(TypedDict):
     height: float
     pre_pregnancy_weight: float
     current_weight: float
-    due_date: datetime | None
+    due_date: datetime
     pre_existing_conditions: list[str]
     food_intolerances: list[str]
     dietary_preferences: list[str]
@@ -78,7 +78,6 @@ class MyPlanDict(TypedDict):
 
 
 class UserDict(TypedDict):
-    _id: NotRequired[str]
     id: str
     first_name: str
     last_name: str
@@ -98,12 +97,10 @@ class UserDict(TypedDict):
     last_login: datetime | None
     updated_at: datetime | None
     last_login_ip: str | None
-    is_active: bool
     is_verified: bool
 
 
 class SongMetadataDict(TypedDict):
-    _id: NotRequired[ObjectId]
     title: str | None
     artist: str | None
     duration: float | None

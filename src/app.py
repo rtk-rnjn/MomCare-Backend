@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 
-from src.utils import CacheHandler, GoogleAPIHandler, TokenHandler
+from src.utils import S3, GoogleAPIHandler, PixabayImageFetcher, TokenHandler
 
 load_dotenv(verbose=True)
 
@@ -26,29 +26,25 @@ mongo_client = AsyncIOMotorClient(URI, tz_aware=True, document_class=dict[str, A
 database = mongo_client["MomCare"]
 redis_client = Redis(decode_responses=True)
 
-cache_handler = CacheHandler(
-    mongo_client=mongo_client,
-    redis_client=redis_client,
-)
 
-genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
+pixelbay_image_fetcher = PixabayImageFetcher()
+genai_handler = GoogleAPIHandler()
+s3_client = S3()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
-    await cache_handler.on_startup(genai_handler)
-
     if hasattr(app.state, "sqlite_handler"):
         app.state.sqlite_handler.connect("logs.db")
+
+    await redis_client.ping()
+    await mongo_client.admin.command("ping")
 
     try:
         yield
     finally:
         if hasattr(app.state, "sqlite_handler"):
             app.state.sqlite_handler.shutdown()
-
-    await cache_handler.on_shutdown()
 
 
 app = FastAPI(

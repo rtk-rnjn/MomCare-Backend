@@ -8,9 +8,6 @@ from typing import TYPE_CHECKING, Optional, Sequence, TypeVar
 from pydantic import BaseModel, Field
 from thefuzz import process
 
-if TYPE_CHECKING:
-    from .cache_handler import CacheHandler
-
 T = TypeVar("T", bound=Hashable)
 
 
@@ -50,9 +47,6 @@ TRIMESTERS = tuple(TrimesterData(**item) for item in TRIMESTER_DATA)
 
 
 class Finder:  # Imagine using MacOS
-    def __init__(self, cache_handler: CacheHandler | None = None) -> None:
-        self.cache_handler = cache_handler
-
     @lru_cache(maxsize=128)
     def fuzzy_search(self, query, choices: Sequence[T], **kwargs) -> list[T]:
         results = process.extract(query, choices, **kwargs)
