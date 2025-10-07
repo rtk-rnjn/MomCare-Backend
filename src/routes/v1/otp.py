@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.app import app
 from src.utils import EmailHandler
 
-from .utils import data_handler, get_user_token
+from ..utils import data_handler, get_user_token
 
 router = APIRouter(prefix="/auth/otp", tags=["OTP Authentication"])
 email_handler = EmailHandler()
@@ -76,6 +76,3 @@ async def verify_otp(
         await data_handler.verify_user(email_address=email_address)
 
     return valid
-
-
-app.include_router(router)

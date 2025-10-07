@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from random import uniform
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .cache_handler import CacheHandler
 from .database_handler import DatabaseHandler
@@ -126,23 +126,16 @@ class DataHandler:
     async def update_user(
         self,
         email_address: str,
-        set_fields: dict[UserField, str | int | float | bool] | None = None,
+        set_fields: dict[FieldType, Any] | None = None,
         add_to_set: dict[ArrayField, str] | None = None,
         pull_from_set: dict[ArrayField, str] | None = None,
     ):
-        await self.database_handler.update_user(
+        return await self.database_handler.update_user(
             email_address=email_address,
             set_fields=set_fields,
             add_to_set=add_to_set,
             pull_from_set=pull_from_set,
         )
-        await self.cache_handler.update_user(
-            email_address=email_address,
-            set_fields=set_fields,
-            add_to_set=add_to_set,
-            pull_from_set=pull_from_set,
-        )
-        return True
 
 
 data_handler = DataHandler()

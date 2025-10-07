@@ -101,4 +101,6 @@ templates = Jinja2Templates(directory="src/templates")
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 
-from .routes import *  # noqa: E402, F401, F403
+from .routes import v1_router as v1_router
+
+app.include_router(v1_router)

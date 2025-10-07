@@ -10,7 +10,7 @@ from src.app import app, token_handler
 from src.models import User
 from src.utils import Token
 
-from .utils import data_handler, get_user_token
+from ..utils import data_handler, get_user_token
 
 
 class ServerResponse(BaseModel):
@@ -157,6 +157,3 @@ async def fetch_user(token: Token = Depends(get_user_token)) -> User:
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
-
-
-app.include_router(router)

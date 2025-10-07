@@ -71,6 +71,3 @@ async def get_ping(request: Request):
     to verify network connectivity and basic service responsiveness.
     """
     return JSONResponse({"ping": "pong"})
-
-
-app.include_router(router, prefix="/meta", tags=["System & Meta"])

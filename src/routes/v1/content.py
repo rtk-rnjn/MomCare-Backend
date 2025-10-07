@@ -14,7 +14,7 @@ from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_Q
 from src.utils import Finder, Symptom, Token, TrimesterData
 from src.utils.google_api_handler import YOGA_SETS, DailyInsight
 
-from .utils import data_handler, get_user_token
+from ..utils import data_handler, get_user_token
 
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator
@@ -300,6 +300,3 @@ async def get_quote(mood: str):
     }
 
     return random.choice(mapper[mood])
-
-
-app.include_router(router)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
@@ -72,11 +72,11 @@ class DatabaseHandler:
     async def update_user(
         self,
         email_address: str,
-        set_fields: dict[UserField, str | int | float | bool] | None = None,
+        set_fields: dict[FieldType, Any] | None = None,
         add_to_set: dict[ArrayField, str] | None = None,
         pull_from_set: dict[ArrayField, str] | None = None,
     ) -> bool:
-        update_query = {}
+        update_query: dict[str, Any] = {}
         if set_fields:
             update_query["$set"] = set_fields
 

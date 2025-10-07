@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pytz import timezone
 from redis.asyncio import Redis
@@ -203,11 +203,123 @@ class CacheHandler:
 
         return None
 
-    async def update_user(
-        self,
-        email_address: str,
-        set_fields: dict[UserField, str | int | float | bool] | None = None,
-        add_to_set: dict[ArrayField, str] | None = None,
-        pull_from_set: dict[ArrayField, str] | None = None,
-    ):
-        pass
+    async def _resolve_user_id(self, email_address: str) -> str | None:
+        return await self.get_user_id_by_email(email_address)
+
+    async def _maybe_await(self, obj: Any):
+        if inspect.isawaitable(obj):
+            await obj
+
+    async def _update_hash_field(self, email_address: str, key_func, field: str, value: Any):
+        user_id = await self._resolve_user_id(email_address)
+        if not user_id:
+            return
+        await self._maybe_await(self.redis_client.hset(key_func(user_id), mapping={field: value}))
+
+    async def _update_set_field(self, email_address: str, key_func, action: str, value: Any):
+        user_id = await self._resolve_user_id(email_address)
+        if not user_id:
+            return
+        func = getattr(self.redis_client, action)
+        await self._maybe_await(func(key_func(user_id), value))
+
+    async def _reset_set_field(self, email_address: str, key_func, values: list[str]):
+        user_id = await self._resolve_user_id(email_address)
+        if not user_id:
+            return
+        key = key_func(user_id)
+        await self._maybe_await(self.redis_client.delete(key))
+        if values:
+            await self._maybe_await(self.redis_client.sadd(key, *values))
+
+    # --- public methods ---
+
+    async def update_first_name(self, email_address: str, value: str):
+        await self._update_hash_field(email_address, self._key_manager.user_id, "first_name", value)
+
+    async def update_last_name(self, email_address: str, value: str):
+        await self._update_hash_field(email_address, self._key_manager.user_id, "last_name", value)
+
+    async def update_date_of_birth(self, email_address: str, value: str):
+        await self._update_hash_field(email_address, self._key_manager.user_medical_data, "date_of_birth", value)
+
+    async def update_height(self, email_address: str, value: float):
+        await self._update_hash_field(email_address, self._key_manager.user_medical_data, "height", value)
+
+    async def update_current_weight(self, email_address: str, value: float):
+        await self._update_hash_field(email_address, self._key_manager.user_medical_data, "current_weight", value)
+
+    async def update_pre_pregnancy_weight(self, email_address: str, value: float):
+        await self._update_hash_field(email_address, self._key_manager.user_medical_data, "pre_pregnancy_weight", value)
+
+    async def update_due_date(self, email_address: str, value: str):
+        await self._update_hash_field(email_address, self._key_manager.user_medical_data, "due_date", value)
+
+    async def add_pre_existing_condition(self, email_address: str, condition: str):
+        await self._update_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.PRE_EXISTING_CONDITIONS),
+            "sadd",
+            condition,
+        )
+
+    async def remove_pre_existing_condition(self, email_address: str, condition: str):
+        await self._update_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.PRE_EXISTING_CONDITIONS),
+            "srem",
+            condition,
+        )
+
+    async def set_pre_existing_conditions(self, email_address: str, conditions: list[str]):
+        await self._reset_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.PRE_EXISTING_CONDITIONS),
+            conditions,
+        )
+
+    async def add_food_intolerance(self, email_address: str, condition: str):
+        await self._update_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.FOOD_INTOLERANCES),
+            "sadd",
+            condition,
+        )
+
+    async def remove_food_intolerance(self, email_address: str, condition: str):
+        await self._update_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.FOOD_INTOLERANCES),
+            "srem",
+            condition,
+        )
+
+    async def set_food_intolerances(self, email_address: str, conditions: list[str]):
+        await self._reset_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.FOOD_INTOLERANCES),
+            conditions,
+        )
+
+    async def add_dietary_preference(self, email_address: str, prefrence: str):
+        await self._update_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.DIETARY_PREFERENCES),
+            "sadd",
+            prefrence,
+        )
+
+    async def remove_dietary_preference(self, email_address: str, prefrence: str):
+        await self._update_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.DIETARY_PREFERENCES),
+            "srem",
+            prefrence,
+        )
+
+    async def set_dietary_preferences(self, email_address: str, preferences: list[str]):
+        await self._reset_set_field(
+            email_address,
+            lambda uid: self._key_manager.user_medical_data_field(uid, self._key_manager.MedicalField.DIETARY_PREFERENCES),
+            preferences,
+        )
