@@ -10,8 +10,10 @@ class EmailHandler:
     with open("src/static/otp-content.html", "r") as file:
         OTP_CONTENT = file.read()
 
-    EMAIL_ADDRESS = os.environ["EMAIL_ADDRESS"]
-    EMAIL_PASSWORD = os.environ["EMAIL_PASSWORD"]
+    EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+    if EMAIL_ADDRESS is None or EMAIL_PASSWORD is None:
+        raise RuntimeError("EMAIL_ADDRESS and EMAIL_PASSWORD environment variables must be set")
 
     EMAIL_HOST = "smtp.gmail.com"
     EMAIL_PORT = 587
