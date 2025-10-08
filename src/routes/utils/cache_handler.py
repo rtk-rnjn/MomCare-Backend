@@ -164,8 +164,8 @@ class CacheHandler:
         if inspect.isawaitable(plan):
             plan = await plan
 
-        if plan is not None:
-            user_data["plan"] = plan
+        if plan is not None and plan:
+            user_data["plan"] = plan[0]
 
         return User.model_validate(user_data)
 

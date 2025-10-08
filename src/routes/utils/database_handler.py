@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     )
 
 
-logger = logging.Logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class DatabaseHandler:
@@ -43,7 +43,7 @@ class DatabaseHandler:
 
         logger.debug("checking if user exists: payload=%s projection=%s", payload, projection)
         user = await self.users_collection.find_one(payload, projection)
-        logger.debug("user exists: user=%s", payload, user)
+        logger.debug("user exists: playload=%s user=%s", payload, user)
 
         return user is not None
 

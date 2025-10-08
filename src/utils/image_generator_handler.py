@@ -55,3 +55,8 @@ class PixabayImageFetcher:
 
         if root_response is None:
             return None
+
+        if not root_response.photos:
+            return None
+
+        return root_response.photos[0].src.original
