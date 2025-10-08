@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis
 
-from src.utils import CacheHandler, GoogleAPIHandler, TokenHandler
+from src.utils import S3, GoogleAPIHandler, PixabayImageFetcher, TokenHandler
 
 load_dotenv(verbose=True)
 
@@ -26,29 +26,25 @@ mongo_client = AsyncIOMotorClient(URI, tz_aware=True, document_class=dict[str, A
 database = mongo_client["MomCare"]
 redis_client = Redis(decode_responses=True)
 
-cache_handler = CacheHandler(
-    mongo_client=mongo_client,
-    redis_client=redis_client,
-)
 
-genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
+pixelbay_image_fetcher = PixabayImageFetcher()
+genai_handler = GoogleAPIHandler()
+s3_client = S3()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
-    await cache_handler.on_startup(genai_handler)
-
     if hasattr(app.state, "sqlite_handler"):
         app.state.sqlite_handler.connect("logs.db")
+
+    await redis_client.ping()
+    await mongo_client.admin.command("ping")
 
     try:
         yield
     finally:
         if hasattr(app.state, "sqlite_handler"):
             app.state.sqlite_handler.shutdown()
-
-    await cache_handler.on_shutdown()
 
 
 app = FastAPI(
@@ -69,8 +65,16 @@ app = FastAPI(
             "description": "User registration, login, and profile management operations. Handle user accounts, authentication tokens, and personal information updates.",  # noqa: E501
         },
         {
+            "name": "Update Management",
+            "description": "Operations for updating user medical data, preferences, and account settings. Manage user-specific information and configurations.",  # noqa: E501
+        },
+        {
+            "name": "AI Content",
+            "description": "AI-generated content and recommendations for maternal health, including personalized meal plans, exercise routines, and wellness tips.",  # noqa: E501
+        },
+        {
             "name": "Content Management",
-            "description": "Access to nutrition plans, exercise routines, food search, wellness tips, and media content. Core functionality for maternal health and fitness.",  # noqa: E501
+            "description": "Access to media content, including images, videos, and articles related to maternal health and wellness.",
         },
         {
             "name": "OTP Authentication",
@@ -101,4 +105,6 @@ templates = Jinja2Templates(directory="src/templates")
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 
-from .routes import *  # noqa: E402, F401, F403
+from .routes import v1_router as v1_router  # noqa: E402
+
+app.include_router(v1_router)

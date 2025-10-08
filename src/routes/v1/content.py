@@ -4,39 +4,22 @@ import random
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.app import app, cache_handler, genai_handler, token_handler
-from src.models import Exercise, MyPlan, Song, SongMetadata
+from src.app import pixelbay_image_fetcher, s3_client
+from src.models import Song
 from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
-from src.utils import S3, Finder, PixabayImageFetcher, Symptom, Token, TrimesterData
-from src.utils.google_api_handler import YOGA_SETS, _TempDailyInsight
+from src.utils import Finder, Symptom, TrimesterData
+
+from ..utils import data_handler
 
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator
 
-security = HTTPBearer()
-s3_client = S3(cache_handler=cache_handler)
-image_generator_handler = PixabayImageFetcher(cache_handler=cache_handler)
-finder = Finder(cache_handler)
 
-ydl_opts = {
-    "format": "bestaudio/best",
-    "quiet": True,
-    "skip_download": True,
-    "forceurl": True,
-}
-
-
-def get_user_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = token_handler.decode_token(credentials.credentials)
-    if token is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    return token
+finder = Finder()
 
 
 router = APIRouter(prefix="/content", tags=["Content Management"])
@@ -69,76 +52,16 @@ class S3Response(BaseModel):
 
 
 async def _search_food(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
-    async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
+    async for food in data_handler.get_foods(food_name=food_name, limit=limit):
         if food.image_uri is None or food.image_uri == "":
-            food.image_uri = await image_generator_handler.search_image(food_name=food.name)
+            food.image_uri = await pixelbay_image_fetcher.search_image(food_name=food.name)
 
         yield food.model_dump_json() + "\n"
 
 
 async def _search_food_name(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
-    async for food in cache_handler.get_foods(food_name=food_name, limit=limit):
+    async for food in data_handler.get_foods(food_name=food_name, limit=limit):
         yield food.model_dump_json() + "\n"
-
-
-@router.get("/plan", response_model=MyPlan)
-async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> MyPlan | None:
-    """
-    Generate AI-powered personalized nutrition plan for the user.
-
-    Creates a comprehensive meal plan based on the user's medical data, dietary preferences,
-    pregnancy stage, and nutritional requirements. Uses AI to recommend appropriate foods
-    for maternal wellness.
-    """
-    user_id = token.sub
-
-    user = await cache_handler.get_user(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return await genai_handler.generate_plan(user)
-
-
-@router.get("/exercises", response_model=list[Exercise])
-async def get_exercises(token: Token = Depends(get_user_token)):
-    """
-    Get personalized exercise recommendations for maternal fitness.
-
-    Provides exercise routines tailored to the user's pregnancy stage, fitness level,
-    and health conditions. Includes safe prenatal and postpartum exercises.
-    """
-    user_id = token.sub
-
-    user = await cache_handler.get_user(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    data = await genai_handler.get_exercises(user)
-    yoga_sets = data.yoga_sets if data else []
-    if not yoga_sets:
-        return []
-
-    sendable = []
-    for yoga_set in yoga_sets:
-        yoga = list(filter(lambda x: x["name"] == yoga_set.name, YOGA_SETS))
-        if yoga:
-            image_uri = await s3_client.get_presigned_url(f"ExerciseImages/{yoga[0]['image_uri']}")
-        else:
-            image_uri = None
-
-        exercise = Exercise(
-            name=yoga_set.name,
-            image_uri=image_uri,
-            description=yoga_set.description,
-            duration=None,
-            level=yoga_set.level,
-            targeted_body_parts=yoga_set.targeted_body_parts,
-            week=yoga_set.week,
-            tags=yoga_set.tags,
-        )
-        sendable.append(exercise)
-
-    return sendable
 
 
 @router.get("/search", response_class=StreamingResponse)
@@ -173,7 +96,7 @@ async def search_food_name_image(request: Request, food_name: str, limit: int = 
     Retrieves or generates appropriate food images for meal planning
     and nutrition tracking visualization.
     """
-    return await image_generator_handler.search_image(food_name=food_name)
+    return await pixelbay_image_fetcher.search_image(food_name=food_name)
 
 
 @router.get("/search/symptoms", response_model=list[Symptom])
@@ -201,23 +124,6 @@ async def search_trimester_data(request: Request, trimester: int):
     return finder.search_trimester(week_number=trimester * 13)  # Assuming each trimester is roughly 13 weeks
 
 
-@router.get("/tips", response_model=_TempDailyInsight | None)
-async def get_tips(token: Token = Depends(get_user_token)):
-    """
-    Get personalized wellness tips and recommendations.
-
-    AI-generated tips based on user's current pregnancy stage, health data,
-    and preferences. Includes nutrition advice, exercise suggestions, and wellness guidance.
-    """
-    user_id = token.sub
-
-    user = await cache_handler.get_user(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return await genai_handler.generate_tips(user)
-
-
 @router.get("/s3/file/{path:path}", response_model=S3Response)
 async def get_file(path: str):
     """
@@ -239,7 +145,7 @@ async def get_file(path: str):
 
     return S3Response(
         link=link,
-        link_expiry_at=await cache_handler.get_key_expiry(key=f"file:{path}"),
+        link_expiry_at=await data_handler.get_key_expiry(key=f"file:{path}"),
     )
 
 
@@ -290,16 +196,7 @@ async def get_song(path: str):
     if link is None:
         raise HTTPException(status_code=502, detail="Unable to generate link")
 
-    metadata_data = await cache_handler.get_song_metadata(key=path)
-
-    if metadata_data is not None:
-        metadata = SongMetadata(
-            title=metadata_data.get("title"),
-            artist=metadata_data.get("artist"),
-            duration=metadata_data.get("duration"),
-        )
-    else:
-        metadata = None
+    metadata = await data_handler.get_song_metadata(key=path)
 
     return Song(
         uri=link,
@@ -325,6 +222,3 @@ async def get_quote(mood: str):
     }
 
     return random.choice(mapper[mood])
-
-
-app.include_router(router)

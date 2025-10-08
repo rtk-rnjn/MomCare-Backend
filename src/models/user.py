@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from pytz import timezone
@@ -60,7 +61,6 @@ class User(BaseModel):
     health tracking data, exercise history, and preferences.
     """
 
-    id: str = Field(..., description="Unique user identifier", examples=["user_123456789"])
     first_name: str = Field(..., description="User's first name", examples=["Sarah"])
     last_name: str | None = Field(None, description="User's last name", examples=["Johnson"])
     email_address: EmailStr = Field(..., description="User's email address", examples=["sarah.johnson@example.com"])
@@ -80,11 +80,11 @@ class User(BaseModel):
     history: list[History] = Field(default_factory=list, description="Historical daily activity records")
 
     # Server stuff
+    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique user identifier")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone("UTC")), description="Account creation timestamp")
     last_login: datetime | None = Field(None, description="Last login timestamp")
     updated_at: datetime | None = Field(None, description="Last profile update timestamp")
     last_login_ip: str | None = Field(None, description="IP address of last login", examples=["192.168.1.1"])
-    is_active: bool = Field(default=True, description="Whether the account is active")
     is_verified: bool = Field(default=False, description="Whether the email is verified")
 
     model_config = ConfigDict(
@@ -117,7 +117,6 @@ class User(BaseModel):
                 "last_login": "2024-01-15T10:30:00Z",
                 "updated_at": "2024-01-15T09:00:00Z",
                 "last_login_ip": "192.168.1.1",
-                "is_active": True,
                 "is_verified": True,
             }
         },
@@ -135,7 +134,7 @@ class UserMedical(BaseModel):
     height: float = Field(..., description="Height in centimeters", examples=[165.0], gt=0, le=300)
     pre_pregnancy_weight: float = Field(..., description="Weight before pregnancy in kilograms", examples=[65.0], gt=0, le=500)
     current_weight: float = Field(..., description="Current weight in kilograms", examples=[70.0], gt=0, le=500)
-    due_date: datetime | None = Field(None, description="Expected due date (if pregnant)", examples=["2024-06-15T00:00:00Z"])
+    due_date: datetime = Field(..., description="Expected due date (if pregnant)", examples=["2024-06-15T00:00:00Z"])
     pre_existing_conditions: list[str] = Field(
         default_factory=list, description="Known medical conditions", examples=[["diabetes", "hypertension"]]
     )
