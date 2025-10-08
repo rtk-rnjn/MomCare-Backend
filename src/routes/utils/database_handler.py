@@ -11,7 +11,9 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 from .hints import ArrayField, FieldType
 
 _ = load_dotenv(verbose=True)
-MONGO_URI = os.environ["MONGODB_URI"]
+MONGO_URI = os.getenv("MONGODB_URI")
+if not MONGO_URI:
+    raise RuntimeError("Environment variable MONGODB_URI is not set. Please set it in your environment or .env file.")
 
 if TYPE_CHECKING:
     from src.models import (
