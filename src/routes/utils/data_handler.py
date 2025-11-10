@@ -1,141 +1,111 @@
 from __future__ import annotations
 
+import hashlib
+import pickle
 from random import randint
-from typing import TYPE_CHECKING, Any
+from typing import Awaitable, Callable, Unpack
 
-from .cache_handler import CacheHandler
-from .database_handler import DatabaseHandler
-from .hints import ArrayField, FieldType
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
+from redis.asyncio import Redis
 
-if TYPE_CHECKING:
-    from src.models import User
+from src.models.food_item import FoodItemDict
+from src.models.song import SongDict
+from src.models.user import UserDict
+
+mongo_client = AsyncIOMotorClient("mongodb://localhost:27017")
+database = mongo_client["MomCare"]
+
+DATABASE_NUMBER = 10
 
 
 class DataHandler:
     def __init__(self):
-        self.cache_handler = CacheHandler()
-        self.database_handler = DatabaseHandler()
+        self.users_collection: AsyncIOMotorCollection[UserDict] = database["users"]
+        self.songs_collection: AsyncIOMotorCollection[SongDict] = database["songs"]
+        self.foods_collection: AsyncIOMotorCollection[FoodItemDict] = database["foods"]
 
-        self.redis_client = self.cache_handler.redis_client
-        self._key_manager = self.cache_handler._key_manager
-        self.users_collection = self.database_handler.users_collection
+        self.redis_client = Redis(db=DATABASE_NUMBER, decode_responses=True, protocol=3)
 
-    async def user_exists(self, email_address: str) -> bool:
-        response = await self.redis_client.exists(self._key_manager.user_email_address(email_address))
-        if response is None:
-            return await self.database_handler.user_exists(email_address)
+    def _generate_key(self, func, /, *args, **kwargs) -> str:
+        raw = [func.__module__, func.__qualname__, args, tuple(sorted(kwargs.items()))]
+        data = pickle.dumps(raw, protocol=pickle.HIGHEST_PROTOCOL)
+        return hashlib.sha256(data).hexdigest()
 
-        return True
+    async def user_exists(self, email_address: str | None, /) -> bool:
+        user = await self.users_collection.find_one({"email_address": email_address})
+        return user is not None
 
-    async def create_user(self, user: User) -> bool:
-        if await self.user_exists(user.email_address):
-            return False
+    async def create_user(self, **kwargs: Unpack[UserDict]):
+        email_address = kwargs.get("email_address")
+        if await self.user_exists(email_address):
+            return
 
-        ack = await self.database_handler.insert_user(user)
-        if not ack:
-            return False
+        return await self.users_collection.insert_one(kwargs)
 
-        await self.cache_handler.cache_user(user)
-        return True
+    async def get_user(self, *, email_address: str, password: str) -> UserDict | None:
+        user = await self.users_collection.find_one({"email_address": email_address, "password": password})
+        return user
 
-    async def get_user(self, email: str, password: str) -> User | None:
-        user = await self.cache_handler.get_user_by_email(email)
-        if user is not None and user.password == password:
-            return user
-
-        user = await self.database_handler.fetch_user(email_address=email, password=password)
-        if user is not None:
-            await self.cache_handler.cache_user(user)
-            return user
-
-        return None
-
-    async def get_user_by_id(self, user_id: str, force: bool = False) -> User | None:
-        user = await self.cache_handler.get_user_by_id(user_id)
-        if user is not None and not force:
-            return user
-
-        user = await self.database_handler.fetch_user(id=user_id)
-        if user is not None:
-            await self.cache_handler.cache_user(user)
-            return user
-
-        return None
+    async def get_user_by_id(self, user_id: str) -> UserDict | None:
+        user = await self.users_collection.find_one({"id": user_id}, {"_id": 0, "password": 0})
+        return user
 
     async def generate_otp(self, email_address: str) -> str:
         otp = str(randint(100000, 999999))
-        await self.redis_client.set(self._key_manager.otp(email_address), otp, ex=300)
+        key = self._generate_key(self.generate_otp, email_address)
+        await self.redis_client.set(key, otp, ex=300)
         return otp
 
     async def verify_otp(self, email_address: str, otp: str) -> bool:
-        stored_otp = await self.redis_client.get(self._key_manager.otp(email_address))
+        key = self._generate_key(self.verify_otp, email_address)
+
+        stored_otp = await self.redis_client.get(key)
         if stored_otp is None:
             return False
 
         if stored_otp != otp:
             return False
 
-        await self.redis_client.delete(self._key_manager.otp(email_address))
+        await self.redis_client.delete(key)
         return True
 
     async def verify_user(self, *, email_address: str):
-        await self.database_handler.update_user(email_address=email_address, set_fields={"is_verified": True})
+        await self.users_collection.update_one({"email_address": email_address}, {"$set": {"is_verified": True}})
 
-    async def update_login_meta(self, *, email_address: str, password: str, last_login_ip: str) -> None:
-        await self.database_handler.update_login_meta(email_address=email_address, password=password, last_login_ip=last_login_ip)
-
-    async def get_song_metadata(self, /, key: str):
-        data = await self.cache_handler.get_song_metadata(key)
-        if not data:
-            song_metadata = await self.database_handler.fetch_song_metadata(key=key)
-            if song_metadata is not None:
-                from src.models import SongMetadata
-
-                return SongMetadata.model_validate(song_metadata)
+    async def get_song(self, *, song: str):
+        data = await self.songs_collection.find_one({"$or": [{"title": song}, {"artist": song}, {"uri": song}]})
 
         return data
 
-    async def get_key_expiry(self, /, key: str):
-        return await self.cache_handler.get_key_expiry(key)
+    async def get_key_expiry(self, /, *, key: str) -> int:
+        return await self.redis_client.ttl(key)
 
-    async def get_food_image(self, *, food_name: str) -> str | None:
-        image_uri = await self.cache_handler.get_food_image(food_name=food_name)
-        if image_uri is None:
-            from src.app import genai_handler
+    async def get_food_image(self, *, food_name: str | None, fetch_food_image_uri: Callable[[str], Awaitable[str]]) -> str | None:
+        if food_name is None:
+            return None
 
-            image_uri = await genai_handler.fetch_food_image_uri(food_name)
+        image_uri = await fetch_food_image_uri(food_name)
 
         return image_uri or None
 
-    async def get_food(self, /, food_name: str):
-        food = await self.database_handler.fetch_food(food_name)
+    async def get_food(self, /, food_name: str, *, fetch_food_image_uri):
+        food = await self.foods_collection.find_one({"name": food_name})
         if food is None:
             return None
 
-        image = await self.get_food_image(food_name=food.name)
+        if food.get("image_uri"):
+            return food
+
+        image = await self.get_food_image(food_name=food.get("name"), fetch_food_image_uri=fetch_food_image_uri)
         if image:
-            food.image_uri = image
+            food["image_uri"] = image
         return food
 
-    async def get_foods(self, /, food_name: str, *, limit: int = 10):
-        async for food in self.database_handler.get_foods(food_name, limit=limit):
-            image_uri = await self.get_food_image(food_name=food_name)
+    async def get_foods(self, /, food_name: str, *, limit: int = 10, fetch_food_image_uri):
+        async for food in self.foods_collection.find({"name": {"$regex": food_name, "$options": "i"}}).limit(limit):
+            image_uri = await self.get_food_image(food_name=food.get("name"), fetch_food_image_uri=fetch_food_image_uri)
             food.image_uri = image_uri
             yield food
-
-    async def update_user(
-        self,
-        email_address: str,
-        set_fields: dict[FieldType, Any] | None = None,
-        add_to_set: dict[ArrayField, str] | None = None,
-        pull_from_set: dict[ArrayField, str] | None = None,
-    ):
-        return await self.database_handler.update_user(
-            email_address=email_address,
-            set_fields=set_fields,
-            add_to_set=add_to_set,
-            pull_from_set=pull_from_set,
-        )
 
 
 data_handler = DataHandler()

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
-from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -10,8 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from motor.motor_asyncio import AsyncIOMotorClient
-from redis.asyncio import Redis
 
 from src.utils import S3, GoogleAPIHandler, PixabayImageFetcher, TokenHandler
 
@@ -21,10 +18,6 @@ URI = os.getenv("MONGODB_URI")
 
 if URI is None:
     raise ValueError("MONGODB_URI is not set")
-
-mongo_client = AsyncIOMotorClient(URI, tz_aware=True, document_class=dict[str, Any])
-database = mongo_client["MomCare"]
-redis_client = Redis(decode_responses=True)
 
 
 pixelbay_image_fetcher = PixabayImageFetcher()
@@ -37,9 +30,6 @@ async def lifespan(app: FastAPI):
     if hasattr(app.state, "sqlite_handler"):
         app.state.sqlite_handler.connect("logs.db")
 
-    await redis_client.ping()
-    await mongo_client.admin.command("ping")
-
     try:
         yield
     finally:
@@ -50,7 +40,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MomCare API",
     version="1.1.0",
-    contact={"name": "Team 05 - Vision", "url": "https://github.com/rtk-rnjn/MomCare", "email": "ritik0ranjan@gmail.com"},
+    contact={
+        "name": "Team 05 - Vision",
+        "url": "https://github.com/rtk-rnjn/MomCare",
+        "email": "ritik0ranjan@gmail.com",
+    },
     license_info={
         "name": "GNU General Public License v2.0",
         "url": "https://opensource.org/licenses/GPL-2.0",

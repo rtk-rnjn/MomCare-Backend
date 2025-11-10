@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -7,7 +8,7 @@ from fastapi.security import HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.app import token_handler
-from src.models import User
+from src.models.user import UserDict as User
 from src.utils import Token
 
 from ..utils import data_handler, get_user_token
@@ -23,7 +24,9 @@ class ServerResponse(BaseModel):
     success: bool = Field(default=True, description="Whether the operation was successful")
     inserted_id: str = Field(..., description="Unique identifier of the user", examples=["user_123456789"])
     access_token: str = Field(
-        ..., description="JWT access token for authenticated requests", examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...signature"]
+        ...,
+        description="JWT access token for authenticated requests",
+        examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...signature"],
     )
 
     model_config = ConfigDict(
@@ -31,6 +34,28 @@ class ServerResponse(BaseModel):
             "example": {
                 "success": True,
                 "inserted_id": "user_123456789",
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMzQ1Njc4OSIsImV4cCI6MTY0MjY4MDAwMH0.signature",  # noqa: E501
+            }
+        }
+    )
+
+
+class TokenResponse(BaseModel):
+    """
+    Response model for token-related operations.
+
+    Provides the generated access token for client authentication.
+    """
+
+    access_token: str = Field(
+        ...,
+        description="JWT access token for authenticated requests",
+        examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...signature"],
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMzQ1Njc4OSIsImV4cCI6MTY0MjY4MDAwMH0.signature",  # noqa: E501
             }
         }
@@ -48,7 +73,12 @@ class ClientRequest(BaseModel):
     password: str = Field(..., description="User's password", examples=["securePassword123"])
 
     model_config = ConfigDict(
-        json_schema_extra={"example": {"email_address": "sarah.johnson@example.com", "password": "securePassword123"}}
+        json_schema_extra={
+            "example": {
+                "email_address": "sarah.johnson@example.com",
+                "password": "securePassword123",
+            }
+        }
     )
 
 
@@ -70,80 +100,84 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
 
 
-@router.post("/register", response_model=ServerResponse)
-async def register_user(request: Request, user: User) -> ServerResponse:
+def _is_valid_payload(payload: dict) -> bool:
+    # TODO: ...
+    return True
+
+
+@router.post("/register")
+async def register_user(request: Request, user: dict):
     """
     Register a new user account in the MomCare system.
 
     Creates a new user with the provided information, validates email uniqueness,
     and returns an access token for immediate authentication.
     """
-    user_exists = await data_handler.user_exists(email_address=user.email_address)
+    email_address = user.pop("email_address", None)
+    password = user.pop("password", None)
+    first_name = user.pop("first_name", None)
+
+    if not email_address or not password or not first_name:
+        raise HTTPException(status_code=400, detail="Missing required fields: email_address, password, first_name")
+
+    user_data = User(
+        email_address=email_address,
+        password=password,
+        first_name=first_name,
+        **user,
+    )
+    user_data["id"] = f"{uuid.uuid4().hex}"
+    user_data["is_verified"] = False
+    user_data["created_at_timestamp"] = datetime.now(tz=timezone.utc).timestamp()
+
+    user_exists = await data_handler.user_exists(user_data["email_address"])  # type: ignore
     if user_exists:
         raise HTTPException(status_code=400, detail="User already exists")
 
-    current_time = datetime.now(timezone.utc)
-    user.created_at = current_time
-    user.updated_at = current_time
-    user.last_login = current_time
-    user.last_login_ip = request.client.host if request.client is not None else "unknown"
-
-    await data_handler.create_user(user)
+    await data_handler.create_user(**user_data)
 
     return ServerResponse(
         success=True,
-        inserted_id=user.id,
-        access_token=token_handler.create_access_token(user),
+        inserted_id=user_data["id"],
+        access_token=token_handler.create_access_token(user_data),
     )
 
 
-@router.post("/login", response_model=ServerResponse)
-async def login_user(request: Request, credentials: ClientRequest) -> ServerResponse:
+@router.post("/login")
+async def login_user(request: Request, credentials: ClientRequest) -> TokenResponse:
     """
     Authenticate user and provide access token.
 
     Validates user credentials and returns authentication token for API access.
     Updates last login timestamp and IP address for security tracking.
     """
-    user = await data_handler.get_user(email=credentials.email_address, password=credentials.password)
+    user = await data_handler.get_user(email_address=credentials.email_address, password=credentials.password)
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
-    await data_handler.update_login_meta(
-        email_address=credentials.email_address,
-        password=credentials.password,
-        last_login_ip=request.client.host if request.client is not None else "unknown",
-    )
-
-    return ServerResponse(
-        success=True,
-        inserted_id=user.id,
+    return TokenResponse(
         access_token=token_handler.create_access_token(user),
     )
 
 
-@router.post("/refresh", response_model=ServerResponse)
-async def refresh_token(credentials: ClientRequest) -> ServerResponse:
+@router.post("/refresh")
+async def refresh_token(token: Token = Depends(get_user_token)) -> TokenResponse:
     """
     Refresh user access token.
 
     Generate a new access token using existing credentials without requiring re-login.
     Useful for maintaining session continuity in client applications.
     """
-    user = await data_handler.get_user(email=credentials.email_address, password=credentials.password)
-    if not user:
-        raise HTTPException(status_code=400, detail="User not found")
+    user = await data_handler.get_user_by_id(user_id=token.sub)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
 
     new_access_token = token_handler.create_access_token(user)
-    return ServerResponse(
-        success=True,
-        inserted_id=user.id,
-        access_token=new_access_token,
-    )
+    return TokenResponse(access_token=new_access_token)
 
 
-@router.get("/fetch", response_model=User)
-async def fetch_user(token: Token = Depends(get_user_token)) -> User:
+@router.get("/fetch")
+async def fetch_user(token: Token = Depends(get_user_token)):
     """
     Retrieve complete user profile information.
 
@@ -152,8 +186,44 @@ async def fetch_user(token: Token = Depends(get_user_token)) -> User:
     """
     user_id = token.sub
 
-    user = await data_handler.get_user_by_id(user_id=user_id, force=True)
-    if not user:
+    user = await data_handler.get_user_by_id(user_id=user_id)
+    if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
+
+
+@router.put("/update")
+async def update_user(payload: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
+    """
+    Update user profile information.
+
+    Allows modification of user details such as personal info, medical data,
+    exercise routines, meal plans, and activity tracking.
+    """
+    user = await data_handler.get_user_by_id(user_id=token.sub)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user = user | payload
+
+    if not _is_valid_payload(user):
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    result = await data_handler.users_collection.update_one({"id": token.sub}, {"$set": user})
+
+    return UpdateResponse(success=result.modified_count > 0, modified_count=result.modified_count, matched_count=result.matched_count)
+
+
+@router.delete("/delete")
+async def delete_user(token: Token = Depends(get_user_token)):
+    """
+    Delete user account from the MomCare system.
+
+    Permanently removes the user's profile and associated data from the database.
+    """
+    delete_result = await data_handler.users_collection.delete_one({"id": token.sub})
+    if delete_result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"success": True, "deleted_count": delete_result.deleted_count}

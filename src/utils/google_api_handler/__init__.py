@@ -12,8 +12,9 @@ from googleapiclient.discovery import build
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pydantic import BaseModel, Field
 
-from src.models import MyPlan, User
-from src.models.food_item import FoodItem
+from src.models.food_item import FoodItemDict as FoodItem
+from src.models.myplan import MyPlanDict as MyPlan
+from src.models.user import UserDict as User
 
 from ..image_generator_handler import PixabayImageFetcher
 
@@ -98,7 +99,7 @@ class GoogleAPIHandler:
         self.image_generator_handler = PixabayImageFetcher()
 
     async def generate_plan(self, user: User, *, foods_collection: AsyncIOMotorCollection) -> MyPlan | None:
-        user_data = user.model_dump(mode="json")
+        user_data = user
         user_data.pop("plan", None)
 
         plan = await asyncio.to_thread(self._generate_plan, user_data=user_data)
@@ -112,7 +113,7 @@ class GoogleAPIHandler:
         return parsed_plan
 
     async def generate_tips(self, user: User):
-        user_data = user.model_dump(mode="json")
+        user_data = user
         user_data.pop("plan", None)
 
         tips = await self._generate_tips(user=user)
@@ -122,17 +123,8 @@ class GoogleAPIHandler:
 
         return tips
 
-    def _generate_plan(self, user_data: dict) -> PartialMyPlan | None:
-        history = user_data.pop("history", None)
-        user_data.pop("mood_history", None)
-        user_data.pop("exercises", None)
-        plan_history = []
-        if history:
-            for item in history:
-                if "plan" in item:
-                    plan_history.append(item["plan"])
-
-        plan_history = plan_history[:7]
+    def _generate_plan(self, user_data: User) -> PartialMyPlan | None:
+        plan_history = None
 
         try:
             response = self.client.models.generate_content(
@@ -174,8 +166,8 @@ class GoogleAPIHandler:
                 food_data = await foods_collection.find_one({"name": meal})
                 if food_data:
                     food = FoodItem(**food_data)
-                    food.image_uri = await self.fetch_food_image_uri(food.name)
-                    food.consumed = False
+                    food["image_uri"] = await self.fetch_food_image_uri(food.get("name"))
+                    food["consumed"] = False
                     foods.append(food)
 
             return foods
@@ -187,7 +179,10 @@ class GoogleAPIHandler:
             snacks=await fetch_meals(plan.snacks),
         )
 
-    async def fetch_food_image_uri(self, food_name: str) -> str:
+    async def fetch_food_image_uri(self, food_name: str | None) -> str:
+        if food_name is None:
+            return ""
+
         image = await self._fetch_food_image(food_name)
         if image:
             return image
@@ -223,11 +218,7 @@ class GoogleAPIHandler:
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"
         SYSTEM_INSTRUCTION += "Avoid general advice; make it specific to pregnancy week progress.\n"
 
-        user_data = user.model_dump(mode="json")
-
-        user_data.pop("history", None)
-        user_data.pop("plan", None)
-        user_data.pop("mood_history", None)
+        user_data = user
 
         try:
             response = self.client.models.generate_content(
@@ -258,16 +249,9 @@ class GoogleAPIHandler:
     async def _get_exercises(self, user: User):
         SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant woman do today.\n"
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date. 4-5 Exercises would be enough.\n"
-        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format(
-            [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
-        )
+        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format([YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS])
 
-        user_data = user.model_dump(mode="json")
-
-        user_data.pop("history", None)
-        user_data.pop("plan", None)
-        user_data.pop("mood_history", None)
-        user_data.pop("exercises", None)
+        user_data = user
 
         try:
             response = self.client.models.generate_content(

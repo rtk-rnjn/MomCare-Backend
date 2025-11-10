@@ -8,8 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.app import pixelbay_image_fetcher, s3_client
-from src.models import Song
+from src.app import genai_handler, pixelbay_image_fetcher, s3_client
 from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 from src.utils import Finder, Symptom, TrimesterData
 
@@ -36,7 +35,9 @@ class S3Response(BaseModel):
     """
 
     link: str = Field(
-        ..., description="Pre-signed URL for file access", examples=["https://momcare-bucket.s3.amazonaws.com/image.jpg?signature=..."]
+        ...,
+        description="Pre-signed URL for file access",
+        examples=["https://momcare-bucket.s3.amazonaws.com/image.jpg?signature=..."],
     )
     link_expiry_at: datetime | None = Field(None, description="When the link expires", examples=["2024-01-15T18:00:00Z"])
 
@@ -52,7 +53,11 @@ class S3Response(BaseModel):
 
 
 async def _search_food(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
-    async for food in data_handler.get_foods(food_name=food_name, limit=limit):
+    async for food in data_handler.get_foods(
+        food_name=food_name,
+        limit=limit,
+        fetch_food_image_uri=genai_handler.fetch_food_image_uri,
+    ):
         if food.image_uri is None or food.image_uri == "":
             food.image_uri = await pixelbay_image_fetcher.search_image(food_name=food.name)
 
@@ -60,7 +65,11 @@ async def _search_food(request: Request, food_name: str, limit: int = 10) -> Asy
 
 
 async def _search_food_name(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
-    async for food in data_handler.get_foods(food_name=food_name, limit=limit):
+    async for food in data_handler.get_foods(
+        food_name=food_name,
+        limit=limit,
+        fetch_food_image_uri=genai_handler.fetch_food_image_uri,
+    ):
         yield food.model_dump_json() + "\n"
 
 
@@ -124,7 +133,7 @@ async def search_trimester_data(request: Request, trimester: int):
     return finder.search_trimester(week_number=trimester * 13)  # Assuming each trimester is roughly 13 weeks
 
 
-@router.get("/s3/file/{path:path}", response_model=S3Response)
+@router.get("/s3/file/{path:path}", response_model=str)
 async def get_file(path: str):
     """
     Get secure access link to a file stored in S3.
@@ -143,10 +152,7 @@ async def get_file(path: str):
     if link is None:
         raise HTTPException(status_code=502, detail="Unable to generate link")
 
-    return S3Response(
-        link=link,
-        link_expiry_at=await data_handler.get_key_expiry(key=f"file:{path}"),
-    )
+    return link
 
 
 @router.get("/s3/files/{path:path}", response_model=list[str])
@@ -180,7 +186,7 @@ async def get_directories(path: str):
     return directories
 
 
-@router.get("/s3/song/{path:path}", response_model=Song)
+@router.get("/s3/song/{path:path}")
 async def get_song(path: str):
     """
     Get access to wellness audio content with metadata.
@@ -196,16 +202,11 @@ async def get_song(path: str):
     if link is None:
         raise HTTPException(status_code=502, detail="Unable to generate link")
 
-    metadata = await data_handler.get_song_metadata(key=path)
-
-    return Song(
-        uri=link,
-        metadata=metadata,
-        image_uri=None,
-    )
+    name = path.split("/")[-1]
+    return await data_handler.get_song(song=name)
 
 
-@router.get("/quotes/{mood}", response_model=str)
+@router.get("/quotes/{mood}")
 async def get_quote(mood: str):
     """
     Get inspirational quotes based on current mood.

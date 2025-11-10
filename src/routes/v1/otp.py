@@ -23,7 +23,13 @@ class OTPRequest(BaseModel):
     """Request model for OTP verification containing email and OTP code."""
 
     email_address: str = Field(..., description="User's email address", examples=["user@example.com"])
-    otp: str = Field(..., description="6-digit OTP code", examples=["123456"], min_length=6, max_length=6)
+    otp: str = Field(
+        ...,
+        description="6-digit OTP code",
+        examples=["123456"],
+        min_length=6,
+        max_length=6,
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": {"email_address": "sarah.johnson@example.com", "otp": "123456"}})
 
@@ -38,7 +44,7 @@ async def send_otp(request: Request, data: EmailAddress):
     """
     email_address = data.email_address
 
-    user_exists = await data_handler.user_exists(email_address=email_address)
+    user_exists = await data_handler.user_exists(email_address)
     if not user_exists:
         return False
 
@@ -66,7 +72,7 @@ async def verify_otp(
     email_address = data.email_address
     otp = data.otp
 
-    user_exists = await data_handler.user_exists(email_address=email_address)
+    user_exists = await data_handler.user_exists(email_address)
     if not user_exists:
         return False
 

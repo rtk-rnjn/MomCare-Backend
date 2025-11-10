@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Final, TypedDict, cast
+from typing import Final, TypedDict, cast
 
 from jwt import decode, encode
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from pydantic import BaseModel, Field
 from pytz import timezone
 
-if TYPE_CHECKING:
-    from src.models import User
+from src.models.user import UserDict as User
 
 
 class Token(BaseModel):
     sub: str
     email: str
     verified: bool
-    name: str
     iat: int = Field(default_factory=lambda: int(datetime.now(timezone("UTC")).timestamp()))
     exp: int
 
@@ -25,7 +23,6 @@ class TokenDict(TypedDict):
     sub: str
     email: str
     verified: bool
-    name: str
     iat: int
     exp: int
 
@@ -37,10 +34,9 @@ class TokenHandler:
 
     def create_access_token(self, user: User, expire_in: int = 360) -> str:
         payload = Token(
-            sub=user.id,
-            email=user.email_address,
-            verified=user.is_verified,
-            name="%s %s" % (user.first_name, user.last_name),
+            sub=user["id"],  # type: ignore
+            email=user["email_address"],  # type: ignore
+            verified=user["is_verified"],  # type: ignore
             exp=int((datetime.now(timezone("UTC")) + timedelta(seconds=expire_in)).timestamp()),
         )
         token = encode(dict(payload), self.secret, algorithm=self.algorithm)

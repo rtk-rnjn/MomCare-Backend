@@ -3,17 +3,17 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.app import genai_handler, s3_client
-from src.models import Exercise, MyPlan
+from src.models.exercise import ExerciseDict as Exercise
 from src.utils import Token
-from src.utils.google_api_handler import YOGA_SETS, DailyInsight
+from src.utils.google_api_handler import YOGA_SETS
 
 from ..utils import data_handler, get_user_token
 
 router = APIRouter(prefix="/ai", tags=["AI Content"])
 
 
-@router.get("/plan", response_model=MyPlan)
-async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> MyPlan | None:
+@router.get("/plan")
+async def get_plan(request: Request, token: Token = Depends(get_user_token)):
     """
     Generate AI-powered personalized nutrition plan for the user.
 
@@ -27,10 +27,10 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)) -> 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return await genai_handler.generate_plan(user, foods_collection=data_handler.database_handler.foods_collection)
+    return await genai_handler.generate_plan(user, foods_collection=data_handler.foods_collection)
 
 
-@router.get("/exercises", response_model=list[Exercise])
+@router.get("/exercises")
 async def get_exercises(token: Token = Depends(get_user_token)):
     """
     Get personalized exercise recommendations for maternal fitness.
@@ -72,7 +72,7 @@ async def get_exercises(token: Token = Depends(get_user_token)):
     return sendable
 
 
-@router.get("/tips", response_model=DailyInsight | None)
+@router.get("/tips")
 async def get_tips(token: Token = Depends(get_user_token)):
     """
     Get personalized wellness tips and recommendations.
