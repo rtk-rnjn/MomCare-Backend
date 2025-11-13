@@ -5,7 +5,8 @@ import inspect
 import logging
 import pickle
 from functools import wraps
-from typing import Any, Awaitable, Callable, Coroutine, ParamSpec, Protocol, TypeVar, Union, cast
+from typing import (Any, Awaitable, Callable, Coroutine, ParamSpec, Protocol,
+                    TypeVar, Union, cast)
 
 from redis.asyncio import Redis
 

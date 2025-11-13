@@ -14,6 +14,7 @@ class UserDict(TypedDict, total=False):
     first_name: str
     last_name: NotRequired[str | None]
     country_code: NotRequired[str]
+    timezone: NotRequired[str]
 
     country: NotRequired[str]
     phone_number: NotRequired[str]

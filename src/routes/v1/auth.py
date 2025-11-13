@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -100,13 +100,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
 
 
-def _is_valid_payload(payload: dict) -> bool:
-    # TODO: ...
-    return True
-
-
 @router.post("/register")
-async def register_user(request: Request, user: dict):
+async def register_user(user: dict):
     """
     Register a new user account in the MomCare system.
 
@@ -144,7 +139,7 @@ async def register_user(request: Request, user: dict):
 
 
 @router.post("/login")
-async def login_user(request: Request, credentials: ClientRequest) -> TokenResponse:
+async def login_user(credentials: ClientRequest) -> TokenResponse:
     """
     Authenticate user and provide access token.
 
@@ -168,7 +163,7 @@ async def refresh_token(token: Token = Depends(get_user_token)) -> TokenResponse
     Generate a new access token using existing credentials without requiring re-login.
     Useful for maintaining session continuity in client applications.
     """
-    user = await data_handler.get_user_by_id(user_id=token.sub)
+    user = await data_handler.get_user_by_id(token.sub)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -176,7 +171,7 @@ async def refresh_token(token: Token = Depends(get_user_token)) -> TokenResponse
     return TokenResponse(access_token=new_access_token)
 
 
-@router.get("/fetch")
+@router.get("/user")
 async def fetch_user(token: Token = Depends(get_user_token)):
     """
     Retrieve complete user profile information.
@@ -186,14 +181,14 @@ async def fetch_user(token: Token = Depends(get_user_token)):
     """
     user_id = token.sub
 
-    user = await data_handler.get_user_by_id(user_id=user_id)
+    user = await data_handler.get_user_by_id(user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
 
 
-@router.put("/update")
+@router.put("/user")
 async def update_user(payload: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
     """
     Update user profile information.
@@ -201,21 +196,21 @@ async def update_user(payload: dict, token: Token = Depends(get_user_token)) -> 
     Allows modification of user details such as personal info, medical data,
     exercise routines, meal plans, and activity tracking.
     """
-    user = await data_handler.get_user_by_id(user_id=token.sub)
+    user = await data_handler.get_user_by_id(token.sub)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     user = user | payload
 
-    if not _is_valid_payload(user):
-        raise HTTPException(status_code=400, detail="Invalid payload")
+    try:
+        result = await data_handler.update_user(token.sub, payload=user)
 
-    result = await data_handler.users_collection.update_one({"id": token.sub}, {"$set": user})
+        return UpdateResponse(success=result.modified_count > 0, modified_count=result.modified_count, matched_count=result.matched_count)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
-    return UpdateResponse(success=result.modified_count > 0, modified_count=result.modified_count, matched_count=result.matched_count)
 
-
-@router.delete("/delete")
+@router.delete("/user")
 async def delete_user(token: Token = Depends(get_user_token)):
     """
     Delete user account from the MomCare system.

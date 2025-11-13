@@ -98,17 +98,18 @@ class GoogleAPIHandler:
 
         self.image_generator_handler = PixabayImageFetcher()
 
-    async def generate_plan(self, user: User, *, foods_collection: AsyncIOMotorCollection) -> MyPlan | None:
+    async def generate_plan(self, user: User, *, foods_collection: AsyncIOMotorCollection):
         user_data = user
         user_data.pop("plan", None)
+        user_data.pop("_id", None)
 
         plan = await asyncio.to_thread(self._generate_plan, user_data=user_data)
         if not plan:
-            return None
+            raise Exception("Failed to generate plan")
 
         parsed_plan = await self._parse_plan(plan=plan, foods_collection=foods_collection)
         if parsed_plan is None:
-            return None
+            raise Exception("Failed to parse plan")
 
         return parsed_plan
 
@@ -126,32 +127,27 @@ class GoogleAPIHandler:
     def _generate_plan(self, user_data: User) -> PartialMyPlan | None:
         plan_history = None
 
-        try:
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash-001",
-                contents=[
-                    Content(
-                        parts=[
-                            Part.from_text(text=f"User Data: {user_data}"),
-                            Part.from_text(text=f"User Plan History: {plan_history if plan_history else 'No previous plans found.'}"),
-                            Part.from_text(text=f"List of available food items: {FOODS}"),
-                            Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
-                        ]
-                    )
-                ],
-                config=GenerateContentConfig(
-                    system_instruction=DIET_PLAN_PROMPT,
-                    response_mime_type="application/json",
-                    response_schema=PartialMyPlan,
-                ),
-            )
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=[
+                Content(
+                    parts=[
+                        Part.from_text(text=f"User Data: {user_data}"),
+                        Part.from_text(text=f"User Plan History: {plan_history if plan_history else 'No previous plans found.'}"),
+                        Part.from_text(text=f"List of available food items: {FOODS}"),
+                        Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
+                    ]
+                )
+            ],
+            config=GenerateContentConfig(
+                system_instruction=DIET_PLAN_PROMPT,
+                response_mime_type="application/json",
+                response_schema=PartialMyPlan,
+            ),
+        )
 
-            if response:
-                return PartialMyPlan(**json.loads(response.text or "{}"))
-        except Exception:
-            return None
-
-        return None
+        if response:
+            return PartialMyPlan(**json.loads(response.text or "{}"))
 
     async def _parse_plan(self, *, plan: PartialMyPlan | None, foods_collection: AsyncIOMotorCollection) -> MyPlan | None:
         if not plan:

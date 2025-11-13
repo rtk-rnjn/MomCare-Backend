@@ -9,7 +9,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.app import genai_handler, pixelbay_image_fetcher, s3_client
-from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
+from src.static.quotes import (ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES,
+                               STRESSED_QUOTES)
 from src.utils import Finder, Symptom, TrimesterData
 
 from ..utils import data_handler
@@ -24,7 +25,7 @@ finder = Finder()
 router = APIRouter(prefix="/content", tags=["Content Management"])
 VALID_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif"]
 VALID_VIDEO_EXTENSIONS = [".mp4", ".avi", ".mov", ".mp3"]
-VALID_INPUTS = VALID_IMAGE_EXTENSIONS + VALID_VIDEO_EXTENSIONS
+VALID_EXTENSIONS = VALID_IMAGE_EXTENSIONS + VALID_VIDEO_EXTENSIONS
 
 
 class S3Response(BaseModel):
@@ -54,7 +55,7 @@ class S3Response(BaseModel):
 
 async def _search_food(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
     async for food in data_handler.get_foods(
-        food_name=food_name,
+        food_name,
         limit=limit,
         fetch_food_image_uri=genai_handler.fetch_food_image_uri,
     ):
@@ -66,11 +67,11 @@ async def _search_food(request: Request, food_name: str, limit: int = 10) -> Asy
 
 async def _search_food_name(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
     async for food in data_handler.get_foods(
-        food_name=food_name,
+        food_name,
         limit=limit,
         fetch_food_image_uri=genai_handler.fetch_food_image_uri,
     ):
-        yield food.model_dump_json() + "\n"
+        yield f"{food}\n"
 
 
 @router.get("/search", response_class=StreamingResponse)
@@ -81,6 +82,9 @@ async def search_food(request: Request, food_name: str, limit: int = 1):
     Searches the food database for items matching the query and returns
     comprehensive nutritional data including calories, vitamins, and allergen information.
     """
+    if len(food_name) < 3:
+        return StreamingResponse(iter([]), media_type="application/json")
+
     foods = _search_food(request, food_name=food_name, limit=limit)
     return StreamingResponse(foods, media_type="application/json")
 
@@ -93,6 +97,9 @@ async def search_food_name(request: Request, food_name: str, limit: int = 10):
     Fast search for food names and basic nutritional information without
     generating or retrieving food images.
     """
+    if len(food_name) < 3:
+        return StreamingResponse(iter([]), media_type="application/json")
+
     foods = _search_food_name(request, food_name=food_name, limit=limit)
     return StreamingResponse(foods, media_type="application/json")
 
@@ -105,6 +112,9 @@ async def search_food_name_image(request: Request, food_name: str, limit: int = 
     Retrieves or generates appropriate food images for meal planning
     and nutrition tracking visualization.
     """
+    if len(food_name) < 3:
+        raise HTTPException(status_code=400, detail="Food name must be at least 3 characters long")
+
     return await pixelbay_image_fetcher.search_image(food_name=food_name)
 
 
@@ -146,7 +156,7 @@ async def get_file(path: str):
 
     link = await s3_client.get_presigned_url(path)
 
-    if not any(path.endswith(ext) for ext in VALID_INPUTS):
+    if not any(path.endswith(ext) for ext in VALID_EXTENSIONS):
         raise HTTPException(status_code=400, detail="Invalid file type")
 
     if link is None:

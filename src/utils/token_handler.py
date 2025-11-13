@@ -32,7 +32,7 @@ class TokenHandler:
         self.secret: Final[str] = secret
         self.algorithm: Final[str] = algorithm
 
-    def create_access_token(self, user: User, expire_in: int = 360) -> str:
+    def create_access_token(self, user: User, expire_in: int = 60 * 60 * 24) -> str:
         payload = Token(
             sub=user["id"],  # type: ignore
             email=user["email_address"],  # type: ignore

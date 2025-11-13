@@ -48,7 +48,7 @@ async def send_otp(request: Request, data: EmailAddress):
     if not user_exists:
         return False
 
-    otp = await data_handler.generate_otp(email_address=email_address)
+    otp = await data_handler.generate_otp(email_address)
 
     await email_handler.send_otp_mail(
         email_address=email_address,
