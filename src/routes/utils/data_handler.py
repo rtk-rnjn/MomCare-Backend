@@ -130,12 +130,15 @@ class DataHandler:
         image = await self.get_food_image(food_name=food.get("name"), fetch_food_image_uri=fetch_food_image_uri)
         if image:
             food["image_uri"] = image
+        
+        food["_id"] = str(food["_id"])  # type: ignore
         return food
 
     async def get_foods(self, food_name: str, /, *, limit: int = 10, fetch_food_image_uri):
         async for food in self.foods_collection.find({"name": {"$regex": food_name, "$options": "i"}}).limit(limit):
             image_uri = await self.get_food_image(food_name=food.get("name"), fetch_food_image_uri=fetch_food_image_uri)
             food["image_uri"] = image_uri
+            food["_id"] = str(food["_id"])  # type: ignore
             yield food
 
     async def save_myplan(self, plan: MyPlanDict):

@@ -58,10 +58,10 @@ async def _search_food(request: Request, food_name: str, limit: int = 10) -> Asy
         limit=limit,
         fetch_food_image_uri=genai_handler.fetch_food_image_uri,
     ):
-        if food.image_uri is None or food.image_uri == "":
-            food.image_uri = await pixelbay_image_fetcher.search_image(food_name=food.name)
+        if food["image_uri"] is None or food["image_uri"] == "":
+            food["image_uri"] = await pixelbay_image_fetcher.search_image(food_name=food["name"])
 
-        yield food.model_dump_json() + "\n"
+        yield f"{food}\n"
 
 
 async def _search_food_name(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
