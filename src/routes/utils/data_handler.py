@@ -83,12 +83,12 @@ class DataHandler:
 
     async def generate_otp(self, email_address: str, /) -> str:
         otp = str(randint(100000, 999999))
-        key = self._generate_key(self.generate_otp, email_address)
+        key = f"otp:{email_address}"
         await self.redis_client.set(key, otp, ex=300)
         return otp
 
     async def verify_otp(self, email_address: str, otp: str) -> bool:
-        key = self._generate_key(self.verify_otp, email_address)
+        key = f"otp:{email_address}"
 
         stored_otp = await self.redis_client.get(key)
         if stored_otp is None:
