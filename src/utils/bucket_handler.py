@@ -5,6 +5,7 @@ import os
 from typing import TYPE_CHECKING, overload
 
 import boto3
+from botocore.config import Config
 from dotenv import load_dotenv
 
 if TYPE_CHECKING:
@@ -27,13 +28,15 @@ class S3:
         self.bucket_name: str = BUCKET_NAME
         self.region: str = REGION
 
-        self._prefix: str = ""
-
         self.s3_client = boto3.client(
             "s3",
             region_name=REGION,
             aws_access_key_id=AWS_ACCESS_KEY,
             aws_secret_access_key=AWS_SECRET_KEY,
+            config=Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "virtual"},
+            ),
         )
 
     async def get_presigned_url(self, file_name: str) -> str | None:
@@ -77,34 +80,3 @@ class S3:
             return response
         except Exception:
             return {}
-
-    def songs(self) -> Self:
-        self._prefix += "Songs/"
-        return self
-
-    def exercises(self) -> Self:
-        self._prefix += "Exercises/"
-        return self
-
-    def __getattr__(self, key: str):
-        if hasattr(self, key):
-            return getattr(self, key)
-
-        self._prefix += key
-        return self
-
-    def __getitem__(self, path: str) -> Self:
-        self._prefix += path + "/"
-        return self
-
-    @overload
-    async def execute(self) -> list[str]: ...
-
-    @overload
-    async def execute(self) -> str | None: ...
-
-    async def execute(self) -> list[str] | str | None:
-        if self._prefix.endswith("/"):
-            return await self.list_folder(self._prefix) or await self.list_files(self._prefix)
-
-        return await self.get_presigned_url(self._prefix)
