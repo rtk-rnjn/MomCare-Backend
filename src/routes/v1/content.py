@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, Request
@@ -9,8 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.app import genai_handler, pixelbay_image_fetcher, s3_client
-from src.static.quotes import (ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES,
-                               STRESSED_QUOTES)
+from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 from src.utils import Finder, Symptom, TrimesterData
 
 from ..utils import data_handler
@@ -143,7 +142,7 @@ async def search_trimester_data(request: Request, trimester: int):
     return finder.search_trimester(week_number=trimester * 13)  # Assuming each trimester is roughly 13 weeks
 
 
-@router.get("/s3/file/{path:path}", response_model=str)
+@router.get("/s3/file/{path:path}", response_model=S3Response)
 async def get_file(path: str):
     """
     Get secure access link to a file stored in S3.
@@ -162,7 +161,7 @@ async def get_file(path: str):
     if link is None:
         raise HTTPException(status_code=502, detail="Unable to generate link")
 
-    return link
+    return S3Response(link=link, link_expiry_at=datetime.now(timezone.utc) + timedelta(hours=1))
 
 
 @router.get("/s3/files/{path:path}", response_model=list[str])

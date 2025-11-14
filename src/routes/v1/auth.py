@@ -205,7 +205,9 @@ async def update_user(payload: dict, token: Token = Depends(get_user_token)) -> 
     try:
         result = await data_handler.update_user(token.sub, payload=user)
 
-        return UpdateResponse(success=result.modified_count > 0, modified_count=result.modified_count, matched_count=result.matched_count)
+        return UpdateResponse(
+            success=result.modified_count > 0, modified_count=result.modified_count, matched_count=result.matched_count
+        )
     except ValueError as e:
         print(e)
         raise HTTPException(status_code=400, detail=str(e)) from e

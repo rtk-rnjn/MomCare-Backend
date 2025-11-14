@@ -5,8 +5,17 @@ import inspect
 import logging
 import pickle
 from functools import wraps
-from typing import (Any, Awaitable, Callable, Coroutine, ParamSpec, Protocol,
-                    TypeVar, Union, cast)
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    ParamSpec,
+    Protocol,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from redis.asyncio import Redis
 
@@ -41,7 +50,9 @@ async def maybe_coroutine(f: MaybeAwaitableFunc[P, T], *args: P.args, **kwargs: 
         return value
 
 
-def async_method_cache(*, expire: int | None = None, ignore_kwargs: bool = True) -> Callable[[Callable[P, Coroutine[Any, Any, ReturnType_co]]], CacheProtocol[ReturnType_co]]:
+def async_method_cache(
+    *, expire: int | None = None, ignore_kwargs: bool = True
+) -> Callable[[Callable[P, Coroutine[Any, Any, ReturnType_co]]], CacheProtocol[ReturnType_co]]:
     def decorator(func: Callable[P, Coroutine[Any, Any, ReturnType_co]]) -> CacheProtocol[ReturnType_co]:
         redis = Redis(db=CACHE_DB, decode_responses=False, protocol=3)
 
@@ -60,24 +71,43 @@ def async_method_cache(*, expire: int | None = None, ignore_kwargs: bool = True)
 
             key = make_key(args[1:], kwargs)
 
-            logger.debug("Checking cache for func=`%s` args=%s kwargs=%s", func.__name__, args[1:], kwargs if not ignore_kwargs else {})
+            logger.debug(
+                "Checking cache for func=`%s` args=%s kwargs=%s", func.__name__, args[1:], kwargs if not ignore_kwargs else {}
+            )
 
             if fetch_cache:
                 data = await maybe_coroutine(redis.get, key)
                 if isinstance(data, bytes):
                     result = pickle.loads(data)
-                    logger.debug("Cache hit for func=`%s` args=%s kwargs=%s", func.__name__, args[1:], kwargs if not ignore_kwargs else {})
+                    logger.debug(
+                        "Cache hit for func=`%s` args=%s kwargs=%s", func.__name__, args[1:], kwargs if not ignore_kwargs else {}
+                    )
                     return result
             else:
-                logger.warning("Fetch_Cache=False for func=`%s` args=%s kwargs=%s. Bypassing cache.", func.__name__, args[1:], kwargs if not ignore_kwargs else {})
+                logger.warning(
+                    "Fetch_Cache=False for func=`%s` args=%s kwargs=%s. Bypassing cache.",
+                    func.__name__,
+                    args[1:],
+                    kwargs if not ignore_kwargs else {},
+                )
 
-            logger.debug("Cache miss for func=`%s` args=%s kwargs=%s. Executing function.", func.__name__, args[1:], kwargs if not ignore_kwargs else {})
+            logger.debug(
+                "Cache miss for func=`%s` args=%s kwargs=%s. Executing function.",
+                func.__name__,
+                args[1:],
+                kwargs if not ignore_kwargs else {},
+            )
             result = await func(*args, **kwargs)
 
             if cache:
                 await maybe_coroutine(redis.set, key, pickle.dumps(result), expire)
             else:
-                logger.warning("Caching=False for func=`%s` args=%s kwargs=%s. Not caching result.", func.__name__, args[1:], kwargs if not ignore_kwargs else {})
+                logger.warning(
+                    "Caching=False for func=`%s` args=%s kwargs=%s. Not caching result.",
+                    func.__name__,
+                    args[1:],
+                    kwargs if not ignore_kwargs else {},
+                )
 
             return result
 

@@ -245,7 +245,9 @@ class GoogleAPIHandler:
     async def _get_exercises(self, user: User):
         SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant woman do today.\n"
         SYSTEM_INSTRUCTION += "Keep it specific to her current pregnancy week based on the due date. 4-5 Exercises would be enough.\n"
-        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format([YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS])
+        SYSTEM_INSTRUCTION += "Avaiable yoga sets: {}\n".format(
+            [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
+        )
 
         user_data = user
 

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING
 
 import boto3
 from botocore.config import Config
 from dotenv import load_dotenv
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    pass
 
 
 _ = load_dotenv(verbose=True)

@@ -152,7 +152,9 @@ class DataHandler:
         start_of_day = user_arrow.floor("day").timestamp()
         end_of_day = user_arrow.ceil("day").timestamp()
 
-        plan = await self.myplans_collection.find_one({"user_id": user_id, "created_at_timestamp": {"$gte": start_of_day, "$lt": end_of_day}})
+        plan = await self.myplans_collection.find_one(
+            {"user_id": user_id, "created_at_timestamp": {"$gte": start_of_day, "$lt": end_of_day}}
+        )
         return plan
 
     async def save_exercises(self, exercises: list[ExerciseDict]):
@@ -175,7 +177,9 @@ class DataHandler:
         end_of_day = user_arrow.ceil("day").timestamp()
 
         exercises = []
-        async for exercise in self.exercises_collection.find({"user_id": user_id, "assigned_at_timestamp": {"$gte": start_of_day, "$lt": end_of_day}}):
+        async for exercise in self.exercises_collection.find(
+            {"user_id": user_id, "assigned_at_timestamp": {"$gte": start_of_day, "$lt": end_of_day}}
+        ):
             exercises.append(exercise)
         return exercises
 
