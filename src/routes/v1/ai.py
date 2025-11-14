@@ -12,7 +12,7 @@ from src.app import genai_handler, s3_client
 from src.models.exercise import ExerciseDict as Exercise
 from src.models.myplan import MyPlanDict
 from src.utils import Token
-from src.utils.google_api_handler import YOGA_SETS
+from src.utils.google_api_handler import YOGA_SETS, YogaSet
 
 from ..utils import data_handler, get_user_token
 
@@ -67,6 +67,7 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
     plan = MyPlanDict(
+        _id=ObjectId(),
         user_id=user_id,
         breakfast=myplan.get("breakfast", []),
         lunch=myplan.get("lunch", []),
@@ -99,7 +100,7 @@ async def get_exercises(token: Token = Depends(get_user_token)):
         return JSONResponse(content=today_exercises)
 
     data = await genai_handler.get_exercises(user)
-    yoga_sets = data.yoga_sets if data else []
+    yoga_sets: list[YogaSet] = data.yoga_sets if data else []
     if not yoga_sets:
         return []
 
@@ -115,6 +116,7 @@ async def get_exercises(token: Token = Depends(get_user_token)):
             user_id=user_id,
             name=yoga_set.name,
             image_uri=image_uri,
+            exercise_type="Yoga",
             description=yoga_set.description,
             duration=None,
             level=yoga_set.level,

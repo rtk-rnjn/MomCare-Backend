@@ -44,9 +44,10 @@ class DataHandler:
         data = pickle.dumps(raw, protocol=pickle.HIGHEST_PROTOCOL)
         return hashlib.sha256(data).hexdigest()
 
-    def _verify_update_payload(self, payload: dict) -> bool:
+    def _parse_payload(self, payload: dict):
         NOT_ALLOWED_FIELDS = {"id", "email_address", "created_at_timestamp", "is_verified"}
-        return not NOT_ALLOWED_FIELDS.intersection(payload.keys())
+        for field in NOT_ALLOWED_FIELDS:
+            payload.pop(field, None)
 
     async def user_exists(self, email_address: str | None, /) -> bool:
         user = await self.users_collection.find_one({"email_address": email_address})
@@ -67,8 +68,7 @@ class DataHandler:
         return await self.users_collection.insert_one(kwargs)
 
     async def update_user(self, user_id: str, /, payload: dict):
-        if not self._verify_update_payload(payload):
-            raise ValueError("Invalid update payload")
+        self._parse_payload(payload)
 
         result = await self.users_collection.update_one({"id": user_id}, {"$set": payload})
         return result
@@ -78,7 +78,7 @@ class DataHandler:
         return user
 
     async def get_user_by_id(self, user_id: str, /) -> UserDict | None:
-        user = await self.users_collection.find_one({"id": user_id}, {"_id": 0, "password": 0})
+        user = await self.users_collection.find_one({"id": user_id}, {"_id": 0})
         return user
 
     async def generate_otp(self, email_address: str, /) -> str:

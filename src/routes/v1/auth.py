@@ -171,7 +171,7 @@ async def refresh_token(token: Token = Depends(get_user_token)) -> TokenResponse
     return TokenResponse(access_token=new_access_token)
 
 
-@router.get("/user")
+@router.get("/fetch-user")
 async def fetch_user(token: Token = Depends(get_user_token)):
     """
     Retrieve complete user profile information.
@@ -188,7 +188,7 @@ async def fetch_user(token: Token = Depends(get_user_token)):
     return user
 
 
-@router.put("/user")
+@router.post("/update-user")
 async def update_user(payload: dict, token: Token = Depends(get_user_token)) -> UpdateResponse:
     """
     Update user profile information.
@@ -207,10 +207,11 @@ async def update_user(payload: dict, token: Token = Depends(get_user_token)) -> 
 
         return UpdateResponse(success=result.modified_count > 0, modified_count=result.modified_count, matched_count=result.matched_count)
     except ValueError as e:
+        print(e)
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.delete("/user")
+@router.delete("/delete-user")
 async def delete_user(token: Token = Depends(get_user_token)):
     """
     Delete user account from the MomCare system.
