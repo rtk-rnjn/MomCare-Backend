@@ -81,9 +81,6 @@ async def search_food(request: Request, food_name: str, limit: int = 1):
     Searches the food database for items matching the query and returns
     comprehensive nutritional data including calories, vitamins, and allergen information.
     """
-    if len(food_name) < 3:
-        return StreamingResponse(iter([]), media_type="application/json")
-
     foods = _search_food(request, food_name=food_name, limit=limit)
     return StreamingResponse(foods, media_type="application/json")
 
@@ -96,9 +93,6 @@ async def search_food_name(request: Request, food_name: str, limit: int = 10):
     Fast search for food names and basic nutritional information without
     generating or retrieving food images.
     """
-    if len(food_name) < 3:
-        return StreamingResponse(iter([]), media_type="application/json")
-
     foods = _search_food_name(request, food_name=food_name, limit=limit)
     return StreamingResponse(foods, media_type="application/json")
 
@@ -111,9 +105,6 @@ async def search_food_name_image(request: Request, food_name: str, limit: int = 
     Retrieves or generates appropriate food images for meal planning
     and nutrition tracking visualization.
     """
-    if len(food_name) < 3:
-        raise HTTPException(status_code=400, detail="Food name must be at least 3 characters long")
-
     return await pixelbay_image_fetcher.search_image(food_name=food_name)
 
 
