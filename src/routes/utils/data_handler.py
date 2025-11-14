@@ -94,7 +94,7 @@ class DataHandler:
         if stored_otp is None:
             return False
 
-        if stored_otp != otp:
+        if str(stored_otp) != str(otp):
             return False
 
         await self.redis_client.delete(key)
