@@ -14,10 +14,7 @@ from src.utils import S3, GoogleAPIHandler, PixabayImageFetcher, TokenHandler
 
 load_dotenv(verbose=True)
 
-URI = os.getenv("MONGODB_URI")
-
-if URI is None:
-    raise ValueError("MONGODB_URI is not set")
+MONGO_URI = os.environ["MONGODB_URI"]
 
 
 pixelbay_image_fetcher = PixabayImageFetcher()

@@ -13,8 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.app import genai_handler, pixelbay_image_fetcher, s3_client
 from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 from src.utils import Finder, Symptom, TrimesterData
-
-from ..utils import data_handler
+from src.models.song import SongDict
+from src.routes.utils import data_handler
 
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator
@@ -135,8 +135,8 @@ async def search_trimester_data(request: Request, trimester: int):
     return finder.search_trimester(week_number=trimester * 13)  # Assuming each trimester is roughly 13 weeks
 
 
-@router.get("/s3/file/{path:path}", response_model=S3Response)
-async def get_file(path: str):
+@router.get("/s3/file/{path:path}")
+async def get_file(path: str, song: bool = False):
     """
     Get secure access link to a file stored in S3.
 
@@ -154,8 +154,15 @@ async def get_file(path: str):
     if link is None:
         raise HTTPException(status_code=502, detail="Unable to generate link")
 
-    return S3Response(link=link, link_expiry_at=datetime.now(timezone.utc) + timedelta(hours=1))
-
+    if not song:
+        return S3Response(link=link, link_expiry_at=datetime.now(timezone.utc) + timedelta(hours=1))
+    
+    song_data = await data_handler.get_song(song_name_or_path=path)
+    if song_data is None:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    song_data["uri"] = link
+    return song_data
 
 @router.get("/s3/files/{path:path}", response_model=list[str])
 async def get_files(path: str):
@@ -186,26 +193,6 @@ async def get_directories(path: str):
     directories = await s3_client.list_folder(prefix=path)
 
     return directories
-
-
-@router.get("/s3/song/{path:path}")
-async def get_song(path: str):
-    """
-    Get access to wellness audio content with metadata.
-
-    Provides secure access to meditation tracks, relaxing music, and wellness audio
-    designed for maternal mental health support.
-    """
-    if not path.endswith(tuple(VALID_VIDEO_EXTENSIONS)):
-        raise HTTPException(status_code=400, detail="Invalid file type")
-
-    link = await s3_client.get_presigned_url(path)
-
-    if link is None:
-        raise HTTPException(status_code=502, detail="Unable to generate link")
-
-    name = path.split("/")[-1]
-    return await data_handler.get_song(song=name)
 
 
 @router.get("/quotes/{mood}")

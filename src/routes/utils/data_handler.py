@@ -20,7 +20,7 @@ from src.models.user import UserDict
 
 _ = load_dotenv(verbose=True)
 
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+MONGODB_URI = os.environ["MONGODB_URI"]
 
 mongo_client = AsyncIOMotorClient(MONGODB_URI)
 database = mongo_client["MomCare"]
@@ -103,8 +103,10 @@ class DataHandler:
     async def verify_user(self, /, *, email_address: str):
         await self.users_collection.update_one({"email_address": email_address}, {"$set": {"is_verified": True}})
 
-    async def get_song(self, /, *, song: str):
-        data = await self.songs_collection.find_one({"$or": [{"title": song}, {"artist": song}, {"uri": song}]})
+    async def get_song(self, /, *, song_name_or_path: str):
+        data = await self.songs_collection.find_one(
+            {"filepath": {"$regex": song_name_or_path, "$options": "i"}}, {"_id": 0}
+        )
 
         return data
 
