@@ -31,7 +31,7 @@ DATABASE_NUMBER = 10
 class DataHandler:
     def __init__(self):
         self.users_collection: AsyncIOMotorCollection[UserDict] = database["users"]
-        self.songs_collection: AsyncIOMotorCollection[SongDict] = database["songs"]
+        self.songs_collection: AsyncIOMotorCollection[SongDict] = database["misc"]
         self.foods_collection: AsyncIOMotorCollection[FoodItemDict] = database["foods"]
         self.myplans_collection: AsyncIOMotorCollection[MyPlanDict] = database["myplans"]
         self.exercises_collection: AsyncIOMotorCollection[ExerciseDict] = database["exercises"]
@@ -105,9 +105,8 @@ class DataHandler:
 
     async def get_song(self, /, *, song_name_or_path: str):
         data = await self.songs_collection.find_one(
-            {"filepath": {"$regex": song_name_or_path, "$options": "i"}}, {"_id": 0}
+            {"filepath": song_name_or_path}, {"_id": 0}
         )
-
         return data
 
     async def get_key_expiry(self, /, *, key: str) -> int:
