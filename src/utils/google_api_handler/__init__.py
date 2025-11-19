@@ -4,22 +4,19 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
 from google import genai
 from google.genai.types import Content, GenerateContentConfig, Part
 from googleapiclient.discovery import build
+from motor.motor_asyncio import AsyncIOMotorCollection
 from pydantic import BaseModel, Field
 
-from src.models import MyPlan, User
-from src.models.food_item import FoodItem
+from src.models.food_item import FoodItemDict as FoodItem
+from src.models.myplan import MyPlanDict as MyPlan
+from src.models.user import UserDict as User
 
 from ..image_generator_handler import PixabayImageFetcher
-
-if TYPE_CHECKING:
-
-    from ..cache_handler import CacheHandler
 
 _ = load_dotenv(verbose=True)
 
@@ -68,14 +65,14 @@ class YogaSets(BaseModel):
     yoga_sets: list[YogaSet] = []
 
 
-class _TempMyPlan(BaseModel):
+class PartialMyPlan(BaseModel):
     breakfast: list[str] = []
     lunch: list[str] = []
     dinner: list[str] = []
     snacks: list[str] = []
 
 
-class _TempDailyInsight(BaseModel):
+class DailyInsight(BaseModel):
     todays_focus: str
     daily_tip: str
 
@@ -93,111 +90,81 @@ class RootModel(BaseModel):
 
 
 class GoogleAPIHandler:
-    def __init__(self, cache_handler: CacheHandler):
+    def __init__(self):
 
         self.gemini_api_key = GEMINI_API_KEY
         self.client = genai.Client(api_key=self.gemini_api_key)
-        self.cache_handler = cache_handler
         self.search_service = build("customsearch", "v1", developerKey=GOOGLE_SEARCH_KEY)
 
-        self.image_generator_handler = PixabayImageFetcher(cache_handler=cache_handler)
+        self.image_generator_handler = PixabayImageFetcher()
 
-    async def generate_plan(self, user: User, *, force_create: bool = False) -> MyPlan | None:
-
-        plan = await self.cache_handler.get_plan(user_id=user.id)
-        if plan and not force_create:
-
-            return plan
-
-        user_data = user.model_dump(mode="json")
+    async def generate_plan(self, user: User, *, foods_collection: AsyncIOMotorCollection):
+        user_data = user
         user_data.pop("plan", None)
+        user_data.pop("_id", None)
 
         plan = await asyncio.to_thread(self._generate_plan, user_data=user_data)
         if not plan:
+            raise Exception("Failed to generate plan")
 
-            return None
-
-        parsed_plan = await self._parse_plan(plan=plan)
-        if not parsed_plan:
-
-            return None
-
-        await self.cache_handler.set_plan(user_id=user.id, plan=parsed_plan)
+        parsed_plan = await self._parse_plan(plan=plan, foods_collection=foods_collection)
+        if parsed_plan is None:
+            raise Exception("Failed to parse plan")
 
         return parsed_plan
 
     async def generate_tips(self, user: User):
-
-        tips = await self.cache_handler.get_tips(user_id=user.id)
-        if tips:
-            return tips
-
-        user_data = user.model_dump(mode="json")
+        user_data = user
         user_data.pop("plan", None)
 
         tips = await self._generate_tips(user=user)
-        if not tips:
+        if tips is None:
 
             return None
 
         return tips
 
-    def _generate_plan(self, user_data: dict) -> _TempMyPlan | None:
-        history = user_data.pop("history", None)
-        user_data.pop("mood_history", None)
-        user_data.pop("exercises", None)
-        plan_history = []
-        if history:
-            for item in history:
-                if "plan" in item:
-                    plan_history.append(item["plan"])
+    def _generate_plan(self, user_data: User) -> PartialMyPlan | None:
+        plan_history = None
 
-        plan_history = plan_history[:7]
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=[
+                Content(
+                    parts=[
+                        Part.from_text(text=f"User Data: {user_data}"),
+                        Part.from_text(text=f"User Plan History: {plan_history if plan_history else 'No previous plans found.'}"),
+                        Part.from_text(text=f"List of available food items: {FOODS}"),
+                        Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
+                    ]
+                )
+            ],
+            config=GenerateContentConfig(
+                system_instruction=DIET_PLAN_PROMPT,
+                response_mime_type="application/json",
+                response_schema=PartialMyPlan,
+            ),
+        )
 
-        try:
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash-001",
-                contents=[
-                    Content(
-                        parts=[
-                            Part.from_text(text=f"User Data: {user_data}"),
-                            Part.from_text(text=f"User Plan History: {plan_history if plan_history else 'No previous plans found.'}"),
-                            Part.from_text(text=f"List of available food items: {FOODS}"),
-                            Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
-                        ]
-                    )
-                ],
-                config=GenerateContentConfig(
-                    system_instruction=DIET_PLAN_PROMPT,
-                    response_mime_type="application/json",
-                    response_schema=_TempMyPlan,
-                ),
-            )
+        if response:
+            return PartialMyPlan(**json.loads(response.text or "{}"))
 
-            if response:
-                return _TempMyPlan(**json.loads(response.text or "{}"))
-        except Exception:
-            return None
-
-        return None
-
-    async def _parse_plan(self, plan: _TempMyPlan | None):
+    async def _parse_plan(self, *, plan: PartialMyPlan | None, foods_collection: AsyncIOMotorCollection) -> MyPlan | None:
         if not plan:
-
             return None
 
-        async def fetch_meals(meals):
+        async def fetch_meals(meals: list[str]) -> list[FoodItem]:
             if not meals:
                 return []
 
             foods = []
             for meal in meals:
-                food = await self.cache_handler.foods_collection.find_one({"name": meal})
-                if food:
-                    _food = FoodItem(**food)
-                    _food.image_uri = await self._generate_food_image_uri(_food.name)
-                    _food.consumed = False
-                    foods.append(_food)
+                food_data = await foods_collection.find_one({"name": meal})
+                if food_data:
+                    food = FoodItem(**food_data)
+                    food["image_uri"] = await self.fetch_food_image_uri(food.get("name"))
+                    food["consumed"] = False
+                    foods.append(food)
 
             return foods
 
@@ -208,7 +175,10 @@ class GoogleAPIHandler:
             snacks=await fetch_meals(plan.snacks),
         )
 
-    async def _generate_food_image_uri(self, food_name: str) -> str:
+    async def fetch_food_image_uri(self, food_name: str | None) -> str:
+        if food_name is None:
+            return ""
+
         image = await self._fetch_food_image(food_name)
         if image:
             return image
@@ -216,11 +186,6 @@ class GoogleAPIHandler:
         return ""
 
     async def _fetch_food_image(self, food_name: str) -> str | None:
-        cached_image = await self.cache_handler.get_food_image(food_name=food_name)
-        if cached_image:
-
-            return cached_image
-
         try:
             cse = await asyncio.to_thread(self.search_service.cse)
             prepare_list = await asyncio.to_thread(
@@ -234,8 +199,6 @@ class GoogleAPIHandler:
 
             root_response = RootModel(**search_response)
             image_link = root_response.items[0].image.thumbnail_link
-            await self.cache_handler.set_food_image(food_name=food_name, image_link=image_link)
-
             return image_link
 
         except Exception:
@@ -251,11 +214,7 @@ class GoogleAPIHandler:
         SYSTEM_INSTRUCTION += "Keep wording short, like a daily notification (under 20 words).\n"
         SYSTEM_INSTRUCTION += "Avoid general advice; make it specific to pregnancy week progress.\n"
 
-        user_data = user.model_dump(mode="json")
-
-        user_data.pop("history", None)
-        user_data.pop("plan", None)
-        user_data.pop("mood_history", None)
+        user_data = user
 
         try:
             response = self.client.models.generate_content(
@@ -271,13 +230,12 @@ class GoogleAPIHandler:
                 config=GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTION,
                     response_mime_type="application/json",
-                    response_schema=_TempDailyInsight,
+                    response_schema=DailyInsight,
                 ),
             )
 
             if response:
-                tips = _TempDailyInsight(**json.loads(response.text or "{}"))
-                await self.cache_handler.set_tips(user_id=user.id, tips=tips)
+                tips = DailyInsight(**json.loads(response.text or "{}"))
                 return tips
 
         except Exception:
@@ -291,12 +249,7 @@ class GoogleAPIHandler:
             [YogaSet(**yoga_set).model_dump(mode="json") for yoga_set in YOGA_SETS]
         )
 
-        user_data = user.model_dump(mode="json")
-
-        user_data.pop("history", None)
-        user_data.pop("plan", None)
-        user_data.pop("mood_history", None)
-        user_data.pop("exercises", None)
+        user_data = user
 
         try:
             response = self.client.models.generate_content(
@@ -318,18 +271,12 @@ class GoogleAPIHandler:
 
             if response:
                 exercise = YogaSets(**json.loads(response.text or "{}"))
-                await self.cache_handler.set_exercise(user_id=user.id, exercise=exercise)
                 return exercise
 
         except Exception:
             return None
 
     async def get_exercises(self, user: User):
-
-        exercise = await self.cache_handler.get_exercises(user_id=user.id)
-        if exercise:
-            return exercise
-
         exercise = await self._get_exercises(user=user)
         if not exercise:
             return None

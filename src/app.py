@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
-from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -10,35 +9,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from motor.motor_asyncio import AsyncIOMotorClient
-from redis.asyncio import Redis
 
-from src.utils import CacheHandler, GoogleAPIHandler, TokenHandler
+from src.utils import S3, GoogleAPIHandler, PixabayImageFetcher, TokenHandler
 
 load_dotenv(verbose=True)
 
-URI = os.getenv("MONGODB_URI")
+MONGO_URI = os.environ["MONGODB_URI"]
 
-if URI is None:
-    raise ValueError("MONGODB_URI is not set")
 
-mongo_client = AsyncIOMotorClient(URI, tz_aware=True, document_class=dict[str, Any])
-database = mongo_client["MomCare"]
-redis_client = Redis(decode_responses=True)
-
-cache_handler = CacheHandler(
-    mongo_client=mongo_client,
-    redis_client=redis_client,
-)
-
-genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
+pixelbay_image_fetcher = PixabayImageFetcher()
+genai_handler = GoogleAPIHandler()
+s3_client = S3()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    genai_handler = GoogleAPIHandler(cache_handler=cache_handler)
-    await cache_handler.on_startup(genai_handler)
-
     if hasattr(app.state, "sqlite_handler"):
         app.state.sqlite_handler.connect("logs.db")
 
@@ -48,13 +33,15 @@ async def lifespan(app: FastAPI):
         if hasattr(app.state, "sqlite_handler"):
             app.state.sqlite_handler.shutdown()
 
-    await cache_handler.on_shutdown()
-
 
 app = FastAPI(
     title="MomCare API",
     version="1.1.0",
-    contact={"name": "Team 05 - Vision", "url": "https://github.com/rtk-rnjn/MomCare", "email": "ritik0ranjan@gmail.com"},
+    contact={
+        "name": "Team 05 - Vision",
+        "url": "https://github.com/rtk-rnjn/MomCare",
+        "email": "ritik0ranjan@gmail.com",
+    },
     license_info={
         "name": "GNU General Public License v2.0",
         "url": "https://opensource.org/licenses/GPL-2.0",
@@ -69,8 +56,16 @@ app = FastAPI(
             "description": "User registration, login, and profile management operations. Handle user accounts, authentication tokens, and personal information updates.",  # noqa: E501
         },
         {
+            "name": "Update Management",
+            "description": "Operations for updating user medical data, preferences, and account settings. Manage user-specific information and configurations.",  # noqa: E501
+        },
+        {
+            "name": "AI Content",
+            "description": "AI-generated content and recommendations for maternal health, including personalized meal plans, exercise routines, and wellness tips.",  # noqa: E501
+        },
+        {
             "name": "Content Management",
-            "description": "Access to nutrition plans, exercise routines, food search, wellness tips, and media content. Core functionality for maternal health and fitness.",  # noqa: E501
+            "description": "Access to media content, including images, videos, and articles related to maternal health and wellness.",
         },
         {
             "name": "OTP Authentication",
@@ -101,4 +96,6 @@ templates = Jinja2Templates(directory="src/templates")
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 
-from .routes import *  # noqa: E402, F401, F403
+from .routes import v1_router as v1_router  # noqa: E402
+
+app.include_router(v1_router)
