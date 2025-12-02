@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Health - MomCare API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+
+        .status-healthy {
+            background: #27ae60;
+            color: white;
+        }
+
+        .status-degraded {
+            background: #e67e22;
+            color: white;
+        }
+
+        .status-error {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .db-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .db-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .db-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .stat-item h4 {
+            color: #7f8c8d;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .stat-item .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .collections-table {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 20px;
+        }
+
+        .refresh-btn:hover {
+            background: #2980b9;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #e74c3c;
+            margin: 15px 0;
+        }
+
+        .db-icon {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>
+            🗄️ Database Health Monitor
+            <span class="status-badge status-{{ stats.get('overall_status', 'error') }}">
+                {{ stats.get('overall_status', 'unknown').upper() }}
+            </span>
+        </h1>
+
+        <div class="db-grid">
+            <!-- MongoDB Section -->
+            <div class="db-section">
+                <h2>
+                    <span><span class="db-icon">🍃</span>MongoDB</span>
+                    <span class="status-badge status-{{ stats.get('mongodb', {}).get('status', 'error') }}">
+                        {{ stats.get('mongodb', {}).get('status', 'unknown').upper() }}
+                    </span>
+                </h2>
+
+                {% if stats.get('mongodb', {}).get('status') == 'error' %}
+                <div class="error-message">
+                    <strong>Error:</strong> {{ stats.get('mongodb', {}).get('error', 'Unknown error') }}
+                </div>
+                {% else %}
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <h4>Version</h4>
+                        <div class="value">{{ stats.get('mongodb', {}).get('version', 'N/A') }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Uptime</h4>
+                        <div class="value">{{ "%.0f"|format(stats.get('mongodb', {}).get('uptime_seconds', 0) / 3600) }}h</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Connections</h4>
+                        <div class="value">{{ stats.get('mongodb', {}).get('connections', {}).get('current', 0) }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Data Size</h4>
+                        <div class="value">{{ stats.get('mongodb', {}).get('storage', {}).get('data_size_mb', 0) }} MB</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Storage Size</h4>
+                        <div class="value">{{ stats.get('mongodb', {}).get('storage', {}).get('storage_size_mb', 0) }} MB</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Index Size</h4>
+                        <div class="value">{{ stats.get('mongodb', {}).get('storage', {}).get('index_size_mb', 0) }} MB</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Collections</h4>
+                        <div class="value">{{ stats.get('mongodb', {}).get('storage', {}).get('total_collections', 0) }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Indexes</h4>
+                        <div class="value">{{ stats.get('mongodb', {}).get('storage', {}).get('total_indexes', 0) }}</div>
+                    </div>
+                </div>
+
+                <div class="collections-table">
+                    <h3>Collections & Document Counts</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Collection Name</th>
+                                <th>Document Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for collection, count in stats.get('mongodb', {}).get('collections', {}).items() %}
+                            <tr>
+                                <td>{{ collection }}</td>
+                                <td>{{ count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Redis Section -->
+            <div class="db-section">
+                <h2>
+                    <span><span class="db-icon">⚡</span>Redis</span>
+                    <span class="status-badge status-{{ stats.get('redis', {}).get('status', 'error') }}">
+                        {{ stats.get('redis', {}).get('status', 'unknown').upper() }}
+                    </span>
+                </h2>
+
+                {% if stats.get('redis', {}).get('status') == 'error' %}
+                <div class="error-message">
+                    <strong>Error:</strong> {{ stats.get('redis', {}).get('error', 'Unknown error') }}
+                </div>
+                {% else %}
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <h4>Version</h4>
+                        <div class="value">{{ stats.get('redis', {}).get('version', 'N/A') }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Uptime</h4>
+                        <div class="value">{{ "%.0f"|format(stats.get('redis', {}).get('uptime_seconds', 0) / 3600) }}h</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Connected Clients</h4>
+                        <div class="value">{{ stats.get('redis', {}).get('connected_clients', 0) }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Total Keys</h4>
+                        <div class="value">{{ stats.get('redis', {}).get('keys', {}).get('total_keys', 0) }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Used Memory</h4>
+                        <div class="value">{{ stats.get('redis', {}).get('memory', {}).get('used_memory_mb', 0) }} MB</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Peak Memory</h4>
+                        <div class="value">{{ stats.get('redis', {}).get('memory', {}).get('used_memory_peak_mb', 0) }} MB</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Hit Rate</h4>
+                        <div class="value">{{ stats.get('redis', {}).get('stats', {}).get('hit_rate', 0) }}%</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Commands Processed</h4>
+                        <div class="value">{{ "{:,}".format(stats.get('redis', {}).get('stats', {}).get('total_commands_processed', 0)) }}</div>
+                    </div>
+                </div>
+
+                <div class="collections-table">
+                    <h3>Performance Metrics</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Keyspace Hits</td>
+                                <td>{{ "{:,}".format(stats.get('redis', {}).get('stats', {}).get('keyspace_hits', 0)) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Keyspace Misses</td>
+                                <td>{{ "{:,}".format(stats.get('redis', {}).get('stats', {}).get('keyspace_misses', 0)) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Total Connections</td>
+                                <td>{{ "{:,}".format(stats.get('redis', {}).get('stats', {}).get('total_connections_received', 0)) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Keys with Expiry</td>
+                                <td>{{ stats.get('redis', {}).get('keys', {}).get('expires', 0) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Health Status</button>
+    </div>
+</body>
+
+</html>

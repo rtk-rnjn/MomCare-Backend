@@ -5,6 +5,7 @@ from .v1 import (
     auth_router,
     content_router,
     dashboard_router,
+    health_router,
     meta_router,
     otp_router,
 )
@@ -17,3 +18,4 @@ v1_router.include_router(content_router)
 v1_router.include_router(meta_router)
 v1_router.include_router(ai_router)
 v1_router.include_router(dashboard_router)
+v1_router.include_router(health_router)

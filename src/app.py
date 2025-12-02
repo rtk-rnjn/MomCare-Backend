@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 from src.middleware.monitoring import MonitoringMiddleware
 from src.utils import (
     S3,
+    DatabaseMonitor,
     GoogleAPIHandler,
     MonitoringHandler,
     PixabayImageFetcher,
@@ -34,6 +35,11 @@ monitoring_handler = MonitoringHandler()
 async def lifespan(app: FastAPI):
     app.state.monitoring_handler = monitoring_handler
     app.state.monitoring_handler.connect("monitoring.db")
+
+    # Initialize database monitor
+    from src.routes.utils.data_handler import data_handler, mongo_client
+
+    app.state.database_monitor = DatabaseMonitor(mongo_client=mongo_client, redis_client=data_handler.redis_client)
 
     try:
         yield
