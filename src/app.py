@@ -10,7 +10,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from src.utils import S3, GoogleAPIHandler, PixabayImageFetcher, TokenHandler
+from src.utils import S3, GoogleAPIHandler, MonitoringHandler, PixabayImageFetcher, TokenHandler
 
 load_dotenv(verbose=True)
 
@@ -20,18 +20,19 @@ MONGO_URI = os.environ["MONGODB_URI"]
 pixelbay_image_fetcher = PixabayImageFetcher()
 genai_handler = GoogleAPIHandler()
 s3_client = S3()
+monitoring_handler = MonitoringHandler()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if hasattr(app.state, "sqlite_handler"):
-        app.state.sqlite_handler.connect("logs.db")
+    app.state.monitoring_handler = monitoring_handler
+    app.state.monitoring_handler.connect("monitoring.db")
 
     try:
         yield
     finally:
-        if hasattr(app.state, "sqlite_handler"):
-            app.state.sqlite_handler.shutdown()
+        if hasattr(app.state, "monitoring_handler"):
+            app.state.monitoring_handler.shutdown()
 
 
 app = FastAPI(
@@ -91,8 +92,12 @@ app.add_middleware(
     allowed_hosts=["*"],
 )
 
+from src.middleware.monitoring import MonitoringMiddleware
+app.add_middleware(MonitoringMiddleware)
+
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
 templates = Jinja2Templates(directory="src/templates")
+app.state.templates = templates
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 
