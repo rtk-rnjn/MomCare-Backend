@@ -10,7 +10,7 @@ router = APIRouter(prefix="/dashboard", tags=["System & Meta"])
 async def dashboard(request: Request):
     """
     API monitoring dashboard showing request statistics and system health.
-    
+
     Displays real-time metrics including request counts, response times,
     error rates, and endpoint usage statistics.
     """
@@ -18,8 +18,5 @@ async def dashboard(request: Request):
     if hasattr(request.app.state, "monitoring_handler"):
         monitoring = request.app.state.monitoring_handler
         stats = monitoring.get_stats(hours=24)
-    
-    return request.app.state.templates.TemplateResponse(
-        "dashboard.html",
-        {"request": request, "stats": stats}
-    )
+
+    return request.app.state.templates.TemplateResponse("dashboard.html", {"request": request, "stats": stats})

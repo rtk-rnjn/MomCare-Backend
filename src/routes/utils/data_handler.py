@@ -104,9 +104,7 @@ class DataHandler:
         await self.users_collection.update_one({"email_address": email_address}, {"$set": {"is_verified": True}})
 
     async def get_song(self, /, *, song_name_or_path: str):
-        data = await self.songs_collection.find_one(
-            {"filepath": song_name_or_path}, {"_id": 0}
-        )
+        data = await self.songs_collection.find_one({"filepath": song_name_or_path}, {"_id": 0})
         return data
 
     async def get_key_expiry(self, /, *, key: str) -> int:
@@ -131,7 +129,7 @@ class DataHandler:
         image = await self.get_food_image(food_name=food.get("name"), fetch_food_image_uri=fetch_food_image_uri)
         if image:
             food["image_uri"] = image
-        
+
         food["_id"] = str(food["_id"])  # type: ignore
         return food
 
