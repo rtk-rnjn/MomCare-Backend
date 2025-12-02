@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import random
 import json
-
+import random
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
@@ -11,10 +10,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.app import genai_handler, pixelbay_image_fetcher, s3_client
+from src.routes.utils import data_handler
 from src.static.quotes import ANGRY_QUOTES, HAPPY_QUOTES, SAD_QUOTES, STRESSED_QUOTES
 from src.utils import Finder, Symptom, TrimesterData
-from src.models.song import SongDict
-from src.routes.utils import data_handler
 
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator
@@ -156,13 +154,14 @@ async def get_file(path: str, song: bool = False):
 
     if not song:
         return S3Response(link=link, link_expiry_at=datetime.now(timezone.utc) + timedelta(hours=1))
-    
+
     song_data = await data_handler.get_song(song_name_or_path=path)
     if song_data is None:
         raise HTTPException(status_code=404, detail="Song not found")
-    
+
     song_data["uri"] = link
     return song_data
+
 
 @router.get("/s3/files/{path:path}", response_model=list[str])
 async def get_files(path: str):

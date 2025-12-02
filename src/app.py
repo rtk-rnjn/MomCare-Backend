@@ -10,7 +10,14 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from src.utils import S3, GoogleAPIHandler, MonitoringHandler, PixabayImageFetcher, TokenHandler
+from src.middleware.monitoring import MonitoringMiddleware
+from src.utils import (
+    S3,
+    GoogleAPIHandler,
+    MonitoringHandler,
+    PixabayImageFetcher,
+    TokenHandler,
+)
 
 load_dotenv(verbose=True)
 
@@ -92,7 +99,7 @@ app.add_middleware(
     allowed_hosts=["*"],
 )
 
-from src.middleware.monitoring import MonitoringMiddleware
+
 app.add_middleware(MonitoringMiddleware)
 
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
