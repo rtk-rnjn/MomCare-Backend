@@ -16,5 +16,5 @@ test.py
 *.rdb
 .DS_Store
 logs.*
-
+*.db
 bucket/

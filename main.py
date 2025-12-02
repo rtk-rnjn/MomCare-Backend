@@ -6,7 +6,6 @@ import os
 
 from rich.logging import RichHandler
 
-from sqlite_logger import _SQLiteLoggingHandler
 from src import app
 
 if os.name == "nt":
@@ -24,18 +23,13 @@ PORT = int(os.getenv("PORT", 8000))
 DEVELOPMENT = os.getenv("DEVELOPMENT", "True").lower() == "true"
 
 
-sqlite_handler = _SQLiteLoggingHandler()
-
-logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler(), sqlite_handler])
+logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler()])
 
 LOGGING_CONFIG: dict[str, object] = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {"custom": {"()": RichHandler}},
 }
-
-app.state.sqlite_handler = sqlite_handler
-
 
 if __name__ == "__main__":
     import uvicorn
