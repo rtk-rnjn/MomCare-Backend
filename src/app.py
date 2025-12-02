@@ -50,9 +50,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="MomCare API",
-    version="1.1.0",
+    version="1.2.0",
     contact={
-        "name": "Team 05 - Vision",
+        "name": "Vision",
         "url": "https://github.com/rtk-rnjn/MomCare",
         "email": "ritik0ranjan@gmail.com",
     },
