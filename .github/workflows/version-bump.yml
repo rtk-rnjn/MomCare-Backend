@@ -1,0 +1,27 @@
+name: Auto-Version Bump
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Bump version
+        run: |
+          current_version=$(cat version.txt)
+          IFS='.' read -r major minor patch <<< "$current_version"
+          new_patch=$((patch + 1))
+          new_version="$major.$minor.$new_patch"
+          echo "$new_version" > version.txt
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git commit -am "Bump version to $new_version"
+          git tag "v$new_version"
+          git push origin main --tags
