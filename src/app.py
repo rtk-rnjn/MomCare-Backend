@@ -47,6 +47,7 @@ async def lifespan(app: FastAPI):
         if hasattr(app.state, "monitoring_handler"):
             app.state.monitoring_handler.shutdown()
 
+
 with open("version.txt", "r") as vf:
     version = vf.read().strip()
 

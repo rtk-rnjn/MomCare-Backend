@@ -14,4 +14,6 @@ async def internal_index_page(request: Request):
     Central hub for accessing API monitoring, database health, Redis CLI,
     and documentation interfaces for the development team.
     """
-    return request.app.state.templates.TemplateResponse("index.html", {"request": request, "version": app.version, "app": app})
+    return request.app.state.templates.TemplateResponse(
+        "internal_index.html", {"request": request, "version": app.version, "app": app}
+    )

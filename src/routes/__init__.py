@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from .frontend import *  # noqa
 from .internal import *  # noqa
 from .v1 import (
     ai_router,
