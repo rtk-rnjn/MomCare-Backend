@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import Request
 from fastapi.responses import HTMLResponse
 
-router = APIRouter(prefix="/dashboard", tags=["System & Meta"])
+from src.app import app
 
 
-@router.get("", response_class=HTMLResponse, include_in_schema=False)
-async def dashboard(request: Request):
+@app.get("/_/dashboard", response_class=HTMLResponse, include_in_schema=False)
+async def internal_dashboard(request: Request):
     """
     API monitoring dashboard showing request statistics and system health.
 
@@ -19,4 +19,4 @@ async def dashboard(request: Request):
         monitoring = request.app.state.monitoring_handler
         stats = monitoring.get_stats(hours=24)
 
-    return request.app.state.templates.TemplateResponse("dashboard.html", {"request": request, "stats": stats})
+    return request.app.state.templates.TemplateResponse("dashboard.html", {"request": request, "stats": stats, "app": app})

@@ -379,7 +379,7 @@
         <form id="authForm">
             <div class="form-group">
                 <label for="password">Secret Password</label>
-                <input type="password" id="password" placeholder="Enter super secret password" required autocomplete="off">
+                <input type="password" id="password" placeholder="Enter password" required autocomplete="off">
             </div>
             <button type="submit" class="btn-submit">
                 🚀 Access Redis CLI
@@ -444,7 +444,7 @@
             submitBtn.disabled = true;
 
             try {
-                const response = await fetch('/v1/health/database/redis-cli/authenticate', {
+                const response = await fetch('{{ app.url_path_for("authenticate_redis_cli") }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
@@ -479,7 +479,7 @@
             if (savedToken) {
                 authToken = savedToken;
                 try {
-                    const response = await fetch('/v1/health/database/redis-cli/verify', {
+                    const response = await fetch('{{ app.url_path_for("verify_redis_cli_session") }}', {
                         headers: { 'X-Redis-CLI-Token': authToken }
                     });
                     if (response.ok) {
@@ -497,7 +497,7 @@
 
         async function loadAllowedCommands() {
             try {
-                const response = await fetch('/v1/health/database/redis-cli/allowed-commands', {
+                const response = await fetch('{{ app.url_path_for("get_allowed_redis_commands") }}', {
                     headers: { 'X-Redis-CLI-Token': authToken }
                 });
                 const commands = await response.json();
@@ -528,7 +528,7 @@
             executeBtn.disabled = true;
 
             try {
-                const response = await fetch('/v1/health/database/redis-cli/execute', {
+                const response = await fetch('{{ app.url_path_for("execute_redis_command") }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

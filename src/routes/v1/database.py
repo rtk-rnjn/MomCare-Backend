@@ -6,7 +6,7 @@ import time
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.utils.redis_cli_executor import RedisCliExecutor
@@ -22,6 +22,7 @@ class RedisCommand(BaseModel):
 
 class AuthRequest(BaseModel):
     password: str
+
 
 _active_tokens: dict[str, float] = {}
 
@@ -45,22 +46,6 @@ def _verify_token(token: str | None) -> bool:
     return token in _active_tokens
 
 
-@router.get("/database", response_class=HTMLResponse, include_in_schema=False)
-async def database_health_page(request: Request):
-    """
-    Database health monitoring dashboard showing MongoDB and Redis statistics.
-
-    Displays real-time health metrics including connection status, storage usage,
-    document counts, memory usage, and performance statistics.
-    """
-    stats = {}
-    if hasattr(request.app.state, "database_monitor"):
-        monitor = request.app.state.database_monitor
-        stats = await monitor.get_all_stats()
-
-    return request.app.state.templates.TemplateResponse("database_health.html", {"request": request, "stats": stats})
-
-
 @router.get("/database/json", response_class=JSONResponse)
 async def database_health_json(request: Request):
     """
@@ -74,17 +59,6 @@ async def database_health_json(request: Request):
         return await monitor.get_all_stats()
 
     return {"error": "Database monitor not available"}
-
-
-@router.get("/database/redis-cli", response_class=HTMLResponse, include_in_schema=False)
-async def redis_cli_interface(request: Request):
-    """
-    🔒 Super Secret Secured Redis CLI Web Interface.
-
-    Requires password authentication to access. Provides a beautiful web-based
-    terminal for executing Redis commands securely with session management.
-    """
-    return request.app.state.templates.TemplateResponse("redis_cli.html", {"request": request})
 
 
 @router.post("/database/redis-cli/authenticate", response_class=JSONResponse)

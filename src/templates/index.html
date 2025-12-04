@@ -141,7 +141,7 @@
         </div>
 
         <div class="cards-grid">
-            <a href="/v1/dashboard" class="card">
+            <a href="{{ app.url_path_for('internal_dashboard') }}" class="card">
                 <span class="card-icon">📊</span>
                 <h2 class="card-title">API Monitoring Dashboard</h2>
                 <p class="card-description">
@@ -151,7 +151,7 @@
                 <span class="card-link">View Dashboard</span>
             </a>
 
-            <a href="/v1/health/database" class="card">
+            <a href="{{ app.url_path_for('database_health_page') }}" class="card">
                 <span class="card-icon">🗄️</span>
                 <h2 class="card-title">Database Health Monitor</h2>
                 <p class="card-description">
@@ -161,7 +161,7 @@
                 <span class="card-link">View Health Status</span>
             </a>
 
-            <a href="/v1/health/database/redis-cli" class="card">
+            <a href="{{ app.url_path_for('redis_cli_interface') }}" class="card">
                 <span class="card-icon">⚡</span>
                 <h2 class="card-title">Redis CLI Interface <span class="badge badge-warning">Secured</span></h2>
                 <p class="card-description">
@@ -171,7 +171,7 @@
                 <span class="card-link">Access Redis CLI</span>
             </a>
 
-            <a href="/docs" class="card">
+            <a href="{{ app.docs_url }}" class="card">
                 <span class="card-icon">📚</span>
                 <h2 class="card-title">API Documentation</h2>
                 <p class="card-description">
@@ -181,7 +181,7 @@
                 <span class="card-link">View Documentation</span>
             </a>
 
-            <a href="/redoc" class="card">
+            <a href="{{ app.redoc_url }}" class="card">
                 <span class="card-icon">📖</span>
                 <h2 class="card-title">ReDoc Documentation</h2>
                 <p class="card-description">
@@ -203,7 +203,7 @@
         </div>
 
         <div class="footer">
-            <p>MomCare API v{{ version }} | Team 05 - Vision</p>
+            <p>MomCare API v{{ app.version }} | {{ app.contact['name'] }}</p>
             <p style="margin-top: 10px; font-size: 0.9em;">
                 🔒 Internal tools are for authorized team members only
             </p>
