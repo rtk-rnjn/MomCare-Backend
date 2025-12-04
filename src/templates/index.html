@@ -191,14 +191,13 @@
                 <span class="card-link">View ReDoc</span>
             </a>
 
-            <a href="/v1/health/database/json" class="card">
-                <span class="card-icon">🔍</span>
-                <h2 class="card-title">Database Health JSON <span class="badge">API</span></h2>
+            <a href="{{ app.url_path_for('mongo_cli_interface') }}" class="card">
+                <span class="card-icon">🍃</span>
+                <h2 class="card-title">MongoDB CLI <span class="badge">Secured</span></h2>
                 <p class="card-description">
-                    Get database health statistics in JSON format for integration with
-                    external monitoring tools and custom dashboards.
+                    Execute MongoDB commands securely through web interface with read-only access.
                 </p>
-                <span class="card-link">View JSON Data</span>
+                <span class="card-link">Access MongoDB CLI</span>
             </a>
         </div>
 

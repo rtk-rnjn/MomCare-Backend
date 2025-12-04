@@ -4,9 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔒 Redis CLI - Secured Access</title>
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <title>🔒 MongoDB CLI - Secured Access</title>
     <style>
         * {
             margin: 0;
@@ -16,7 +14,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -53,7 +51,7 @@
         }
 
         .auth-header h1 {
-            color: #667eea;
+            color: #11998e;
             font-size: 32px;
             margin-bottom: 10px;
         }
@@ -103,14 +101,14 @@
 
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #11998e;
+            box-shadow: 0 0 0 3px rgba(17, 153, 142, 0.1);
         }
 
         .btn-submit {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -122,7 +120,7 @@
 
         .btn-submit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
         }
 
         .btn-submit:active {
@@ -168,7 +166,7 @@
         }
 
         .cli-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
             padding: 25px;
             border-radius: 15px;
             margin-bottom: 25px;
@@ -194,7 +192,7 @@
 
         .btn-logout:hover {
             background: white;
-            color: #667eea;
+            color: #11998e;
         }
 
         .stats-grid {
@@ -205,15 +203,15 @@
         }
 
         .stat-card {
-            background: rgba(102, 126, 234, 0.1);
-            border: 2px solid rgba(102, 126, 234, 0.3);
+            background: rgba(17, 153, 142, 0.1);
+            border: 2px solid rgba(17, 153, 142, 0.3);
             border-radius: 12px;
             padding: 20px;
             text-align: center;
         }
 
         .stat-card h3 {
-            color: #667eea;
+            color: #11998e;
             font-size: 14px;
             margin-bottom: 8px;
         }
@@ -226,7 +224,7 @@
 
         .terminal {
             background: #1e1e1e;
-            border: 2px solid #667eea;
+            border: 2px solid #11998e;
             border-radius: 12px;
             padding: 20px;
             min-height: 400px;
@@ -259,7 +257,7 @@
         }
 
         .input-area {
-            background: rgba(102, 126, 234, 0.1);
+            background: rgba(17, 153, 142, 0.1);
             border-radius: 12px;
             padding: 20px;
         }
@@ -272,7 +270,7 @@
         .input-wrapper input {
             flex: 1;
             background: #2d2d30;
-            border: 2px solid #667eea;
+            border: 2px solid #11998e;
             color: #d4d4d4;
             padding: 15px;
             border-radius: 10px;
@@ -282,11 +280,11 @@
 
         .input-wrapper input:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 0 0 3px rgba(17, 153, 142, 0.3);
         }
 
         .btn-execute {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
             color: white;
             border: none;
             padding: 15px 30px;
@@ -303,7 +301,7 @@
         .btn-clear {
             background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: 2px solid #667eea;
+            border: 2px solid #11998e;
             padding: 15px 30px;
             border-radius: 10px;
             cursor: pointer;
@@ -311,30 +309,30 @@
         }
 
         .btn-clear:hover {
-            background: #667eea;
+            background: #11998e;
         }
 
         .commands-section {
-            background: rgba(102, 126, 234, 0.1);
+            background: rgba(17, 153, 142, 0.1);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 25px;
         }
 
         .commands-section h3 {
-            color: #667eea;
+            color: #11998e;
             margin-bottom: 15px;
         }
 
         .commands-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 10px;
         }
 
         .cmd-tag {
-            background: rgba(102, 126, 234, 0.2);
-            border: 1px solid #667eea;
+            background: rgba(17, 153, 142, 0.2);
+            border: 1px solid #11998e;
             padding: 8px 12px;
             border-radius: 8px;
             font-size: 12px;
@@ -345,7 +343,7 @@
         }
 
         .cmd-tag:hover {
-            background: #667eea;
+            background: #11998e;
             color: white;
             transform: scale(1.05);
         }
@@ -373,23 +371,21 @@
         <div class="auth-header">
             <div class="lock-icon">🔐</div>
             <h1>Secured Access</h1>
-            <p>Enter the secret password to access Redis CLI</p>
+            <p>Enter the secret password to access MongoDB CLI</p>
         </div>
         <form id="authForm">
             <div class="form-group">
                 <label for="password">Secret Password</label>
                 <input type="password" id="password" placeholder="Enter password" required autocomplete="off">
             </div>
-            <button type="submit" class="btn-submit">
-                🚀 Access Redis CLI
-            </button>
+            <button type="submit" class="btn-submit">🚀 Access MongoDB CLI</button>
             <div class="error-message" id="errorMessage"></div>
         </form>
     </div>
 
     <div class="cli-container" id="cliContainer">
         <div class="cli-header">
-            <h1>🔴 Redis CLI - Secure Console</h1>
+            <h1>🍃 MongoDB CLI - Secure Console</h1>
             <button class="btn-logout" onclick="logout()">🚪 Logout</button>
         </div>
 
@@ -403,25 +399,24 @@
                 <p id="commandCount">0</p>
             </div>
             <div class="stat-card">
+                <h3>COLLECTIONS</h3>
+                <p id="collectionCount">0</p>
+            </div>
+            <div class="stat-card">
                 <h3>STATUS</h3>
                 <p>🟢 ACTIVE</p>
             </div>
         </div>
 
-        <div class="commands-section">
-            <h3>📋 Allowed Commands (Click to use)</h3>
-            <div class="commands-grid" id="allowedCommands"></div>
-        </div>
-
         <div class="terminal" id="terminal">
-            <div class="output-line info">🟢 Redis CLI Web Interface - Authenticated</div>
-            <div class="output-line info">Type commands below or click on allowed commands above.</div>
-            <div class="output-line info">Example: keys * | get mykey | info server</div>
+            <div class="output-line info">🟢 MongoDB CLI Web Interface - Authenticated</div>
+            <div class="output-line info">Type commands below or click on collections/commands above.</div>
+            <div class="output-line info">Example: db.users.find() | db.listCollections() | db.users.countDocuments()</div>
         </div>
 
         <div class="input-area">
             <div class="input-wrapper">
-                <input type="text" id="commandInput" placeholder="redis-cli> " autocomplete="off">
+                <input type="text" id="commandInput" placeholder="" autocomplete="off">
                 <button class="btn-execute" onclick="executeCommand()">▶️ Execute</button>
                 <button class="btn-clear" onclick="clearTerminal()">🗑️ Clear</button>
             </div>
@@ -431,7 +426,6 @@
     <script>
         let authToken = null;
 
-        // Handle authentication
         document.getElementById('authForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const password = document.getElementById('password').value;
@@ -442,7 +436,7 @@
             submitBtn.disabled = true;
 
             try {
-                const response = await fetch('{{ app.url_path_for("authenticate_redis_cli") }}', {
+                const response = await fetch('{{ app.url_path_for("authenticate_mongo_cli") }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
@@ -452,10 +446,9 @@
 
                 if (result.success) {
                     authToken = result.token;
-                    sessionStorage.setItem('redis_cli_token', authToken);
+                    sessionStorage.setItem('mongo_cli_token', authToken);
                     document.getElementById('authContainer').style.display = 'none';
                     document.getElementById('cliContainer').style.display = 'block';
-                    await loadAllowedCommands();
                     document.getElementById('commandInput').focus();
                 } else {
                     errorMsg.textContent = '❌ ' + (result.error || 'Invalid password');
@@ -466,51 +459,44 @@
                 errorMsg.textContent = '❌ Authentication failed: ' + error.message;
                 errorMsg.style.display = 'block';
             } finally {
-                submitBtn.innerHTML = '🚀 Access Redis CLI';
+                submitBtn.innerHTML = '🚀 Access MongoDB CLI';
                 submitBtn.disabled = false;
             }
         });
 
-        // Check for existing session
         window.addEventListener('load', async () => {
-            const savedToken = sessionStorage.getItem('redis_cli_token');
+            const savedToken = sessionStorage.getItem('mongo_cli_token');
             if (savedToken) {
                 authToken = savedToken;
                 try {
-                    const response = await fetch('{{ app.url_path_for("verify_redis_cli_session") }}', {
-                        headers: { 'X-Redis-CLI-Token': authToken }
+                    const response = await fetch('{{ app.url_path_for("verify_mongo_cli_session") }}', {
+                        headers: { 'X-Mongo-CLI-Token': authToken }
                     });
                     if (response.ok) {
                         document.getElementById('authContainer').style.display = 'none';
                         document.getElementById('cliContainer').style.display = 'block';
-                        await loadAllowedCommands();
                     } else {
-                        sessionStorage.removeItem('redis_cli_token');
+                        sessionStorage.removeItem('mongo_cli_token');
                     }
                 } catch (error) {
-                    sessionStorage.removeItem('redis_cli_token');
+                    sessionStorage.removeItem('mongo_cli_token');
                 }
             }
         });
 
-        async function loadAllowedCommands() {
-            try {
-                const response = await fetch('{{ app.url_path_for("get_allowed_redis_commands") }}', {
-                    headers: { 'X-Redis-CLI-Token': authToken }
-                });
-                const commands = await response.json();
-                const container = document.getElementById('allowedCommands');
-                container.innerHTML = commands.map(cmd =>
-                    `<div class="cmd-tag" onclick="useCommand('${cmd}')">${cmd.toUpperCase()}</div>`
-                ).join('');
-                document.getElementById('commandCount').textContent = commands.length;
-            } catch (error) {
-                console.error('Failed to load commands:', error);
+        function useCommand(cmd) {
+            const input = document.getElementById('commandInput');
+            const currentValue = input.value.trim();
+            if (currentValue.includes('.')) {
+                input.value = currentValue + '.' + cmd + '()';
+            } else {
+                input.value = 'db.collection.' + cmd + '()';
             }
+            input.focus();
         }
 
-        function useCommand(cmd) {
-            document.getElementById('commandInput').value = cmd + ' ';
+        function useCollection(coll) {
+            document.getElementById('commandInput').value = 'db.' + coll + '.find()';
             document.getElementById('commandInput').focus();
         }
 
@@ -521,16 +507,16 @@
             const executeBtn = document.querySelector('.btn-execute');
             const originalText = executeBtn.innerHTML;
 
-            addOutput(`redis-cli> ${command}`, 'command');
+            addOutput(`${command}`, 'command');
             executeBtn.innerHTML = '<span class="loading"></span>';
             executeBtn.disabled = true;
 
             try {
-                const response = await fetch('{{ app.url_path_for("execute_redis_command") }}', {
+                const response = await fetch('{{ app.url_path_for("execute_mongo_command") }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Redis-CLI-Token': authToken
+                        'X-Mongo-CLI-Token': authToken
                     },
                     body: JSON.stringify({ command })
                 });
@@ -571,7 +557,7 @@
 
         function logout() {
             authToken = null;
-            sessionStorage.removeItem('redis_cli_token');
+            sessionStorage.removeItem('mongo_cli_token');
             document.getElementById('cliContainer').style.display = 'none';
             document.getElementById('authContainer').style.display = 'block';
             document.getElementById('password').value = '';

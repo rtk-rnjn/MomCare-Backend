@@ -9,6 +9,7 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from src.utils.mongo_cli_executor import MongoCliExecutor
 from src.utils.redis_cli_executor import RedisCliExecutor
 
 load_dotenv()
@@ -20,6 +21,10 @@ class RedisCommand(BaseModel):
     command: str
 
 
+class MongoCommand(BaseModel):
+    command: str
+
+
 class AuthRequest(BaseModel):
     password: str
 
@@ -27,6 +32,7 @@ class AuthRequest(BaseModel):
 _active_tokens: dict[str, float] = {}
 
 REDIS_CLI_PASSWORD = os.environ["REDIS_CLI_PASSWORD"]
+MONGO_CLI_PASSWORD = os.environ["MONGO_CLI_PASSWORD"]
 TOKEN_EXPIRY_SECONDS = 3600  # 1 hour
 
 
@@ -129,3 +135,93 @@ async def get_allowed_redis_commands(request: Request, x_redis_cli_token: str | 
     executor = RedisCliExecutor(monitor.redis_client)
 
     return JSONResponse(content=executor.get_allowed_commands())
+
+
+@router.post("/database/mongo-cli/authenticate", response_class=JSONResponse)
+async def authenticate_mongo_cli(auth: AuthRequest):
+    """
+    Authenticate to access MongoDB CLI.
+
+    Validates the secret password and returns a session token for subsequent requests.
+    """
+    if not MongoCliExecutor.verify_password(auth.password, MongoCliExecutor.hash_password(MONGO_CLI_PASSWORD)):
+        return JSONResponse(content={"success": False, "error": "Invalid password"}, status_code=401)
+
+    token = secrets.token_urlsafe(32)
+    _active_tokens[token] = time.time() + TOKEN_EXPIRY_SECONDS
+
+    return JSONResponse(content={"success": True, "token": token, "expires_in": TOKEN_EXPIRY_SECONDS})
+
+
+@router.get("/database/mongo-cli/verify", response_class=JSONResponse)
+async def verify_mongo_cli_session(x_mongo_cli_token: str | None = Header(None)):
+    """
+    Verify if the current MongoDB CLI session token is valid.
+
+    Used to check authentication status without requiring password re-entry.
+    """
+    if not _verify_token(x_mongo_cli_token):
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    return JSONResponse(content={"success": True})
+
+
+@router.post("/database/mongo-cli/execute", response_class=JSONResponse)
+async def execute_mongo_command(request: Request, command: MongoCommand, x_mongo_cli_token: str | None = Header(None)):
+    """
+    Execute a MongoDB command securely.
+
+    Requires valid authentication token. Only whitelisted read-only commands are allowed.
+    Write operations like insert, update, delete, and drop are blocked.
+    """
+    if not _verify_token(x_mongo_cli_token):
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
+
+    if not hasattr(request.app.state, "database_monitor"):
+        raise HTTPException(status_code=503, detail="Database monitor not available")
+
+    monitor = request.app.state.database_monitor
+    executor = MongoCliExecutor(monitor.mongo_client)
+
+    result = await executor.execute_command(command.command)
+    return JSONResponse(content=result)
+
+
+@router.get("/database/mongo-cli/allowed-commands", response_class=JSONResponse)
+async def get_allowed_mongo_commands(request: Request, x_mongo_cli_token: str | None = Header(None)):
+    """
+    Get list of allowed MongoDB commands.
+
+    Requires authentication. Returns the whitelist of MongoDB commands that can
+    be executed through the web interface.
+    """
+    if not _verify_token(x_mongo_cli_token):
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
+
+    if not hasattr(request.app.state, "database_monitor"):
+        raise HTTPException(status_code=503, detail="Database monitor not available")
+
+    monitor = request.app.state.database_monitor
+    executor = MongoCliExecutor(monitor.mongo_client)
+
+    return JSONResponse(content=executor.get_allowed_commands())
+
+
+@router.get("/database/mongo-cli/collections", response_class=JSONResponse)
+async def get_mongo_collections(request: Request, x_mongo_cli_token: str | None = Header(None)):
+    """
+    Get list of collections in the MongoDB database.
+
+    Requires authentication. Returns all collection names in the database.
+    """
+    if not _verify_token(x_mongo_cli_token):
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
+
+    if not hasattr(request.app.state, "database_monitor"):
+        raise HTTPException(status_code=503, detail="Database monitor not available")
+
+    monitor = request.app.state.database_monitor
+    executor = MongoCliExecutor(monitor.mongo_client)
+
+    collections = await executor.get_collections()
+    return JSONResponse(content=collections)
