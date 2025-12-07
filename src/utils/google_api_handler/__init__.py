@@ -30,10 +30,6 @@ if GOOGLE_SEARCH_KEY is None or GOOGLE_SEARCH_CX is None:
 if GEMINI_API_KEY is None:
     raise ValueError("GEMINI_API_KEY is not set")
 
-with open("src/static/foods.txt", "r") as file:
-    FOODS = file.read().replace("\n", ",").split(",")
-
-
 with open("src/static/yoga_set.json", "r") as file:
     YOGA_SETS: list[dict] = json.load(file)
 
@@ -98,12 +94,15 @@ class GoogleAPIHandler:
 
         self.image_generator_handler = PixabayImageFetcher()
 
-    async def generate_plan(self, user: User, *, foods_collection: AsyncIOMotorCollection):
+    async def generate_plan(self, user: User, *, foods_collection: AsyncIOMotorCollection[FoodItem]):
         user_data = user
         user_data.pop("plan", None)
         user_data.pop("_id", None)
 
-        plan = await asyncio.to_thread(self._generate_plan, user_data=user_data)
+        foods = await foods_collection.find({"allergic_ingredients": {"$in": user_data.get("food_intolerances", [])}}, {"_id": 0}).to_list(None)
+        foods = set(FoodItem(**food) for food in foods)
+
+        plan = await self._generate_plan(user_data=User(**user_data), foods=foods)
         if not plan:
             raise Exception("Failed to generate plan")
 
@@ -124,17 +123,17 @@ class GoogleAPIHandler:
 
         return tips
 
-    def _generate_plan(self, user_data: User) -> PartialMyPlan | None:
+    async def _generate_plan(self, user_data: User, foods: set[FoodItem]) -> PartialMyPlan | None:
         plan_history = None
 
-        response = self.client.models.generate_content(
+        response = await self.client.aio.models.generate_content(
             model="gemini-2.0-flash-001",
             contents=[
                 Content(
                     parts=[
                         Part.from_text(text=f"User Data: {user_data}"),
                         Part.from_text(text=f"User Plan History: {plan_history if plan_history else 'No previous plans found.'}"),
-                        Part.from_text(text=f"List of available food items: {FOODS}"),
+                        Part.from_text(text=f"List of available food items: {foods}"),
                         Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
                     ]
                 )
