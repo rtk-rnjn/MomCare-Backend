@@ -17,6 +17,7 @@ from src.utils import (
     GoogleAPIHandler,
     MonitoringHandler,
     PixabayImageFetcher,
+    SystemMonitor,
     TokenHandler,
 )
 
@@ -40,6 +41,9 @@ async def lifespan(app: FastAPI):
     from src.routes.utils.data_handler import data_handler, mongo_client
 
     app.state.database_monitor = DatabaseMonitor(mongo_client=mongo_client, redis_client=data_handler.redis_client)
+
+    # Initialize system monitor
+    app.state.system_monitor = SystemMonitor()
 
     try:
         yield

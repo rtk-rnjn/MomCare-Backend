@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import secrets
 import time
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -308,3 +309,42 @@ async def reset_python_repl(x_python_repl_token: str | None = Header(None)):
         _python_repl_executors[x_python_repl_token].reset_scope()
 
     return JSONResponse(content={"success": True, "message": "REPL scope reset"})
+
+
+@router.websocket("/system/ws")
+async def system_monitor_websocket(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time system monitoring.
+    """
+    await websocket.accept()
+
+    if not hasattr(websocket.app.state, "system_monitor"):
+        await websocket.send_json({"error": "System monitor not available"})
+        await websocket.close()
+        return
+
+    monitor = websocket.app.state.system_monitor
+
+    try:
+        while True:
+            stats = await monitor.get_all_stats()
+            await websocket.send_json(stats)
+            await asyncio.sleep(1)
+    except Exception:
+        pass
+    finally:
+        await websocket.close()
+
+
+@router.get("/system/json", response_class=JSONResponse)
+async def system_stats_json(request: Request):
+    """
+    Get current system statistics in JSON format.
+
+    Returns CPU, memory, disk, network, and PM2 process information.
+    """
+    if not hasattr(request.app.state, "system_monitor"):
+        return {"error": "System monitor not available"}
+
+    monitor = request.app.state.system_monitor
+    return await monitor.get_all_stats()

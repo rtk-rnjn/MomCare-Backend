@@ -161,6 +161,16 @@
                 <span class="card-link">View Health Status</span>
             </a>
 
+            <a href="{{ app.url_path_for('system_monitor_page') }}" class="card">
+                <span class="card-icon">⚡</span>
+                <h2 class="card-title">System Monitor <span class="badge">Real-time</span></h2>
+                <p class="card-description">
+                    Real-time system monitoring with CPU and RAM usage graphs, live logs,
+                    disk usage, network I/O, and PM2 process management if available.
+                </p>
+                <span class="card-link">View System Monitor</span>
+            </a>
+
             <a href="{{ app.url_path_for('redis_cli_interface') }}" class="card">
                 <span class="card-icon">⚡</span>
                 <h2 class="card-title">Redis CLI Interface <span class="badge badge-warning">Secured</span></h2>
