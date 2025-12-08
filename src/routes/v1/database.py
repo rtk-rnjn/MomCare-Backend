@@ -1,27 +1,26 @@
 from __future__ import annotations
 
+import json
 import os
 import secrets
 import time
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from src.utils.mongo_cli_executor import MongoCliExecutor
+from src.utils.python_repl_executor import PythonReplExecutor
 from src.utils.redis_cli_executor import RedisCliExecutor
+from src.utils.terminal_executor import TerminalExecutor
 
 load_dotenv()
 
-router = APIRouter(prefix="/health", tags=["System & Meta"])
+router = APIRouter(prefix="/health", tags=["System & Meta"], include_in_schema=False)
 
 
-class RedisCommand(BaseModel):
-    command: str
-
-
-class MongoCommand(BaseModel):
+class Command(BaseModel):
     command: str
 
 
@@ -33,7 +32,13 @@ _active_tokens: dict[str, float] = {}
 
 REDIS_CLI_PASSWORD = os.environ["REDIS_CLI_PASSWORD"]
 MONGO_CLI_PASSWORD = os.environ["MONGO_CLI_PASSWORD"]
+TERMINAL_PASSWORD = os.environ["TERMINAL_PASSWORD"]
+PYTHON_REPL_PASSWORD = os.environ["PYTHON_REPL_PASSWORD"]
 TOKEN_EXPIRY_SECONDS = 3600  # 1 hour
+
+
+_terminal_executor = TerminalExecutor()
+_python_repl_executors: dict[str, PythonReplExecutor] = {}
 
 
 def _cleanup_expired_tokens():
@@ -97,7 +102,7 @@ async def verify_redis_cli_session(x_redis_cli_token: str | None = Header(None))
 
 
 @router.post("/database/redis-cli/execute", response_class=JSONResponse)
-async def execute_redis_command(request: Request, command: RedisCommand, x_redis_cli_token: str | None = Header(None)):
+async def execute_redis_command(request: Request, command: Command, x_redis_cli_token: str | None = Header(None)):
     """
     Execute a Redis command securely.
 
@@ -167,7 +172,7 @@ async def verify_mongo_cli_session(x_mongo_cli_token: str | None = Header(None))
 
 
 @router.post("/database/mongo-cli/execute", response_class=JSONResponse)
-async def execute_mongo_command(request: Request, command: MongoCommand, x_mongo_cli_token: str | None = Header(None)):
+async def execute_mongo_command(request: Request, command: Command, x_mongo_cli_token: str | None = Header(None)):
     """
     Execute a MongoDB command securely.
 
@@ -225,3 +230,81 @@ async def get_mongo_collections(request: Request, x_mongo_cli_token: str | None 
 
     collections = await executor.get_collections()
     return JSONResponse(content=collections)
+
+
+@router.post("/terminal/authenticate", response_class=JSONResponse)
+async def authenticate_terminal(auth: AuthRequest):
+    """Authenticate to access Terminal."""
+    if not TerminalExecutor.verify_password(auth.password, TerminalExecutor.hash_password(TERMINAL_PASSWORD)):
+        return JSONResponse(content={"success": False, "error": "Invalid password"}, status_code=401)
+
+    token = secrets.token_urlsafe(32)
+    _active_tokens[token] = time.time() + TOKEN_EXPIRY_SECONDS
+
+    return JSONResponse(content={"success": True, "token": token, "expires_in": TOKEN_EXPIRY_SECONDS})
+
+
+@router.get("/terminal/verify", response_class=JSONResponse)
+async def verify_terminal_session(x_terminal_token: str | None = Header(None)):
+    """Verify if the current Terminal session token is valid."""
+    if not _verify_token(x_terminal_token):
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    return JSONResponse(content={"success": True})
+
+
+@router.post("/terminal/execute", response_class=JSONResponse)
+async def execute_terminal_command(command: Command, x_terminal_token: str | None = Header(None)):
+    """Execute a terminal command securely."""
+    if not _verify_token(x_terminal_token):
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
+
+    result = await _terminal_executor.execute_command(command.command)
+    return JSONResponse(content=result)
+
+
+@router.post("/terminal/execute-stream", response_class=StreamingResponse)
+async def execute_terminal_command_stream(command: Command, x_terminal_token: str | None = Header(None)):
+    """Execute a terminal command securely with streaming output."""
+    if not _verify_token(x_terminal_token):
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
+
+    async def stream_output():
+        async for chunk in _terminal_executor.execute_command_stream(command.command):
+            yield f"data: {json.dumps(chunk)}\n\n"
+
+    return StreamingResponse(stream_output(), media_type="text/event-stream")
+
+
+@router.post("/python-repl/authenticate", response_class=JSONResponse)
+async def authenticate_python_repl(auth: AuthRequest):
+    """Authenticate to access Python REPL."""
+    if not PythonReplExecutor.verify_password(auth.password, PythonReplExecutor.hash_password(PYTHON_REPL_PASSWORD)):
+        return JSONResponse(content={"success": False, "error": "Invalid password"}, status_code=401)
+
+    token = secrets.token_urlsafe(32)
+    _active_tokens[token] = time.time() + TOKEN_EXPIRY_SECONDS
+    _python_repl_executors[token] = PythonReplExecutor()
+
+    return JSONResponse(content={"success": True, "token": token, "expires_in": TOKEN_EXPIRY_SECONDS})
+
+
+@router.get("/python-repl/verify", response_class=JSONResponse)
+async def verify_python_repl_session(x_python_repl_token: str | None = Header(None)):
+    """Verify if the current Python REPL session token is valid."""
+    if not _verify_token(x_python_repl_token):
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    return JSONResponse(content={"success": True})
+
+
+@router.post("/python-repl/reset", response_class=JSONResponse)
+async def reset_python_repl(x_python_repl_token: str | None = Header(None)):
+    """Reset Python REPL scope."""
+    if not _verify_token(x_python_repl_token):
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
+
+    if x_python_repl_token in _python_repl_executors:
+        _python_repl_executors[x_python_repl_token].reset_scope()
+
+    return JSONResponse(content={"success": True, "message": "REPL scope reset"})

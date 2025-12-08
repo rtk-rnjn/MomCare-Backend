@@ -199,6 +199,26 @@
                 </p>
                 <span class="card-link">Access MongoDB CLI</span>
             </a>
+
+            <a href="{{ app.url_path_for('terminal_cli_interface') }}" class="card">
+                <span class="card-icon">💻</span>
+                <h2 class="card-title">Terminal <span class="badge badge-warning">Secured</span></h2>
+                <p class="card-description">
+                    Execute whitelisted shell commands securely. Perfect for checking system status,
+                    file operations, and running diagnostics.
+                </p>
+                <span class="card-link">Access Terminal</span>
+            </a>
+
+            <a href="{{ app.url_path_for('python_repl_interface') }}" class="card">
+                <span class="card-icon">🐍</span>
+                <h2 class="card-title">Python REPL <span class="badge badge-warning">Secured</span></h2>
+                <p class="card-description">
+                    Interactive Python REPL with state preservation. Execute Python code,
+                    test scripts, and debug in real-time.
+                </p>
+                <span class="card-link">Access Python REPL</span>
+            </a>
         </div>
 
         <div class="footer">

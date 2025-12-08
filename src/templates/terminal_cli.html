@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔒 Terminal - Secured Access</title>
+    <style>
+        /* Copy all styles from redis_cli.html but change color scheme */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* ...existing styles from redis_cli.html with color changes to #f093fb, #f5576c... */
+        .auth-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 100%;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-header h1 {
+            color: #f5576c;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .auth-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .lock-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #f5576c;
+            box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.1);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .error-message {
+            background: #fee;
+            border-left: 4px solid #f44;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+            animation: shake 0.5s;
+        }
+
+        .cli-container {
+            display: none;
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .cli-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cli-header h1 {
+            color: white;
+            font-size: 28px;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: white;
+            color: #f5576c;
+        }
+
+        .terminal {
+            background: #1e1e1e;
+            border: 2px solid #f5576c;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .output-line {
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .command {
+            color: #4ec9b0;
+        }
+
+        .success {
+            color: #6a9955;
+        }
+
+        .error {
+            color: #f44336;
+        }
+
+        .info {
+            color: #569cd6;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            background: #2d2d30;
+            border: 2px solid #f5576c;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.3);
+        }
+
+        .btn-execute {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .btn-execute:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-clear {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid #f5576c;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .commands-section {
+            background: rgba(240, 147, 251, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .commands-section h3 {
+            color: #f5576c;
+            margin-bottom: 15px;
+        }
+
+        .commands-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        .cmd-tag {
+            background: rgba(245, 87, 108, 0.2);
+            border: 1px solid #f5576c;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #4ec9b0;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .cmd-tag:hover {
+            background: #f5576c;
+            color: white;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container" id="authContainer">
+        <div class="auth-header">
+            <div class="lock-icon">🔐</div>
+            <h1>Secured Access</h1>
+            <p>Enter the secret password to access Terminal</p>
+        </div>
+        <form id="authForm">
+            <div class="form-group">
+                <label for="password">Secret Password</label>
+                <input type="password" id="password" placeholder="Enter password" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn-submit">🚀 Access Terminal</button>
+            <div class="error-message" id="errorMessage"></div>
+        </form>
+    </div>
+
+    <div class="cli-container" id="cliContainer">
+        <div class="cli-header">
+            <h1>💻 Terminal - Secure Console</h1>
+            <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+        </div>
+
+        <div class="terminal" id="terminal">
+            <div class="output-line info">🟢 Terminal Web Interface - Authenticated</div>
+            <div class="output-line info">Type commands below. Only whitelisted commands are allowed.</div>
+            <div class="output-line info">Example: ls -la | pwd | whoami | df -h</div>
+        </div>
+
+        <div class="input-wrapper">
+            <input type="text" id="commandInput" placeholder="$ " autocomplete="off">
+            <button class="btn-execute" onclick="executeCommand()">▶️ Execute</button>
+            <button class="btn-clear" onclick="clearTerminal()">🗑️ Clear</button>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMessage');
+            const submitBtn = e.target.querySelector('button');
+            submitBtn.innerHTML = '<span class="loading"></span> Authenticating...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('{{ app.url_path_for("authenticate_terminal") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    authToken = result.token;
+                    sessionStorage.setItem('terminal_token', authToken);
+                    document.getElementById('authContainer').style.display = 'none';
+                    document.getElementById('cliContainer').style.display = 'block';
+                    document.getElementById('commandInput').focus();
+                } else {
+                    errorMsg.textContent = '❌ ' + (result.error || 'Invalid password');
+                    errorMsg.style.display = 'block';
+                    setTimeout(() => errorMsg.style.display = 'none', 3000);
+                }
+            } catch (error) {
+                errorMsg.textContent = '❌ Authentication failed: ' + error.message;
+                errorMsg.style.display = 'block';
+            } finally {
+                submitBtn.innerHTML = '🚀 Access Terminal';
+                submitBtn.disabled = false;
+            }
+        });
+
+        window.addEventListener('load', async () => {
+            const savedToken = sessionStorage.getItem('terminal_token');
+            if (savedToken) {
+                authToken = savedToken;
+                try {
+                    const response = await fetch('{{ app.url_path_for("verify_terminal_session") }}', {
+                        headers: { 'X-Terminal-Token': authToken }
+                    });
+                    if (response.ok) {
+                        document.getElementById('authContainer').style.display = 'none';
+                        document.getElementById('cliContainer').style.display = 'block';
+                    } else {
+                        sessionStorage.removeItem('terminal_token');
+                    }
+                } catch (error) {
+                    sessionStorage.removeItem('terminal_token');
+                }
+            }
+        });
+
+        function useCommand(cmd) {
+            document.getElementById('commandInput').value = cmd + ' ';
+            document.getElementById('commandInput').focus();
+        }
+
+        async function executeCommand() {
+            const command = document.getElementById('commandInput').value.trim();
+            if (!command) return;
+
+            const executeBtn = document.querySelector('.btn-execute');
+            const originalText = executeBtn.innerHTML;
+            addOutput(`$ ${command}`, 'command');
+            executeBtn.innerHTML = '<span class="loading"></span>';
+            executeBtn.disabled = true;
+
+            try {
+                const response = await fetch('{{ app.url_path_for("execute_terminal_command_stream") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Terminal-Token': authToken
+                    },
+                    body: JSON.stringify({ command })
+                });
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                if (!response.body) {
+                    addOutput('❌ Error: No response body', 'error');
+                    return;
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.substring(6));
+
+                            if (data.type === 'stdout' || data.type === 'stderr') {
+                                addOutput(data.data, data.type === 'stderr' ? 'error' : 'success');
+                            } else if (data.type === 'error') {
+                                addOutput(`❌ Error: ${data.data}`, 'error');
+                            } else if (data.type === 'end') {
+                                const className = data.exit_code === 0 ? 'info' : 'error';
+                                addOutput(`✓ ${data.data}`, className);
+                            } else if (data.type === 'start') {
+                                addOutput(data.data, 'info');
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                addOutput(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                executeBtn.innerHTML = originalText;
+                executeBtn.disabled = false;
+                document.getElementById('commandInput').value = '';
+            }
+        }
+
+        function addOutput(text, className = '') {
+            const terminal = document.getElementById('terminal');
+            const div = document.createElement('div');
+            div.className = `output-line ${className}`;
+            div.textContent = text;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal').innerHTML = '<div class="output-line info">🗑️ Terminal cleared.</div>';
+        }
+
+        function logout() {
+            authToken = null;
+            sessionStorage.removeItem('terminal_token');
+            document.getElementById('cliContainer').style.display = 'none';
+            document.getElementById('authContainer').style.display = 'block';
+            document.getElementById('password').value = '';
+        }
+
+        document.getElementById('commandInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') executeCommand();
+        });
+    </script>
+</body>
+
+</html>

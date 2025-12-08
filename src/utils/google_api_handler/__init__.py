@@ -99,7 +99,9 @@ class GoogleAPIHandler:
         user_data.pop("plan", None)
         user_data.pop("_id", None)
 
-        foods = await foods_collection.find({"allergic_ingredients": {"$in": user_data.get("food_intolerances", [])}}, {"_id": 0}).to_list(None)
+        foods = await foods_collection.find(
+            {"allergic_ingredients": {"$in": user_data.get("food_intolerances", [])}}, {"_id": 0}
+        ).to_list(None)
         foods = set(FoodItem(**food) for food in foods)
 
         plan = await self._generate_plan(user_data=User(**user_data), foods=foods)

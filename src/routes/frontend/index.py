@@ -6,9 +6,9 @@ from fastapi.responses import HTMLResponse
 from src.app import app
 
 
-@app.get("/", response_class=HTMLResponse)
-@app.get("/home", response_class=HTMLResponse)
-@app.get("/index", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/home", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/index", response_class=HTMLResponse, include_in_schema=False)
 async def index_page(request: Request) -> HTMLResponse:
     """
     Home page of the MomCare application.
