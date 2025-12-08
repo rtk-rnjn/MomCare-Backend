@@ -304,18 +304,6 @@ async def verify_python_repl_session(x_python_repl_token: str | None = Header(No
     return JSONResponse(content={"success": True})
 
 
-@router.post("/python-repl/reset", response_class=JSONResponse)
-async def reset_python_repl(x_python_repl_token: str | None = Header(None)):
-    """Reset Python REPL scope."""
-    if not _verify_token(x_python_repl_token):
-        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
-
-    if x_python_repl_token in _python_repl_executors:
-        _python_repl_executors[x_python_repl_token].reset_scope()
-
-    return JSONResponse(content={"success": True, "message": "REPL scope reset"})
-
-
 @router.websocket("/system/ws")
 async def system_monitor_websocket(websocket: WebSocket):
     """

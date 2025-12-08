@@ -46,7 +46,3 @@ class PythonReplExecutor:
     def reset_scope(self):
         """Reset the REPL scope."""
         self.global_scope = Scope({})
-
-    def get_allowed_commands(self) -> list[str]:
-        """Get list of allowed commands."""
-        return []

@@ -302,14 +302,13 @@
         <div class="terminal" id="terminal">
             <div class="output-line info">🟢 Python REPL Web Interface - Authenticated</div>
             <div class="output-line info">Type Python code below. State is preserved between executions.</div>
-            <div class="output-line info">Example: x = 10 | print(x * 2) | import sys; print(sys.version)</div>
+            <div class="output-line info">Example: for i in range(10): yield i</div>
         </div>
 
         <div class="input-wrapper">
             <textarea id="commandInput" placeholder=">>> " autocomplete="off"></textarea>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button class="btn-execute" onclick="executeCommand()">▶️ Execute</button>
-                <button class="btn-reset" onclick="resetRepl()">🔄 Reset</button>
                 <button class="btn-clear" onclick="clearTerminal()">🗑️ Clear</button>
             </div>
         </div>
@@ -410,19 +409,6 @@
                 executeBtn.innerHTML = originalText;
                 executeBtn.disabled = false;
                 document.getElementById('commandInput').value = '';
-            }
-        }
-
-        async function resetRepl() {
-            try {
-                const response = await fetch('{{ app.url_path_for("reset_python_repl") }}', {
-                    method: 'POST',
-                    headers: { 'X-Python-Repl-Token': authToken }
-                });
-                const result = await response.json();
-                addOutput('🔄 REPL scope reset. All variables cleared.', 'info');
-            } catch (error) {
-                addOutput(`❌ Error: ${error.message}`, 'error');
             }
         }
 
