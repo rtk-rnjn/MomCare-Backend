@@ -22,10 +22,16 @@ class PythonReplExecutor:
     def verify_password(password: str, expected_hash: str) -> bool:
         """Verify password against expected hash."""
         return secrets.compare_digest(PythonReplExecutor.hash_password(password), expected_hash)
+    
+    def _create_scope(self, **kwargs: typing.Any) -> Scope:
+        """Create a new scope with given variables."""
+        return Scope(kwargs)
 
-    async def execute_command(self, raw_code: str) -> dict[str, typing.Any]:
+    async def execute(self, raw_code: str, *, scope: Scope) -> dict[str, typing.Any]:
         """Execute Python code safely."""
         result = ""
+
+        self.global_scope.update(scope)
 
         try:
             async for x in AsyncCodeExecutor(raw_code, scope=self.global_scope, auto_return=True):

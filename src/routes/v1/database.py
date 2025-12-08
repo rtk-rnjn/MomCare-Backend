@@ -266,6 +266,21 @@ async def execute_terminal_command_stream(command: Command, x_terminal_token: st
 
     return StreamingResponse(stream_output(), media_type="text/event-stream")
 
+@router.post("/python-repl/execute", response_class=JSONResponse)
+async def execute_python_command(request: Request, command: Command, x_python_repl_token: str | None = Header(None)):
+    """Execute Python code securely in REPL."""
+
+    if not _verify_token(x_python_repl_token):
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
+
+    if x_python_repl_token not in _python_repl_executors:
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
+
+    executor = _python_repl_executors[x_python_repl_token]
+    scope = executor._create_scope(request=request, app=request.app)
+
+    result = await executor.execute(command.command, scope=scope)
+    return JSONResponse(content=result)
 
 @router.post("/python-repl/authenticate", response_class=JSONResponse)
 async def authenticate_python_repl(auth: AuthRequest):
