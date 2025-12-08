@@ -2,8 +2,7 @@ name: Auto-Version Bump
 on:
   push:
     branches: [ "main" ]
-  paths:
-    - 'version.txt'
+    paths: [ 'version.txt' ]
 
 permissions:
   contents: write

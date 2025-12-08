@@ -313,7 +313,7 @@ async def system_monitor_websocket(websocket: WebSocket):
 
     if not hasattr(websocket.app.state, "system_monitor"):
         await websocket.send_json({"error": "System monitor not available"})
-        await websocket.close()
+        await websocket.close(reason="Internal error")
         return
 
     monitor = websocket.app.state.system_monitor
