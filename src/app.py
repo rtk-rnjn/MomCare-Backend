@@ -34,15 +34,13 @@ monitoring_handler = MonitoringHandler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from src.routes.utils.data_handler import data_handler, mongo_client
+
     app.state.monitoring_handler = monitoring_handler
     app.state.monitoring_handler.connect("monitoring.db")
 
-    # Initialize database monitor
-    from src.routes.utils.data_handler import data_handler, mongo_client
-
     app.state.database_monitor = DatabaseMonitor(mongo_client=mongo_client, redis_client=data_handler.redis_client)
 
-    # Initialize system monitor
     app.state.system_monitor = SystemMonitor()
 
     try:
@@ -54,6 +52,7 @@ async def lifespan(app: FastAPI):
 
 with open("version.txt", "r") as vf:
     version = vf.read().strip()
+
 
 app = FastAPI(
     title="MomCare API",
@@ -121,6 +120,6 @@ app.state.templates = templates
 
 token_handler = TokenHandler(os.environ["JWT_SECRET"])
 
-from .routes import v1_router as v1_router  # noqa: E402
+from .routes import v1_router  # noqa: E402
 
 app.include_router(v1_router)

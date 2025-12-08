@@ -254,16 +254,6 @@ async def verify_terminal_session(x_terminal_token: str | None = Header(None)):
     return JSONResponse(content={"success": True})
 
 
-@router.post("/terminal/execute", response_class=JSONResponse)
-async def execute_terminal_command(command: Command, x_terminal_token: str | None = Header(None)):
-    """Execute a terminal command securely."""
-    if not _verify_token(x_terminal_token):
-        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
-
-    result = await _terminal_executor.execute_command(command.command)
-    return JSONResponse(content=result)
-
-
 @router.post("/terminal/execute-stream", response_class=StreamingResponse)
 async def execute_terminal_command_stream(command: Command, x_terminal_token: str | None = Header(None)):
     """Execute a terminal command securely with streaming output."""
