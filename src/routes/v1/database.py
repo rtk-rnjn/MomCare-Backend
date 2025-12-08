@@ -266,6 +266,7 @@ async def execute_terminal_command_stream(command: Command, x_terminal_token: st
 
     return StreamingResponse(stream_output(), media_type="text/event-stream")
 
+
 @router.post("/python-repl/execute", response_class=JSONResponse)
 async def execute_python_command(request: Request, command: Command, x_python_repl_token: str | None = Header(None)):
     """Execute Python code securely in REPL."""
@@ -281,6 +282,7 @@ async def execute_python_command(request: Request, command: Command, x_python_re
 
     result = await executor.execute(command.command, scope=scope)
     return JSONResponse(content=result)
+
 
 @router.post("/python-repl/authenticate", response_class=JSONResponse)
 async def authenticate_python_repl(auth: AuthRequest):

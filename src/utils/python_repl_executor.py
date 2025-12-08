@@ -22,7 +22,7 @@ class PythonReplExecutor:
     def verify_password(password: str, expected_hash: str) -> bool:
         """Verify password against expected hash."""
         return secrets.compare_digest(PythonReplExecutor.hash_password(password), expected_hash)
-    
+
     def _create_scope(self, **kwargs: typing.Any) -> Scope:
         """Create a new scope with given variables."""
         return Scope(kwargs)
