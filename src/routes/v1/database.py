@@ -324,11 +324,11 @@ async def system_monitor_websocket(websocket: WebSocket):
         while True:
             stats = await monitor.get_all_stats()
             await websocket.send_json(stats)
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.25)
     except Exception:
         pass
     finally:
-        await websocket.close()
+        await websocket.close(reason="Connection closed")
 
 
 @router.get("/system/json", response_class=JSONResponse)
