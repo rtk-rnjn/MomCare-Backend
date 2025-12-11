@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import secrets
 import shlex
 from typing import Any, AsyncIterator
+from argon2 import PasswordHasher, exceptions as argon2_exceptions
 
 
 class TerminalExecutor:
@@ -18,13 +18,20 @@ class TerminalExecutor:
 
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash password with SHA-256."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash password with Argon2 (secure for password hashing)."""
+        ph = PasswordHasher()
+        return ph.hash(password)
 
     @staticmethod
     def verify_password(password: str, expected_hash: str) -> bool:
-        """Verify password against expected hash."""
-        return secrets.compare_digest(TerminalExecutor.hash_password(password), expected_hash)
+        """Verify password against expected Argon2 hash."""
+        ph = PasswordHasher()
+        try:
+            return ph.verify(expected_hash, password)
+        except argon2_exceptions.VerifyMismatchError:
+            return False
+        except argon2_exceptions.VerificationError:
+            return False
 
     async def read_stream(self, stream: asyncio.StreamReader, stream_type: str):
         """Read from stdout or stderr and yield lines."""
