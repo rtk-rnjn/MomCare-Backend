@@ -9,6 +9,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from .async_code_executor import AsyncCodeExecutor, Scope
 
 
+class CommandOutput(typing.TypedDict):
+    success: bool
+    result: str
+    command: str
+    error: str | None
+
+
 class MongoCliExecutor:
     """Execute MongoDB commands safely through a web interface."""
 
@@ -29,7 +36,7 @@ class MongoCliExecutor:
         """Verify password against expected hash."""
         return MongoCliExecutor.ph.verify(expected_hash, password)
 
-    async def execute_command(self, raw_code: str) -> dict[str, typing.Any]:
+    async def execute_command(self, raw_code: str) -> CommandOutput:
         """Execute a MongoDB command safely."""
         context = {
             "db": self.db,
@@ -44,9 +51,9 @@ class MongoCliExecutor:
                 result += self._format_result(x) + "\n"
 
         except Exception as e:
-            return {"success": False, "error": str(e), "command": raw_code}
+            return CommandOutput(success=False, result=result.strip(), command=raw_code, error=str(e))
 
-        return {"success": True, "result": result.strip(), "command": raw_code}
+        return CommandOutput(success=True, result=result.strip(), command=raw_code, error=None)
 
     def _format_result(self, result: typing.Any) -> str:
         """Format result for display."""

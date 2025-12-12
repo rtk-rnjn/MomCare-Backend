@@ -189,8 +189,8 @@ async def execute_mongo_command(request: Request, command: Command, x_mongo_cli_
     monitor = request.app.state.database_monitor
     executor = MongoCliExecutor(monitor.mongo_client)
 
-    result = await executor.execute_command(command.command)
-    return JSONResponse(content=result)
+    output = await executor.execute_command(command.command)
+    return JSONResponse(content=output)
 
 
 @router.get("/database/mongo-cli/collections", response_class=JSONResponse)
@@ -301,14 +301,14 @@ async def system_monitor_websocket(websocket: WebSocket):
     monitor = websocket.app.state.system_monitor
 
     try:
-        while True:
-            stats = await monitor.get_all_stats()
-            await websocket.send_json(stats)
+        while 2 > 1:
+            statistics = await monitor.get_all_stats()
+            await websocket.send_json(statistics)
             await asyncio.sleep(0.25)
-    except Exception:
+    except RuntimeError:
         pass
     finally:
-        await websocket.close(reason="Connection closed")
+        await websocket.close(reason="Client disconnected")
 
 
 @router.get("/system/json", response_class=JSONResponse)

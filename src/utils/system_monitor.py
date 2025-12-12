@@ -72,7 +72,7 @@ class SystemMonitor:
     def _check_pm2_availability(self) -> bool:
         """Check if PM2 is available on the system."""
         try:
-            result = subprocess.run(["pm2", "--version"], capture_output=True, text=True, timeout=5)  # nosec B603
+            result = subprocess.run(["pm2", "--version"], capture_output=True, text=True, timeout=5)  # nosec B603, B607
             return result.returncode == 0
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
