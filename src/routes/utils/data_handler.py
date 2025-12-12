@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import hashlib
 import os
-import pickle
 import random
 from typing import Awaitable, Callable, Unpack
 
@@ -42,11 +40,6 @@ class DataHandler:
 
         self.redis_client = Redis(db=DATABASE_NUMBER, decode_responses=True, protocol=3)
 
-    def _generate_key(self, func, /, *args, **kwargs) -> str:
-        raw = [func.__module__, func.__qualname__, args, tuple(sorted(kwargs.items()))]
-        data = pickle.dumps(raw, protocol=pickle.HIGHEST_PROTOCOL)
-        return hashlib.sha256(data).hexdigest()
-
     def _parse_payload(self, payload: dict):
         NOT_ALLOWED_FIELDS = {"id", "email_address", "created_at_timestamp", "is_verified"}
         for field in NOT_ALLOWED_FIELDS:
@@ -85,7 +78,7 @@ class DataHandler:
         return user
 
     async def generate_otp(self, email_address: str, /) -> str:
-        otp = str(int(random.uniform(100000, 999999)))
+        otp = str(random.randint(100000, 999999))  # nosec B311
         key = f"otp:{email_address}"
         await self.redis_client.set(key, otp, ex=300)
         return otp

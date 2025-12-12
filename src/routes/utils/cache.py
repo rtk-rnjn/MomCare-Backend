@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import logging
-import pickle
+import pickle  # nosec B403  Codes are controlled internally
 from functools import wraps
 from typing import (
     Any,

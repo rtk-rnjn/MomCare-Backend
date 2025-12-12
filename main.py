@@ -18,7 +18,7 @@ else:
     except ImportError:
         pass
 
-HOST = os.getenv("HOST", "0.0.0.0")
+HOST = os.getenv("HOST", "0.0.0.0")  # nosec B104
 PORT = int(os.getenv("PORT", 8000))
 DEVELOPMENT = os.getenv("DEVELOPMENT", "True").lower() == "true"
 

@@ -215,4 +215,4 @@ async def get_quote(mood: str):
         "stressed": STRESSED_QUOTES,
     }
 
-    return random.choice(mapper[mood])
+    return random.choice(mapper[mood])  # nosec B311

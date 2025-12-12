@@ -178,10 +178,10 @@ def wrap_code(code: str, args: str = "", auto_return: bool = True) -> ast.Module
         node.end_lineno = -100_000
 
     definition = mod.body[-1]  # async def ...:
-    assert isinstance(definition, ast.AsyncFunctionDef)
+    assert isinstance(definition, ast.AsyncFunctionDef)  # nosec B101
 
     try_block = definition.body[-1]  # try:
-    assert isinstance(try_block, ast.Try)
+    assert isinstance(try_block, ast.Try)  # nosec B101
 
     try_block.body.extend(user_code.body)
 
