@@ -193,26 +193,6 @@ async def execute_mongo_command(request: Request, command: Command, x_mongo_cli_
     return JSONResponse(content=result)
 
 
-@router.get("/database/mongo-cli/allowed-commands", response_class=JSONResponse)
-async def get_allowed_mongo_commands(request: Request, x_mongo_cli_token: str | None = Header(None)):
-    """
-    Get list of allowed MongoDB commands.
-
-    Requires authentication. Returns the whitelist of MongoDB commands that can
-    be executed through the web interface.
-    """
-    if not _verify_token(x_mongo_cli_token):
-        raise HTTPException(status_code=401, detail="Unauthorized - Invalid or expired token")
-
-    if not hasattr(request.app.state, "database_monitor"):
-        raise HTTPException(status_code=503, detail="Database monitor not available")
-
-    monitor = request.app.state.database_monitor
-    executor = MongoCliExecutor(monitor.mongo_client)
-
-    return JSONResponse(content=executor.get_allowed_commands())
-
-
 @router.get("/database/mongo-cli/collections", response_class=JSONResponse)
 async def get_mongo_collections(request: Request, x_mongo_cli_token: str | None = Header(None)):
     """

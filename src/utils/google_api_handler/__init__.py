@@ -217,31 +217,26 @@ class GoogleAPIHandler:
 
         user_data = user
 
-        try:
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash-001",
-                contents=[
-                    Content(
-                        parts=[
-                            Part.from_text(text="User Data: {}".format(user_data)),
-                            Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
-                        ]
-                    )
-                ],
-                config=GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
-                    response_mime_type="application/json",
-                    response_schema=DailyInsight,
-                ),
-            )
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=[
+                Content(
+                    parts=[
+                        Part.from_text(text="User Data: {}".format(user_data)),
+                        Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
+                    ]
+                )
+            ],
+            config=GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION,
+                response_mime_type="application/json",
+                response_schema=DailyInsight,
+            ),
+        )
 
-            if response:
-                tips = DailyInsight(**json.loads(response.text or "{}"))
-                return tips
-
-        except Exception:
-
-            return None
+        if response:
+            tips = DailyInsight(**json.loads(response.text or "{}"))
+            return tips
 
     async def _get_exercises(self, user: User):
         SYSTEM_INSTRUCTION = "Suggest what exercise should a pregnant woman do today.\n"
@@ -252,30 +247,26 @@ class GoogleAPIHandler:
 
         user_data = user
 
-        try:
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash-001",
-                contents=[
-                    Content(
-                        parts=[
-                            Part.from_text(text="User Data: {}".format(user_data)),
-                            Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
-                        ]
-                    )
-                ],
-                config=GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
-                    response_mime_type="application/json",
-                    response_schema=YogaSets,
-                ),
-            )
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=[
+                Content(
+                    parts=[
+                        Part.from_text(text="User Data: {}".format(user_data)),
+                        Part.from_text(text="Today's date: {}".format(datetime.now().strftime("%Y-%m-%d"))),
+                    ]
+                )
+            ],
+            config=GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION,
+                response_mime_type="application/json",
+                response_schema=YogaSets,
+            ),
+        )
 
-            if response:
-                exercise = YogaSets(**json.loads(response.text or "{}"))
-                return exercise
-
-        except Exception:
-            return None
+        if response:
+            exercise = YogaSets(**json.loads(response.text or "{}"))
+            return exercise
 
     async def get_exercises(self, user: User):
         exercise = await self._get_exercises(user=user)

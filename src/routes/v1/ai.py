@@ -61,10 +61,7 @@ async def get_plan(request: Request, token: Token = Depends(get_user_token)):
     if today_plan:
         return JSONResponse(content=today_plan)
 
-    try:
-        myplan = await genai_handler.generate_plan(user, foods_collection=data_handler.foods_collection)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    myplan = await genai_handler.generate_plan(user, foods_collection=data_handler.foods_collection)
 
     plan = MyPlanDict(
         _id=ObjectId(),

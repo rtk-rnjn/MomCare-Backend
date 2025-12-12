@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import pickle
-from random import randint
+import random
 from typing import Awaitable, Callable, Unpack
 
 import arrow
@@ -24,6 +24,9 @@ MONGODB_URI = os.environ["MONGODB_URI"]
 
 mongo_client = AsyncIOMotorClient(MONGODB_URI)
 database = mongo_client["MomCare"]
+
+RANDOM_SEED = int(os.getenv("RANDOM_NUMBER_SEED", "0"))
+random.seed(RANDOM_SEED)
 
 DATABASE_NUMBER = 10
 
@@ -82,7 +85,7 @@ class DataHandler:
         return user
 
     async def generate_otp(self, email_address: str, /) -> str:
-        otp = str(randint(100000, 999999))
+        otp = str(int(random.uniform(100000, 999999)))
         key = f"otp:{email_address}"
         await self.redis_client.set(key, otp, ex=300)
         return otp

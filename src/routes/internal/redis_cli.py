@@ -14,4 +14,4 @@ async def redis_cli_interface(request: Request):
     Requires password authentication to access. Provides a beautiful web-based
     terminal for executing Redis commands securely with session management.
     """
-    return request.app.state.templates.TemplateResponse("redis_cli.html", {"request": request, "app": app})
+    return app.state.templates.TemplateResponse("redis_cli.html", {"request": request, "app": app})

@@ -1,14 +1,23 @@
 from __future__ import annotations
 
-import hashlib
-import secrets
-from typing import Any
+import inspect
+from typing import Any, TypedDict
 
+from argon2 import PasswordHasher
 from redis.asyncio import Redis
+
+
+class CommandResult(TypedDict):
+    success: bool
+    result: str | None
+    error: str | None
+    command: str
 
 
 class RedisCliExecutor:
     """Execute Redis commands safely through a web interface."""
+
+    ph = PasswordHasher()
 
     ALLOWED_COMMANDS = {
         "get",
@@ -71,44 +80,52 @@ class RedisCliExecutor:
 
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash password with SHA-256."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash password with Argon2."""
+        return RedisCliExecutor.ph.hash(password)
 
     @staticmethod
     def verify_password(password: str, expected_hash: str) -> bool:
         """Verify password against expected hash."""
-        return secrets.compare_digest(RedisCliExecutor.hash_password(password), expected_hash)
+        return RedisCliExecutor.ph.verify(expected_hash, password)
 
-    async def execute_command(self, command: str) -> dict[str, Any]:
+    async def execute_command(self, command: str) -> CommandResult:
         try:
             parts = command.strip().split()
             if not parts:
-                return {"success": False, "error": "Empty command"}
+                return CommandResult(success=False, result=None, error="No command provided", command=command)
 
             cmd = parts[0].lower()
             args = parts[1:]
 
             if cmd in self.FORBIDDEN_COMMANDS:
-                return {"success": False, "error": f"Command '{cmd}' is forbidden for security reasons"}
+                return CommandResult(
+                    success=False, result=None, error=f"Command '{cmd}' is forbidden for security reasons", command=command
+                )
 
             if cmd not in self.ALLOWED_COMMANDS:
-                return {"success": False, "error": f"Command '{cmd}' is not in the allowed list"}
+                return CommandResult(success=False, result=None, error=f"Command '{cmd}' is not in the allowed list", command=command)
 
-            result = await self.redis_client.execute_command(cmd, *args)
+            execute_command_method = self.redis_client.execute_command
+            if not inspect.iscoroutinefunction(execute_command_method):
+                result = execute_command_method(cmd, *args)
+            else:
+                result = await self.redis_client.execute_command(cmd, *args)
 
             formatted_result = self._format_result(result)
 
-            return {"success": True, "result": formatted_result, "command": command}
+            return CommandResult(success=True, result=formatted_result, error=None, command=command)
 
         except Exception as e:
-            return {"success": False, "error": str(e), "command": command}
+            return CommandResult(success=False, result=None, error=str(e), command=command)
 
     def _format_result(self, result: Any) -> str:
         if result is None:
             return "(nil)"
-        elif isinstance(result, bytes):
+
+        if isinstance(result, bytes):
             return result.decode("utf-8", errors="replace")
-        elif isinstance(result, list):
+
+        if isinstance(result, list):
             if not result:
                 return "(empty list)"
             formatted = []
@@ -118,15 +135,16 @@ class RedisCliExecutor:
                 else:
                     formatted.append(f"{i}) {item}")
             return "\n".join(formatted)
-        elif isinstance(result, dict):
+
+        if isinstance(result, dict):
             formatted = []
             for key, value in result.items():
                 k = key.decode("utf-8") if isinstance(key, bytes) else str(key)
                 v = value.decode("utf-8") if isinstance(value, bytes) else str(value)
                 formatted.append(f"{k}: {v}")
             return "\n".join(formatted)
-        else:
-            return str(result)
+
+        return str(result)
 
     def get_allowed_commands(self) -> list[str]:
         return sorted(list(self.ALLOWED_COMMANDS))

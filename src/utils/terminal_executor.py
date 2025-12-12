@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import secrets
 import shlex
-from typing import Any, AsyncIterator
+from typing import AsyncIterator, TypedDict
+
+from argon2 import PasswordHasher
+
+
+class CommandOutput(TypedDict):
+    type: str
+    data: str
+    exit_code: int | None
+
+
+class StreamOutput(TypedDict):
+    type: str
+    data: str
 
 
 class TerminalExecutor:
@@ -13,20 +24,22 @@ class TerminalExecutor:
     MAX_OUTPUT_LENGTH = 10000
     TIMEOUT_SECONDS = 30
 
+    ph = PasswordHasher()
+
     def __init__(self):
         pass
 
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash password with SHA-256."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash password with Argon2."""
+        return TerminalExecutor.ph.hash(password)
 
     @staticmethod
     def verify_password(password: str, expected_hash: str) -> bool:
         """Verify password against expected hash."""
-        return secrets.compare_digest(TerminalExecutor.hash_password(password), expected_hash)
+        return TerminalExecutor.ph.verify(expected_hash, password)
 
-    async def read_stream(self, stream: asyncio.StreamReader, stream_type: str):
+    async def read_stream(self, stream: asyncio.StreamReader, stream_type: str) -> AsyncIterator[StreamOutput]:
         """Read from stdout or stderr and yield lines."""
         total_bytes = 0
         while True:
@@ -38,19 +51,19 @@ class TerminalExecutor:
             total_bytes += len(line)
 
             if total_bytes > self.MAX_OUTPUT_LENGTH:
-                yield {"type": stream_type, "data": "... (output truncated - limit reached)"}
+                yield StreamOutput(type=stream_type, data="... (output truncated - limit reached)")
                 break
 
-            yield {"type": stream_type, "data": decoded_line}
+            yield StreamOutput(type=stream_type, data=decoded_line)
 
-    async def execute_command_stream(self, command: str) -> AsyncIterator[dict[str, Any]]:
+    async def execute_command_stream(self, command: str) -> AsyncIterator[CommandOutput]:
         """Execute command and stream output line by line."""
         parts = shlex.split(command.strip())
         if not parts:
-            yield {"type": "error", "data": "Empty command"}
+            yield CommandOutput(type="error", data="No command provided", exit_code=None)
             return
 
-        yield {"type": "start", "data": f"Executing: {command}"}
+        yield CommandOutput(type="start", data=f"Executing: {command}", exit_code=None)
 
         process = await asyncio.create_subprocess_exec(
             *parts,
@@ -75,10 +88,10 @@ class TerminalExecutor:
             await asyncio.wait_for(process.wait(), timeout=self.TIMEOUT_SECONDS)
         except asyncio.TimeoutError:
             process.kill()
-            yield {"type": "error", "data": "Command execution timed out"}
+            yield CommandOutput(type="error", data="Command execution timed out", exit_code=None)
             return
 
         if process.returncode == 0:
-            yield {"type": "end", "data": "Command completed successfully", "exit_code": 0}
+            yield CommandOutput(type="end", data="Command completed successfully", exit_code=0)
         else:
-            yield {"type": "end", "data": f"Command failed with exit code {process.returncode}", "exit_code": process.returncode}
+            yield CommandOutput(type="end", data=f"Command failed with exit code {process.returncode}", exit_code=process.returncode)

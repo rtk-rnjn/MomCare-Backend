@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,6 +19,9 @@ from src.utils import Finder, Symptom, TrimesterData
 if TYPE_CHECKING:
     from typing_extensions import AsyncIterator
 
+_ = load_dotenv(verbose=True)
+RANDOM_SEED = int(os.getenv("RANDOM_NUMBER_SEED", "0"))
+random.seed(RANDOM_SEED)
 
 finder = Finder()
 

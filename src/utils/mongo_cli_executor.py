@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import hashlib
-import secrets
 import typing
 
+from argon2 import PasswordHasher
 from bson import ObjectId, json_util
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -13,6 +12,8 @@ from .async_code_executor import AsyncCodeExecutor, Scope
 class MongoCliExecutor:
     """Execute MongoDB commands safely through a web interface."""
 
+    ph = PasswordHasher()
+
     def __init__(self, mongo_client: AsyncIOMotorClient, database_name: str = "MomCare"):
         self.mongo_client = mongo_client
         self.database_name = database_name
@@ -20,13 +21,13 @@ class MongoCliExecutor:
 
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash password with SHA-256."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash password with Argon2."""
+        return MongoCliExecutor.ph.hash(password)
 
     @staticmethod
     def verify_password(password: str, expected_hash: str) -> bool:
         """Verify password against expected hash."""
-        return secrets.compare_digest(MongoCliExecutor.hash_password(password), expected_hash)
+        return MongoCliExecutor.ph.verify(expected_hash, password)
 
     async def execute_command(self, raw_code: str) -> dict[str, typing.Any]:
         """Execute a MongoDB command safely."""
@@ -51,16 +52,14 @@ class MongoCliExecutor:
         """Format result for display."""
         if result is None:
             return "(null)"
-        elif isinstance(result, (dict, list)):
+
+        if isinstance(result, (dict, list)):
             return json_util.dumps(result, indent=2)
-        elif isinstance(result, ObjectId):
-            return str(result)
-        else:
+
+        if isinstance(result, ObjectId):
             return str(result)
 
-    def get_allowed_commands(self) -> list[str]:
-        """Get list of allowed commands."""
-        return []
+        return str(result)
 
     async def get_collections(self) -> list[str]:
         """Get list of collections in the database."""
