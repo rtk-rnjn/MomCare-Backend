@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict
+from typing import TypedDict, TYPE_CHECKING
 
 from bson import ObjectId
+
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired
 
 
 class FoodItemDict(TypedDict, total=False):
