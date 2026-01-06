@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import random
-from typing import Awaitable, Callable, Unpack
+from typing import Awaitable, Callable, TYPE_CHECKING
 
 import arrow
 from dotenv import load_dotenv
@@ -15,6 +15,9 @@ from src.models.mood import MoodDict
 from src.models.myplan import MyPlanDict
 from src.models.song import SongDict
 from src.models.user import UserDict
+
+if TYPE_CHECKING:
+    from typing_extensions import Unpack
 
 _ = load_dotenv(verbose=True)
 

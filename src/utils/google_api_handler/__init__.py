@@ -99,11 +99,11 @@ class GoogleAPIHandler:
         user_data.pop("plan", None)
         user_data.pop("_id", None)
 
-        foods = await foods_collection.find(
-            {"allergic_ingredients": {"$in": user_data.get("food_intolerances", [])}}, {"_id": 0}
-        ).to_list(None)
-        foods = set(FoodItem(**food) for food in foods)
+        foods = await foods_collection.find({}, {"_id": 0}).to_list(None)
+        foods = set(FoodItem(**food)['name'] for food in foods)
 
+
+        print(foods)
         plan = await self._generate_plan(user_data=User(**user_data), foods=foods)
         if not plan:
             raise Exception("Failed to generate plan")
@@ -129,7 +129,7 @@ class GoogleAPIHandler:
         plan_history = None
 
         response = await self.client.aio.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model="gemini-2.5-flash",
             contents=[
                 Content(
                     parts=[
@@ -218,7 +218,7 @@ class GoogleAPIHandler:
         user_data = user
 
         response = self.client.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model="gemini-2.5-flash",
             contents=[
                 Content(
                     parts=[
@@ -248,7 +248,7 @@ class GoogleAPIHandler:
         user_data = user
 
         response = self.client.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model="gemini-2.5-flash",
             contents=[
                 Content(
                     parts=[
