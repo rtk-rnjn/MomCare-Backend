@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import random
-from typing import Awaitable, Callable, TYPE_CHECKING
+from typing import AsyncIterator, Awaitable, Callable, TYPE_CHECKING
 
 import arrow
 from dotenv import load_dotenv
@@ -132,10 +132,11 @@ class DataHandler:
         food["_id"] = str(food["_id"])  # type: ignore
         return food
 
-    async def get_foods(self, food_name: str, /, *, limit: int = 10, fetch_food_image_uri):
+    async def get_foods(self, food_name: str, /, *, limit: int = 10, fetch_food_image_uri, need_image: bool = True) -> AsyncIterator[FoodItemDict]:
         async for food in self.foods_collection.find({"name": {"$regex": food_name, "$options": "i"}}).limit(limit):
-            image_uri = await self.get_food_image(food_name=food.get("name"), fetch_food_image_uri=fetch_food_image_uri)
-            food["image_uri"] = image_uri
+            if need_image and not food.get("image_uri"):
+                image_uri = await self.get_food_image(food_name=food.get("name"), fetch_food_image_uri=fetch_food_image_uri)
+                food["image_uri"] = image_uri
             food["_id"] = str(food["_id"])  # type: ignore
             yield food
 

@@ -62,6 +62,7 @@ async def _search_food(request: Request, food_name: str, limit: int = 10, need_i
         food_name,
         limit=limit,
         fetch_food_image_uri=genai_handler.fetch_food_image_uri,
+        need_image=need_image,
     ):
         if need_image and (food["image_uri"] is None or food["image_uri"] == ""):
             food["image_uri"] = await pixelbay_image_fetcher.search_image(food_name=food["name"])
