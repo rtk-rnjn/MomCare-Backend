@@ -64,7 +64,7 @@ async def _search_food(request: Request, food_name: str, limit: int = 10, need_i
         fetch_food_image_uri=genai_handler.fetch_food_image_uri,
         need_image=need_image,
     ):
-        if need_image and (food["image_uri"] is None or food["image_uri"] == ""):
+        if need_image and (food.get("image_uri") is None or food.get("image_uri") == ""):
             food["image_uri"] = await pixelbay_image_fetcher.search_image(food_name=food["name"])
 
         yield json.dumps(food) + "\n"
@@ -108,14 +108,14 @@ async def search_food_name(request: Request, food_name: str, limit: int = 10):
 
 
 @router.get("/search/food-name/{food_name}/image")
-async def search_food_name_image(request: Request, food_name: str, limit: int = 10):
+async def search_food_name_image(request: Request, food_name: str):
     """
     Get image URL for a specific food item.
 
     Retrieves or generates appropriate food images for meal planning
     and nutrition tracking visualization.
     """
-    return await pixelbay_image_fetcher.search_image(food_name=food_name)
+    return await genai_handler.fetch_food_image_uri(food_name) or await pixelbay_image_fetcher.search_image(food_name=food_name)
 
 
 @router.get("/search/symptoms", response_model=list[Symptom])
