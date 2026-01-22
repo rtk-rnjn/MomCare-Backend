@@ -57,13 +57,13 @@ class S3Response(BaseModel):
     )
 
 
-async def _search_food(request: Request, food_name: str, limit: int = 10) -> AsyncIterator[str]:
+async def _search_food(request: Request, food_name: str, limit: int = 10, need_image: bool = True) -> AsyncIterator[str]:
     async for food in data_handler.get_foods(
         food_name,
         limit=limit,
         fetch_food_image_uri=genai_handler.fetch_food_image_uri,
     ):
-        if food["image_uri"] is None or food["image_uri"] == "":
+        if need_image and (food["image_uri"] is None or food["image_uri"] == ""):
             food["image_uri"] = await pixelbay_image_fetcher.search_image(food_name=food["name"])
 
         yield json.dumps(food) + "\n"
@@ -89,6 +89,10 @@ async def search_food(request: Request, food_name: str, limit: int = 1):
     foods = _search_food(request, food_name=food_name, limit=limit)
     return StreamingResponse(foods, media_type="application/json")
 
+@router.get("/search-raw", response_class=StreamingResponse)
+async def search_food_raw(request: Request, food_name: str, limit: int = 1):
+    foods = _search_food(request, food_name=food_name, limit=limit, need_image=False)
+    return StreamingResponse(foods, media_type="application/json")
 
 @router.get("/search/food-name", response_class=StreamingResponse)
 async def search_food_name(request: Request, food_name: str, limit: int = 10):
