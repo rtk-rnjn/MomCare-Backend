@@ -3,11 +3,10 @@ from __future__ import annotations
 import os
 from contextlib import AsyncExitStack
 
-from aiobotocore.session import AioSession, get_session
 from aiobotocore.config import AioConfig
+from aiobotocore.session import AioSession, get_session
 from dotenv import load_dotenv
 from types_aiobotocore_s3.client import S3Client
-
 
 _ = load_dotenv(verbose=True)
 

@@ -162,12 +162,14 @@ class TokenManager(metaclass=SingletonMeta):
     @overload
     def decode(
         self, token: str, expected_type: Literal["access"], /
-    ) -> DecodedAccessPayload: ...
+    ) -> DecodedAccessPayload:
+        ...
 
     @overload
     def decode(
         self, token: str, expected_type: Literal["refresh"], /
-    ) -> DecodedRefreshPayload: ...
+    ) -> DecodedRefreshPayload:
+        ...
 
     def decode(
         self, token: str, expected_type: Literal["access", "refresh"], /
