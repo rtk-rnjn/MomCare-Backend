@@ -115,7 +115,10 @@ async def get_tips(user_id: str = Depends(get_user_id)):
     start, end = _today_window()
 
     tip = await tips_collection.find_one(
-        {"_id": user_id, "created_at_timestamp": {"$gte": start, "$lt": end}}
+        {
+            "_id": user_id,
+            "created_at_timestamp": {"$gte": start, "$lt": end},
+        }
     )
     if tip:
         return DailyInsight(**tip)
