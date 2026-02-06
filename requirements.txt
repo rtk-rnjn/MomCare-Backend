@@ -17,3 +17,4 @@ uvloop ; platform_system != "Windows"
 arrow
 jinja2
 aiobotocore
+'types-aiobotocore[essential]'
