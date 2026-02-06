@@ -1,12 +1,35 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
+import logging
+import logging.handlers
+import rich.logging
 
-from rich.logging import RichHandler
+import uvicorn
+from dotenv import load_dotenv
 
-from src import app
+_ = load_dotenv(verbose=True)
+
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "8080"))
+
+file_handler = logging.handlers.RotatingFileHandler(
+    "app.log", maxBytes=5 * 1024 * 1024, backupCount=2
+)
+file_handler.setLevel(logging.INFO)
+file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(file_formatter)
+
+console_handler = rich.logging.RichHandler()
+console_handler.setLevel(logging.INFO)
+console_formatter = logging.Formatter("%(message)s")
+console_handler.setFormatter(console_formatter)
+
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[file_handler, console_handler],
+)
 
 if os.name == "nt":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -14,27 +37,14 @@ else:
     try:
         import uvloop
 
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        uvloop.install()
     except ImportError:
         pass
 
-HOST = os.getenv("HOST", "0.0.0.0")  # nosec B104
-PORT = int(os.getenv("PORT", 8000))
-DEVELOPMENT = os.getenv("DEVELOPMENT", "True").lower() == "true"
 
+def runner():
+    uvicorn.run("src.app:app", host=HOST, port=PORT, reload=True)
 
-logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler()])
-
-LOGGING_CONFIG: dict[str, object] = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {"custom": {"()": RichHandler}},
-}
 
 if __name__ == "__main__":
-    import uvicorn
-
-    if DEVELOPMENT:
-        uvicorn.run("src:app", host=HOST, port=PORT, reload=True, log_config=LOGGING_CONFIG)
-    else:
-        uvicorn.run(app, host=HOST, port=PORT, log_config=LOGGING_CONFIG)
+    runner()

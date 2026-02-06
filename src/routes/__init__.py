@@ -1,19 +1,12 @@
 from fastapi import APIRouter
 
-from .frontend import *  # noqa
-from .internal import *  # noqa
-from .v1 import (
-    ai_router,
-    auth_router,
-    content_router,
-    database_router,
-    otp_router,
-)
+from .api import v1_ai_router, v1_auth_router, v1_update_router, v1_utils_router
 
-v1_router = APIRouter(prefix="/v1")
+api_router = APIRouter(prefix="/api")
 
-v1_router.include_router(auth_router)
-v1_router.include_router(otp_router)
-v1_router.include_router(content_router)
-v1_router.include_router(ai_router)
-v1_router.include_router(database_router)
+api_router.include_router(v1_auth_router, prefix="/v1")
+api_router.include_router(v1_ai_router, prefix="/v1")
+api_router.include_router(v1_utils_router, prefix="/v1")
+api_router.include_router(v1_update_router, prefix="/v1")
+
+__all__ = ("api_router",)

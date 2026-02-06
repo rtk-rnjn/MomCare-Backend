@@ -1,26 +1,33 @@
 from __future__ import annotations
 
-from typing import TypedDict, TYPE_CHECKING
+from typing import NotRequired, TypedDict
 
-from bson import ObjectId
+from pydantic import BaseModel, Field
 
-if TYPE_CHECKING:
-    from typing_extensions import NotRequired
+from .food_item import Allergen, FoodType
+
+
+class CredentialsDict(TypedDict):
+    _id: NotRequired[str]
+
+    email_address: str
+    password: str
+
+
+class CredentialsModel(BaseModel):
+    email_address: str
+    password: str
+
+    class Config:
+        extra = "ignore"
 
 
 class UserDict(TypedDict, total=False):
-    _id: NotRequired[ObjectId]
+    _id: NotRequired[str]
 
-    id: str
-    email_address: str
-    password: str
     first_name: str
-    last_name: NotRequired[str | None]
-    country_code: NotRequired[str]
-    timezone: NotRequired[str]
-
-    country: NotRequired[str]
-    phone_number: NotRequired[str]
+    last_name: str | None
+    phone_number: str | None
 
     date_of_birth_timestamp: float
     height: float
@@ -29,8 +36,30 @@ class UserDict(TypedDict, total=False):
     due_date_timestamp: float
 
     pre_existing_conditions: list[str]
-    food_intolerances: list[str]
-    dietary_preferences: list[str]
+    food_intolerances: list[Allergen]
+    dietary_preferences: list[FoodType]
 
-    created_at_timestamp: float
-    is_verified: bool
+    created_at_timestamp: NotRequired[float]
+    last_login_timestamp: NotRequired[float]
+    verified_email: NotRequired[bool]
+
+
+class UserModel(BaseModel):
+    id: str = Field(..., alias="_id")
+
+    first_name: str | None = None
+    last_name: str | None = None
+    phone_number: str | None = None
+
+    date_of_birth_timestamp: float | None = None
+    height: float | None = None
+    pre_pregnancy_weight: float | None = None
+    current_weight: float | None = None
+    due_date_timestamp: float | None = None
+
+    pre_existing_conditions: list[str] = Field(default_factory=list)
+    food_intolerances: list[Allergen] = Field(default_factory=list)
+    dietary_preferences: list[FoodType] = Field(default_factory=list)
+
+    class Config:
+        extra = "ignore"
