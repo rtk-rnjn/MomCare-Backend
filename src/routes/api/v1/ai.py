@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import uuid
-from typing import Iterable, TypedDict, cast
+from typing import AsyncGenerator, TypedDict, cast
 
 import arrow
 from fastapi import APIRouter, Body, Depends
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
-from gridfs.grid_file import Cursor
 from pydantic import BaseModel
-from pymongo.collection import Collection
-from pymongo.database import Database
+from pymongo.asynchronous.collection import AsyncCollection as Collection
+from pymongo.asynchronous.cursor import AsyncCursor
+from pymongo.asynchronous.database import AsyncDatabase as Database
 
 from src.app import app
 from src.models import (
@@ -65,8 +65,8 @@ def _today_window() -> tuple[float, float]:
     )
 
 
-def _get_verified_user(user_id: str) -> UserDict:
-    user = users_collection.find_one({"_id": user_id})
+async def _get_verified_user(user_id: str) -> UserDict:
+    user = await users_collection.find_one({"_id": user_id})
     if not user:
         raise HTTPException(404, "User not found.")
     if not user.get("verified_email", False):
@@ -94,30 +94,34 @@ def _exercise_pipeline(user_id: str, start: float, end: float) -> list[dict]:
     ]
 
 
-def _hydrate_exercise(exercise: ExerciseDict) -> ExerciseModel:
+async def _hydrate_exercise(exercise: ExerciseDict) -> ExerciseModel:
     model = ExerciseModel(**exercise)
-    model.image_name_uri = s3.get_presigned_url(f"ExerciseImages/{model.image_name}")
+    model.image_name_uri = await s3.get_presigned_url(
+        f"ExerciseImages/{model.image_name}"
+    )
     return model
 
 
-def _stream_json(*, cursor, model_factory: type[BaseModel]) -> Iterable[str]:
-    for m in cursor:
+async def _stream_json(
+    *, cursor: AsyncGenerator | AsyncCursor, model_factory: type[BaseModel]
+):
+    async for m in cursor:
         yield model_factory(**m).model_dump_json(by_alias=True) + "\n"
 
 
 @router.get("/generate/tips", response_model=DailyInsight)
 async def get_tips(user_id: str = Depends(get_user_id)):
-    user = _get_verified_user(user_id)
+    user = await _get_verified_user(user_id)
     start, end = _today_window()
 
-    tip = tips_collection.find_one(
+    tip = await tips_collection.find_one(
         {"_id": user_id, "created_at_timestamp": {"$gte": start, "$lt": end}}
     )
     if tip:
         return DailyInsight(**tip)
 
-    generated = google_api_handler.generate_tips(user=user)
-    tips_collection.insert_one(
+    generated = await google_api_handler.generate_tips(user=user)
+    await tips_collection.insert_one(
         {
             "_id": user_id,
             **generated.model_dump(),
@@ -132,7 +136,7 @@ async def fetch_all_tips(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id),
 ):
-    _get_verified_user(user_id)
+    await _get_verified_user(user_id)
 
     cursor = tips_collection.find(
         {
@@ -155,9 +159,9 @@ async def fetch_all_plans(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id),
 ):
-    _get_verified_user(user_id)
+    await _get_verified_user(user_id)
 
-    cursor: Cursor[MyPlanDict] = plans_collection.find(
+    cursor = plans_collection.find(
         {
             "user_id": user_id,
             "created_at_timestamp": {
@@ -175,7 +179,7 @@ async def fetch_all_plans(
 
 @router.get("/generate/plan", response_model=MyPlanModel)
 async def get_meal_plan(user_id: str = Depends(get_user_id)):
-    user: UserDict = _get_verified_user(user_id)
+    user: UserDict = await _get_verified_user(user_id)
 
     now = arrow.now()
     existing_plan = plans_collection.find_one(
@@ -209,19 +213,20 @@ async def get_meal_plan(user_id: str = Depends(get_user_id)):
     if dietary_preferences:
         pipeline.append({"$match": {"type": {"$in": dietary_preferences}}})
 
-    foods_cursor = foods_collection.aggregate(pipeline)
+    foods_cursor = await foods_collection.aggregate(pipeline)
     foods = [
-        {"_id": food.get("_id"), "name": food.get("name")} for food in foods_cursor
+        {"_id": food.get("_id"), "name": food.get("name")}
+        async for food in foods_cursor
     ]
 
-    plan = google_api_handler.generate_plan(user=user, available_foods=foods)
+    plan = await google_api_handler.generate_plan(user=user, available_foods=foods)
 
     plan.created_at_timestamp = arrow.now().float_timestamp
     plan.user_id = user_id
     plan.id = str(uuid.uuid4())
 
     plan_dict = cast(MyPlanDict, plan.model_dump(by_alias=True, mode="json"))
-    plans_collection.insert_one(plan_dict)
+    await plans_collection.insert_one(plan_dict)
 
     return JSONResponse(
         plan.model_dump(by_alias=True, mode="json"), media_type="application/json"
@@ -230,20 +235,18 @@ async def get_meal_plan(user_id: str = Depends(get_user_id)):
 
 @router.get("/generate/exercises", response_model=list[UserExerciseModel])
 async def get_exercises(user_id: str = Depends(get_user_id)):
-    user = _get_verified_user(user_id)
+    user = await _get_verified_user(user_id)
     window_start_ts, window_end_ts = _today_window()
 
-    existing_user_exercises = list(
-        user_exercises_collection.find(
-            {
-                "user_id": user_id,
-                "added_at_timestamp": {
-                    "$gte": window_start_ts,
-                    "$lte": window_end_ts,
-                },
-            }
-        )
-    )
+    existing_user_exercises = await user_exercises_collection.find(
+        {
+            "user_id": user_id,
+            "added_at_timestamp": {
+                "$gte": window_start_ts,
+                "$lte": window_end_ts,
+            },
+        }
+    ).to_list(length=None)
 
     if existing_user_exercises:
         return JSONResponse(existing_user_exercises)
@@ -253,7 +256,7 @@ async def get_exercises(user_id: str = Depends(get_user_id)):
         for exercise in exercises_collection.find({})
     ]
 
-    ai_response = google_api_handler.generate_exercises(
+    ai_response = await google_api_handler.generate_exercises(
         user=user,
         exercise_sets=exercise_catalog_payload,
     )
@@ -262,7 +265,7 @@ async def get_exercises(user_id: str = Depends(get_user_id)):
     created_user_exercises: list[UserExerciseDict] = []
 
     for exercise in ai_response.exercises:
-        exercise.image_name_uri = s3.get_presigned_url(
+        exercise.image_name_uri = await s3.get_presigned_url(
             f"ExerciseImages/{exercise.image_name}"
         )
 
@@ -274,7 +277,7 @@ async def get_exercises(user_id: str = Depends(get_user_id)):
             video_duration_completed_seconds=0.0,
         )
 
-        user_exercises_collection.insert_one(user_exercise_record)
+        await user_exercises_collection.insert_one(user_exercise_record)
         created_user_exercises.append(user_exercise_record)
 
     return JSONResponse(created_user_exercises)
@@ -285,7 +288,7 @@ async def fetch_all_exercises(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id),
 ):
-    _get_verified_user(user_id)
+    await _get_verified_user(user_id)
 
     pipeline = _exercise_pipeline(
         user_id,
@@ -293,8 +296,12 @@ async def fetch_all_exercises(
         timestamp_range.end_timestamp,
     )
 
-    cursor = user_exercises_collection.aggregate(pipeline)
-    models = (_hydrate_exercise(doc["exercise"]) for doc in cursor if "exercise" in doc)
+    cursor = await user_exercises_collection.aggregate(pipeline)
+    models = (
+        await _hydrate_exercise(doc["exercise"])
+        async for doc in cursor
+        if "exercise" in doc
+    )
 
     return StreamingResponse(
         _stream_json(cursor=models, model_factory=ExerciseModel),

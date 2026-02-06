@@ -51,7 +51,7 @@ class GoogleAPIHandler:
         self.model = "gemini-2.5-flash"
         self.client = genai.Client(api_key=self.gemini_api_key)
 
-    def _generate_response(
+    async def _generate_response(
         self,
         *,
         system_prompt: str,
@@ -65,7 +65,7 @@ class GoogleAPIHandler:
             response_schema=response_schema,
         )
         model = self.model
-        response = self.client.models.generate_content(
+        response = await self.client.aio.models.generate_content(
             model=model,
             contents=[content],
             config=config,
@@ -75,7 +75,7 @@ class GoogleAPIHandler:
 
         return response_schema()
 
-    def generate_tips(self, user: User):
+    async def generate_tips(self, user: User):
         system_prompt = PROMPTS["tips_prompt"]["system"]
         user_prompt = PROMPTS["tips_prompt"]["user"]
 
@@ -84,14 +84,14 @@ class GoogleAPIHandler:
             for part in user_prompt
         ]
 
-        tips = self._generate_response(
+        tips = await self._generate_response(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response_schema=DailyInsight,
         )
         return tips
 
-    def generate_exercises(self, user: User, exercise_sets: list[dict]):
+    async def generate_exercises(self, user: User, exercise_sets: list[dict]):
         system_prompt = PROMPTS["exercise_prompt"]["system"]
         user_prompt = PROMPTS["exercise_prompt"]["user"]
 
@@ -103,14 +103,14 @@ class GoogleAPIHandler:
             exercise_sets=exercise_sets
         )
 
-        routine = self._generate_response(
+        routine = await self._generate_response(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response_schema=ExercisesModel,
         )
         return routine
 
-    def generate_plan(self, user: User, available_foods: list[dict[str, Any]]):
+    async def generate_plan(self, user: User, available_foods: list[dict[str, Any]]):
         system_prompt = PROMPTS["plan_prompt"]["system"]
         user_prompt = PROMPTS["plan_prompt"]["user"]
 
@@ -124,7 +124,7 @@ class GoogleAPIHandler:
             for part in user_prompt
         ]
 
-        generated = self._generate_response(
+        generated = await self._generate_response(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response_schema=MyPlanModel,

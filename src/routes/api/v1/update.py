@@ -4,8 +4,8 @@ from typing import Literal
 
 import arrow
 from fastapi import APIRouter, Body, Depends, HTTPException
-from pymongo.collection import Collection
-from pymongo.database import Database
+from pymongo.asynchronous.collection import AsyncCollection as Collection
+from pymongo.asynchronous.database import AsyncDatabase as Database
 
 from src.app import app
 from src.models import MyPlanDict, UserExerciseDict
@@ -25,8 +25,8 @@ def _plan_filter(plan_id: str, user_id: str) -> dict:
     return {"_id": plan_id, "user_id": user_id}
 
 
-def _update_consumed(plan_id: str, meal: Meal, food_id: str, user_id: str, value):
-    result = plans_collection.update_one(
+async def _update_consumed(plan_id: str, meal: Meal, food_id: str, user_id: str, value):
+    result = await plans_collection.update_one(
         _plan_filter(plan_id, user_id),
         {"$set": {f"{meal}.$[food].consumed_at_timestamp": value}},
         array_filters=[{"food.food_id": food_id}],
@@ -45,7 +45,7 @@ def _inc_food(plan_id: str, meal: Meal, food_id: str, user_id: str, delta: int):
 async def update_exercise(
     _id: str, duration: float = Body(...), user_id: str = Depends(get_user_id)
 ):
-    update_result = exercises_collection.update_one(
+    update_result = await exercises_collection.update_one(
         {"_id": _id, "user_id": user_id},
         {"$set": {"video_duration_completed_seconds": duration}},
     )
@@ -79,12 +79,12 @@ async def add_food_to_meal(
     food_id: str,
     user_id: str = Depends(get_user_id),
 ):
-    result = _inc_food(plan_id, meal, food_id, user_id, 1)
+    result = await _inc_food(plan_id, meal, food_id, user_id, 1)
 
     if result.matched_count == 1:
         return True
 
-    result = plans_collection.update_one(
+    result = await plans_collection.update_one(
         _plan_filter(plan_id, user_id),
         {
             "$push": {
@@ -110,18 +110,18 @@ async def remove_food_from_meal(
     food_id: str,
     user_id: str = Depends(get_user_id),
 ):
-    result = _inc_food(plan_id, meal, food_id, user_id, -1)
+    result = await _inc_food(plan_id, meal, food_id, user_id, -1)
 
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    plan = plans_collection.find_one(_plan_filter(plan_id, user_id))
+    plan = await plans_collection.find_one(_plan_filter(plan_id, user_id))
 
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
 
     if any(f["food_id"] == food_id and f["count"] <= 0 for f in plan.get(meal, [])):
-        plans_collection.update_one(
+        await plans_collection.update_one(
             _plan_filter(plan_id, user_id),
             {"$pull": {meal: {"food_id": food_id}}},
         )

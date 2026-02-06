@@ -6,8 +6,8 @@ from fastapi import APIRouter
 from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from pymongo.collection import Collection
-from pymongo.database import Database
+from pymongo.asynchronous.collection import AsyncCollection as Collection
+from pymongo.asynchronous.database import AsyncDatabase as Database
 
 from src.app import app
 from src.models import (
@@ -41,21 +41,21 @@ def _stream(generator):
     return StreamingResponse(generator, media_type="application/json")
 
 
-def _get_or_404(collection: Collection, _id: str, label: str):
-    doc = collection.find_one({"_id": _id})
+async def _get_or_404(collection: Collection, _id: str, label: str):
+    doc = await collection.find_one({"_id": _id})
     if doc is None:
         raise HTTPException(status_code=404, detail=f"{label} not found.")
     return doc
 
 
-def _autocomplete_search(
+async def _autocomplete_search(
     *,
     collection: Collection,
     query: str,
     path: str,
     limit: int,
 ):
-    return collection.aggregate(
+    return await collection.aggregate(
         [
             {
                 "$search": {
@@ -72,45 +72,47 @@ def _autocomplete_search(
     )
 
 
-def _hydrate_song(song: Song) -> SongModel:
-    song["song_image_uri"] = s3.get_presigned_url(
+async def _hydrate_song(song: Song) -> SongModel:
+    song["song_image_uri"] = await s3.get_presigned_url(
         f"Songs/{song['mood']}/{song['playlist']}/Image/{song['image_name']}"
     )
-    song["playlist_image_uri"] = s3.get_presigned_url(
+    song["playlist_image_uri"] = await s3.get_presigned_url(
         f"Songs/{song['mood']}/{song['playlist']}/{song['playlist'].lower()}.jpg"
     )
     return SongModel(**song)  # type: ignore
 
 
-def _hydrate_exercise(exercise: dict) -> ExerciseModel:
+async def _hydrate_exercise(exercise: dict) -> ExerciseModel:
     model = ExerciseModel(**exercise)
-    model.image_name_uri = s3.get_presigned_url(f"ExerciseImages/{model.image_name}")
+    model.image_name_uri = await s3.get_presigned_url(
+        f"ExerciseImages/{model.image_name}"
+    )
     return model
 
 
-def _search_food(food_name: str, limit: int):
-    cursor = _autocomplete_search(
+async def _search_food(food_name: str, limit: int):
+    cursor = await _autocomplete_search(
         collection=foods_collection,
         query=food_name,
         path="name",
         limit=limit,
     )
-    for food in cursor:
+    async for food in cursor:
         yield FoodItemModel(**food).model_dump_json(by_alias=True) + "\n"
 
 
-def _search_exercise(exercise_name: str, limit: int):
-    cursor = _autocomplete_search(
+async def _search_exercise(exercise_name: str, limit: int):
+    cursor = await _autocomplete_search(
         collection=exercises_collection,
         query=exercise_name,
         path="name",
         limit=limit,
     )
-    for exercise in cursor:
-        yield _hydrate_exercise(exercise).model_dump_json(by_alias=True) + "\n"
+    async for exercise in cursor:
+        yield (await _hydrate_exercise(exercise)).model_dump_json(by_alias=True) + "\n"
 
 
-def _search_song(text: str):
+async def _search_song(text: str):
     cursor = songs_collection.find(
         {
             "$or": [
@@ -121,8 +123,8 @@ def _search_song(text: str):
             ]
         }
     )
-    for song in cursor:
-        yield _hydrate_song(song).model_dump_json(by_alias=True) + "\n"
+    async for song in cursor:
+        yield (await _hydrate_song(song)).model_dump_json(by_alias=True) + "\n"
 
 
 @router.get("/search/food")
@@ -151,19 +153,21 @@ async def get_songs(
     if playlist:
         query["playlist"] = playlist
 
-    return [_hydrate_song(song) for song in songs_collection.find(query).to_list()]
+    return [
+        _hydrate_song(song) for song in await songs_collection.find(query).to_list()
+    ]
 
 
 @router.get("/songs/{song_id}", response_model=SongModel)
 async def get_song(song_id: str):
-    song = _get_or_404(songs_collection, song_id, "Song")
+    song = await _get_or_404(songs_collection, song_id, "Song")
     return _hydrate_song(song)
 
 
 @router.get("/songs/{song_id}/stream", response_model=ServerMessage)
 async def stream_song(song_id: str):
-    song = _get_or_404(songs_collection, song_id, "Song")
-    uri = s3.get_presigned_url(
+    song = await _get_or_404(songs_collection, song_id, "Song")
+    uri = await s3.get_presigned_url(
         f"Songs/{song['mood']}/{song['playlist']}/Song/{song['song_name']}"
     )
     return ServerMessage(detail=uri)
@@ -171,14 +175,14 @@ async def stream_song(song_id: str):
 
 @router.get("/exercises/{exercise_id}", response_model=ExerciseModel)
 async def get_exercise(exercise_id: str):
-    exercise = _get_or_404(exercises_collection, exercise_id, "Exercise")
+    exercise = await _get_or_404(exercises_collection, exercise_id, "Exercise")
     return _hydrate_exercise(exercise)
 
 
 @router.get("/exercises/{exercise_id}/stream", response_model=ServerMessage)
 async def stream_exercise(exercise_id: str):
-    exercise = _get_or_404(exercises_collection, exercise_id, "Exercise")
-    uri = s3.get_presigned_url(
+    exercise = await _get_or_404(exercises_collection, exercise_id, "Exercise")
+    uri = await s3.get_presigned_url(
         f"Exercises/{exercise['name'].lower().replace(' ', '_')}.mp4"
     )
     return ServerMessage(detail=uri)
@@ -186,12 +190,12 @@ async def stream_exercise(exercise_id: str):
 
 @router.get("/foods/{food_id}", response_model=FoodItemModel)
 async def get_food(food_id: str):
-    food = _get_or_404(foods_collection, food_id, "Food item")
+    food = await _get_or_404(foods_collection, food_id, "Food item")
     return FoodItemModel(**food)
 
 
 @router.get("/foods/{food_id}/image", response_model=ServerMessage)
 async def get_food_image(food_id: str):
-    food = _get_or_404(foods_collection, food_id, "Food item")
-    uri = s3.get_presigned_url(f"FoodImages/{food['image_name']}")
+    food = await _get_or_404(foods_collection, food_id, "Food item")
+    uri = await s3.get_presigned_url(f"FoodImages/{food['image_name']}")
     return ServerMessage(detail=uri)

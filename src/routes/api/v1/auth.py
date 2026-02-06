@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import os
 import random
 import smtplib
@@ -8,13 +9,13 @@ import uuid
 from email.message import EmailMessage
 
 import bcrypt
-import redis
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from pymongo.collection import Collection
-from pymongo.database import Database
+from pymongo.asynchronous.collection import AsyncCollection as Collection
+from pymongo.asynchronous.database import AsyncDatabase as Database
+from redis.asyncio import Redis
 
 from src.app import app
 from src.models import CredentialsDict, CredentialsModel, UserDict, UserModel
@@ -25,7 +26,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 auth_manager: TokenManager = app.state.auth_manager
 database: Database = app.state.mongo_database
-redis_client: redis.Redis = app.state.redis_client
+redis_client: Redis = app.state.redis_client
 
 credentials_collection: Collection[CredentialsDict] = database["credentials"]
 users_collection: Collection[UserDict] = database["users"]
@@ -111,22 +112,22 @@ def _verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
-def _get_credential_by_email(email: str) -> CredentialsDict:
-    cred = credentials_collection.find_one({"email_address": email})
+async def _get_credential_by_email(email: str) -> CredentialsDict:
+    cred = await credentials_collection.find_one({"email_address": email})
     if cred is None:
         raise HTTPException(status_code=404, detail="User not found.")
     return cred
 
 
-def _get_credential_by_id(user_id: str) -> CredentialsDict:
-    cred = credentials_collection.find_one({"_id": user_id})
+async def _get_credential_by_id(user_id: str) -> CredentialsDict:
+    cred = await credentials_collection.find_one({"_id": user_id})
     if cred is None:
         raise HTTPException(status_code=404, detail="User not found.")
     return cred
 
 
-def _get_user_or_404(user_id: str) -> UserDict:
-    user = users_collection.find_one({"_id": user_id})
+async def _get_user_or_404(user_id: str) -> UserDict:
+    user = await users_collection.find_one({"_id": user_id})
     if user is None:
         raise HTTPException(status_code=404, detail="User not found.")
     return user
@@ -137,12 +138,12 @@ def _json(detail: str, status: int = 200):
 
 
 @router.post("/register", status_code=201, response_model=RegistrationResponse)
-def register(data: CredentialsModel = Body(...)):
-    if credentials_collection.find_one({"email_address": data.email_address}):
+async def register(data: CredentialsModel = Body(...)):
+    if await credentials_collection.find_one({"email_address": data.email_address}):
         raise HTTPException(status_code=409, detail="Email address already in use.")
 
     cred_id = str(uuid.uuid4())
-    credentials_collection.insert_one(
+    await credentials_collection.insert_one(
         {
             "_id": cred_id,
             "email_address": data.email_address,
@@ -151,7 +152,7 @@ def register(data: CredentialsModel = Body(...)):
     )
 
     now = time.time()
-    users_collection.insert_one(
+    await users_collection.insert_one(
         {
             "_id": cred_id,
             "created_at_timestamp": now,
@@ -165,14 +166,14 @@ def register(data: CredentialsModel = Body(...)):
 
 
 @router.post("/login", response_model=TokenPair)
-def login(data: CredentialsModel = Body(...)):
-    cred = _get_credential_by_email(data.email_address)
+async def login(data: CredentialsModel = Body(...)):
+    cred = await _get_credential_by_email(data.email_address)
     if not _verify_password(data.password, cred["password"]):
         raise HTTPException(
             status_code=401, detail="Invalid email address or password."
         )
 
-    users_collection.update_one(
+    await users_collection.update_one(
         {"_id": cred.get("_id")},
         {"$set": {"last_login_timestamp": time.time()}},
     )
@@ -181,15 +182,15 @@ def login(data: CredentialsModel = Body(...)):
 
 
 @router.get("/me", response_model=UserModel)
-def get_current_user(user_id: str = Depends(get_user_id)):
-    user = users_collection.find_one({"_id": user_id}, {"password": 0})
+async def get_current_user(user_id: str = Depends(get_user_id)):
+    user = await users_collection.find_one({"_id": user_id}, {"password": 0})
     if user is None:
         raise HTTPException(status_code=404, detail="User not found.")
     return UserModel(**user)  # type: ignore
 
 
 @router.post("/refresh", response_model=TokenPair)
-def refresh_token(refresh_token: str = Body(...)):
+async def refresh_token(refresh_token: str = Body(...)):
     try:
         return auth_manager.refresh(refresh_token)
     except AuthError:
@@ -197,7 +198,7 @@ def refresh_token(refresh_token: str = Body(...)):
 
 
 @router.post("/logout", response_model=ServerMessage)
-def logout(refresh_token: str = Body(...)):
+async def logout(refresh_token: str = Body(...)):
     try:
         auth_manager.logout(refresh_token)
     except AuthError:
@@ -206,7 +207,7 @@ def logout(refresh_token: str = Body(...)):
 
 
 @router.patch("/update", response_model=ServerMessage)
-def update_user(
+async def update_user(
     updated_data: UserModel = Body(...),
     user_id: str = Depends(get_user_id),
 ):
@@ -217,7 +218,7 @@ def update_user(
     if not fields:
         return _json("No fields to update.")
 
-    result = users_collection.update_one({"_id": user_id}, {"$set": fields})
+    result = await users_collection.update_one({"_id": user_id}, {"$set": fields})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found.")
 
@@ -225,25 +226,30 @@ def update_user(
 
 
 @router.delete("/delete", response_model=ServerMessage)
-def delete_user(user_id: str = Depends(get_user_id)):
-    c = credentials_collection.delete_one({"_id": user_id}).deleted_count
-    u = users_collection.delete_one({"_id": user_id}).deleted_count
+async def delete_user(user_id: str = Depends(get_user_id)):
+    delete_result = await credentials_collection.delete_one({"_id": user_id})
+    c = delete_result.deleted_count
+
+    delete_result = await users_collection.delete_one({"_id": user_id})
+    u = delete_result.deleted_count
+
     if not c and not u:
         raise HTTPException(status_code=404, detail="User not found.")
+
     return _json("User deleted successfully.")
 
 
 @router.patch("/change-password", response_model=ServerMessage)
-def change_password(
+async def change_password(
     current_password: str = Body(..., embed=True),
     new_password: str = Body(..., embed=True),
     user_id: str = Depends(get_user_id),
 ):
-    cred = _get_credential_by_id(user_id)
+    cred = await _get_credential_by_id(user_id)
     if not _verify_password(current_password, cred["password"]):
         raise HTTPException(status_code=401, detail="Invalid current password.")
 
-    credentials_collection.update_one(
+    await credentials_collection.update_one(
         {"_id": user_id},
         {"$set": {"password": _hash_password(new_password)}},
     )
@@ -252,14 +258,14 @@ def change_password(
 
 
 @router.post("/request-otp", response_model=ServerMessage)
-def request_otp(
+async def request_otp(
     background_tasks: BackgroundTasks,
     email_address: str = Body(..., embed=True),
 ):
-    _get_credential_by_email(email_address)
-
+    await _get_credential_by_email(email_address)
     otp = str(random.randint(100000, 999999))
-    redis_client.setex(f"otp:{email_address}", 600, otp)
+    await redis_client.setex(f"otp:{email_address}", 600, otp)
+
     background_tasks.add_task(
         email_handler.send,
         email_address,
@@ -271,17 +277,19 @@ def request_otp(
 
 
 @router.post("/verify-otp", response_model=ServerMessage)
-def verify_otp(
+async def verify_otp(
     email_address: str = Body(..., embed=True),
     otp: str = Body(..., embed=True),
 ):
-    cred = _get_credential_by_email(email_address)
+    cred = await _get_credential_by_email(email_address)
     stored = redis_client.get(f"otp:{email_address}")
+    if inspect.isawaitable(stored):
+        stored = await stored
 
     if stored is None or stored != otp:
         raise HTTPException(status_code=400, detail="Invalid OTP.")
 
-    users_collection.update_one(
+    await users_collection.update_one(
         {"_id": cred.get("_id")},
         {"$set": {"verified_email": True}},
     )

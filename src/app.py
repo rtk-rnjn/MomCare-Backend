@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import os
 
-import pymongo
-import redis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pymongo.asynchronous.mongo_client import AsyncMongoClient
+from redis.asyncio import Redis
 
 from src.utils import S3, GoogleAPIHandler, TokenManager
 
@@ -23,7 +23,7 @@ REDIS_DB = int(os.getenv("REDIS_DB", 5))
 auth_manager = TokenManager()
 google_api_handler = GoogleAPIHandler()
 s3 = S3()
-redis_client = redis.Redis(
+redis_client = Redis(
     host=REDIS_HOST,
     port=REDIS_PORT,
     password=REDIS_PASSWORD,
@@ -32,7 +32,7 @@ redis_client = redis.Redis(
     protocol=3,
 )
 
-mongo_client = pymongo.MongoClient(MONGODB_URI)
+mongo_client = AsyncMongoClient(MONGODB_URI)
 
 app.state.auth_manager = auth_manager
 app.state.google_api_handler = google_api_handler

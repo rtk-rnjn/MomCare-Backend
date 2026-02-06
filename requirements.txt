@@ -8,6 +8,12 @@ redis
 PyJWT
 bcrypt
 email-validator
-uvloop
 google-genai
 boto3
+rich
+ruff
+isort
+uvloop ; platform_system != "Windows"
+arrow
+jinja2
+aiobotocore
