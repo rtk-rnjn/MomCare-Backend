@@ -13,8 +13,20 @@ class FoodReferenceDict(TypedDict):
 
 class FoodReferenceModel(BaseModel):
     food_id: str
-    consumed_at_timestamp: float | None
-    count: int
+    consumed_at_timestamp: float | None = Field(
+        None,
+        description="The timestamp when the food was consumed. Null if not consumed yet.",
+        title="Consumed At Timestamp",
+        examples=[1622505600.0],
+        gt=0,
+    )
+    count: int = Field(
+        ...,
+        description="The count of the food items.",
+        title="Count",
+        examples=[1],
+        gt=0,
+    )
 
     class Config:
         extra = "ignore"
@@ -34,16 +46,24 @@ class MyPlanDict(TypedDict):
 
 
 class MyPlanModel(BaseModel):
-    id: str = Field(..., alias="_id")
+    id: str = Field(
+        ...,
+        alias="_id",
+        description="The unique identifier for the plan.",
+        examples=["123e4567-e89b-12d3-a456-426614174000"],
+        title="Plan ID",
+    )
 
     user_id: str
 
-    breakfast: list[FoodReferenceModel]
-    lunch: list[FoodReferenceModel]
-    dinner: list[FoodReferenceModel]
-    snacks: list[FoodReferenceModel]
+    breakfast: list[FoodReferenceModel] = Field(..., description="The list of food items for breakfast.", title="Breakfast")
+    lunch: list[FoodReferenceModel] = Field(..., description="The list of food items for lunch.", title="Lunch")
+    dinner: list[FoodReferenceModel] = Field(..., description="The list of food items for dinner.", title="Dinner")
+    snacks: list[FoodReferenceModel] = Field(..., description="The list of food items for snacks.", title="Snacks")
 
-    created_at_timestamp: float | None = None
+    created_at_timestamp: float | None = Field(
+        None, description="The timestamp when the plan was created.", title="Created At Timestamp", examples=[1622505600.0], gt=0
+    )
 
     class Config:
         extra = "ignore"

@@ -258,6 +258,7 @@ async def update_user(
     name="Delete User Account",
     status_code=200,
     response_model=ServerMessage,
+    response_description="A message confirming successful deletion of the user account.",
     summary="Delete current user account",
     description="Permanently delete the currently authenticated user's account. Requires a valid access token. Deletes the user's credentials and details from the database and returns a message confirming successful deletion.",
     responses={
@@ -279,10 +280,33 @@ async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
     return _create_json_response(detail="User deleted successfully.")
 
 
-@router.patch("/change-password", response_model=ServerMessage)
+@router.patch(
+    "/change-password",
+    response_model=ServerMessage,
+    response_description="A message confirming successful password change.",
+    name="Change User Password",
+    status_code=200,
+    summary="Change user password",
+    description="Change the password of the currently authenticated user. Requires a valid access token. Accepts the current password and the new password, verifies the current password, and updates to the new password if valid. Returns a message confirming successful password change.",
+    responses={
+        200: {"description": "Password changed successfully."},
+        400: {"description": "Current password and new password are required."},
+        401: {"description": "Invalid current password."},
+        404: {"description": "User not found."},
+        422: {"description": "Validation error."},
+    },
+)
 async def change_password(
-    current_password: str = Body(..., embed=True),
-    new_password: str = Body(..., embed=True),
+    current_password: str = Body(
+        embed=True,
+        examples=["current_password123"],
+        description="The user's current password.",
+        title="Current Password",
+        alias="current_password",
+    ),
+    new_password: str = Body(
+        embed=True, examples=["new_password123"], description="The user's new password.", title="New Password", alias="new_password"
+    ),
     user_id: str = Depends(get_user_id),
 ):
     cred = await _get_credential_by_id(user_id)
@@ -302,6 +326,7 @@ async def change_password(
     name="Request OTP for Email Verification",
     status_code=200,
     response_model=ServerMessage,
+    response_description="A message confirming that the OTP was sent successfully.",
     summary="Request OTP for email verification",
     description="Request a One-Time Password (OTP) to be sent to the user's email address for verification purposes. Accepts the user's email address and sends an OTP to that address if it exists in the system. Returns a message confirming that the OTP was sent successfully.",
     responses={
@@ -337,6 +362,7 @@ async def request_otp(
 @router.post(
     "/verify-otp",
     response_model=ServerMessage,
+    response_description="A message confirming successful OTP verification.",
     name="Verify OTP for Email Verification",
     status_code=200,
     summary="Verify OTP for email verification",

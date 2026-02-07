@@ -102,7 +102,19 @@ async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: t
         yield model_factory(**m).model_dump_json(by_alias=True) + "\n"
 
 
-@router.get("/generate/tips", response_model=DailyInsight)
+@router.get(
+    "/generate/tips",
+    response_model=DailyInsight,
+    response_description="The generated daily insight containing today's focus and a helpful tip.",
+    summary="Generate daily tips",
+    description="Generate daily tips including today's focus and a helpful tip for the user.",
+    responses={
+        200: {"description": "Daily tips generated successfully."},
+        401: {"description": "Unauthorized. Invalid or missing access token."},
+        403: {"description": "Forbidden. User email not verified."},
+        404: {"description": "User not found."},
+    },
+)
 async def get_tips(user_id: str = Depends(get_user_id)):
     user = await _get_verified_user(user_id)
     start, end = _today_window()
@@ -127,7 +139,20 @@ async def get_tips(user_id: str = Depends(get_user_id)):
     return generated
 
 
-@router.get("/search/tips", response_model=list[DailyInsight])
+@router.get(
+    "/search/tips",
+    response_class=StreamingResponse,
+    response_model=list[DailyInsight],
+    response_description="A list of daily insights matching the search criteria.",
+    summary="Search daily tips",
+    description="Search for daily tips within a specified timestamp range.",
+    responses={
+        200: {"description": "Daily tips retrieved successfully."},
+        401: {"description": "Unauthorized. Invalid or missing access token."},
+        404: {"description": "User not found."},
+        403: {"description": "Forbidden. User email not verified."},
+    },
+)
 async def fetch_all_tips(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id),
@@ -150,7 +175,20 @@ async def fetch_all_tips(
     )
 
 
-@router.get("/search/plan", response_model=list[MyPlanModel])
+@router.get(
+    "/search/plan",
+    response_class=StreamingResponse,
+    response_model=list[MyPlanModel],
+    response_description="A list of meal plans matching the search criteria.",
+    summary="Search meal plans",
+    description="Search for meal plans within a specified timestamp range.",
+    responses={
+        200: {"description": "Meal plans retrieved successfully."},
+        401: {"description": "Unauthorized. Invalid or missing access token."},
+        404: {"description": "User not found."},
+        403: {"description": "Forbidden. User email not verified."},
+    },
+)
 async def fetch_all_plans(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id),
@@ -173,12 +211,25 @@ async def fetch_all_plans(
     )
 
 
-@router.get("/generate/plan", response_model=MyPlanModel)
+@router.get(
+    "/generate/plan",
+    response_class=StreamingResponse,
+    response_model=MyPlanModel,
+    response_description="The generated meal plan for the user.",
+    summary="Generate meal plan",
+    description="Generate a meal plan for the user based on their dietary preferences and food intolerances.",
+    responses={
+        200: {"description": "Meal plan generated successfully."},
+        401: {"description": "Unauthorized. Invalid or missing access token."},
+        404: {"description": "User not found."},
+        403: {"description": "Forbidden. User email not verified."},
+    },
+)
 async def get_meal_plan(user_id: str = Depends(get_user_id)):
     user: UserDict = await _get_verified_user(user_id)
 
     now = arrow.now()
-    existing_plan = plans_collection.find_one(
+    existing_plan = await plans_collection.find_one(
         {
             "user_id": user_id,
             "created_at_timestamp": {
@@ -213,10 +264,23 @@ async def get_meal_plan(user_id: str = Depends(get_user_id)):
     plan_dict = cast(MyPlanDict, plan.model_dump(by_alias=True, mode="json"))
     await plans_collection.insert_one(plan_dict)
 
-    return JSONResponse(plan.model_dump(by_alias=True, mode="json"), media_type="application/json")
+    return plan
 
 
-@router.get("/generate/exercises", response_model=list[UserExerciseModel])
+@router.get(
+    "/generate/exercises",
+    response_class=StreamingResponse,
+    response_model=list[UserExerciseModel],
+    response_description="A list of exercises generated for the user.",
+    summary="Generate exercises",
+    description="Generate a list of exercises for the user based on their profile and past exercise history.",
+    responses={
+        200: {"description": "Exercises generated successfully."},
+        401: {"description": "Unauthorized. Invalid or missing access token."},
+        404: {"description": "User not found."},
+        403: {"description": "Forbidden. User email not verified."},
+    },
+)
 async def get_exercises(user_id: str = Depends(get_user_id)):
     user = await _get_verified_user(user_id)
     window_start_ts, window_end_ts = _today_window()
@@ -263,7 +327,20 @@ async def get_exercises(user_id: str = Depends(get_user_id)):
     return JSONResponse(created_user_exercises)
 
 
-@router.get("/search/exercises", response_model=list[ExerciseModel])
+@router.get(
+    "/search/exercises",
+    response_class=StreamingResponse,
+    response_model=list[ExerciseModel],
+    response_description="A list of exercises matching the search criteria.",
+    summary="Search exercises",
+    description="Search for exercises within a specified timestamp range.",
+    responses={
+        200: {"description": "Exercises retrieved successfully."},
+        401: {"description": "Unauthorized. Invalid or missing access token."},
+        404: {"description": "User not found."},
+        403: {"description": "Forbidden. User email not verified."},
+    },
+)
 async def fetch_all_exercises(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id),
