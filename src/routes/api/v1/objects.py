@@ -7,7 +7,6 @@ class ServerMessage(BaseModel):
     detail: str = Field(
         ...,
         description="A message describing the result of the operation.",
-        examples=["User registered successfully."],
     )
 
     class Config:
