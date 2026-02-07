@@ -128,8 +128,8 @@ async def _search_song(text: str):
     },
 )
 async def search_food(
-    food_name: str = Query(..., description="Name of the food to search for", example=["Apple"], title="Food Name"),
-    limit: int = Query(default=1, description="Maximum number of results to return", example=1, gt=0, title="Result Limit"),
+    food_name: str = Query(..., description="Name of the food to search for", examples=["Apple"], title="Food Name"),
+    limit: int = Query(default=1, description="Maximum number of results to return", examples=[1], gt=0, title="Result Limit"),
 ):
     return _stream(_search_food(food_name, limit))
 

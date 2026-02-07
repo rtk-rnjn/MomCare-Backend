@@ -11,7 +11,46 @@ from redis.asyncio import Redis
 
 from src.utils import S3, GoogleAPIHandler, TokenManager
 
-app = FastAPI()
+with open("version.txt", "r") as f:
+    __version__ = f.read().strip()
+
+app = FastAPI(
+    title="MomCare API",
+    description="API for MomCare - a personalized health and wellness assistant for pregnant women. Provides endpoints for user authentication, exercise and meal tracking, AI-generated insights, and more.",
+    version=__version__,
+    summary="MomCare API",
+    contact={
+        "name": "MomCare Support",
+        "email": "ritik0ranjan@gmail.com",
+        "url": "https://github.com/rtk-rnjn/MomCare-Backend",
+    },
+    license_info={
+        "name": "GPL-2.0 License",
+        "url": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
+    },
+    tags_metadata=[
+        {
+            "name": "Authentication",
+            "description": "User registration, login, and profile management operations. Handle user accounts, authentication tokens, and personal information updates.",  # noqa: E501
+        },
+        {
+            "name": "Update Management",
+            "description": "Operations for updating user medical data, preferences, and account settings. Manage user-specific information and configurations.",  # noqa: E501
+        },
+        {
+            "name": "AI Content",
+            "description": "AI-generated content and recommendations for maternal health, including personalized meal plans, exercise routines, and wellness tips.",  # noqa: E501
+        },
+        {
+            "name": "Content Utils",
+            "description": "Access to media content, including images, videos, and articles related to maternal health and wellness.",
+        },
+        {
+            "name": "System & Meta",
+            "description": "System health checks, API metadata, versioning information, and service status endpoints for monitoring and integration.",  # noqa: E501
+        },
+    ],
+)
 
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
 

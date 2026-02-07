@@ -11,7 +11,7 @@ from src.app import app
 from src.models import MyPlanDict, UserExerciseDict
 from src.routes.api.utils import get_user_id
 
-router = APIRouter(prefix="/update", tags=["Update"])
+router = APIRouter(prefix="/update", tags=["Update Management"])
 
 database: Database = app.state.mongo_database
 exercises_collection: Collection[UserExerciseDict] = database["exercises"]
