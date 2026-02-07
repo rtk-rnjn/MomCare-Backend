@@ -26,6 +26,8 @@ from src.models import (
 from src.routes.api.utils import get_user_id
 from src.utils import S3, DailyInsight, GoogleAPIHandler
 
+from .objects import TimestampRange
+
 google_api_handler: GoogleAPIHandler = app.state.google_api_handler
 database: Database = app.state.mongo_database
 s3: S3 = app.state.s3
@@ -39,11 +41,6 @@ plans_collection: Collection[MyPlanDict] = database["plans"]
 user_exercises_collection: Collection[UserExerciseDict] = database["user_exercises"]
 
 router = APIRouter(prefix="/ai", tags=["AI Content"])
-
-
-class TimestampRange(BaseModel):
-    start_timestamp: float
-    end_timestamp: float
 
 
 DailyInsightDict = TypedDict(

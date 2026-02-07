@@ -9,7 +9,7 @@ from typing import Any, TypedDict, TypeVar
 from dotenv import load_dotenv
 from google import genai
 from google.genai.types import Content, GenerateContentConfig, Part
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.models import ExerciseModel, MyPlanModel
 from src.models import UserDict as User
@@ -22,8 +22,8 @@ class ExercisesModel(BaseModel):
 
 
 class DailyInsight(BaseModel):
-    todays_focus: str = ""
-    daily_tip: str = ""
+    todays_focus: str = Field(..., description="The main focus for the day.", title="Today's Focus")
+    daily_tip: str = Field("", description="A helpful tip for the day.", title="Daily Tip")
 
 
 class Data(TypedDict):

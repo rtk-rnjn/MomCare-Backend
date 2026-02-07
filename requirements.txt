@@ -18,3 +18,4 @@ arrow
 jinja2
 aiobotocore
 types-aiobotocore
+aiosmtplib

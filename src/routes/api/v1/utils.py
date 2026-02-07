@@ -5,7 +5,6 @@ from typing import Literal
 from fastapi import APIRouter
 from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.database import AsyncDatabase as Database
 
@@ -20,6 +19,8 @@ from src.models import (
 )
 from src.utils import S3
 
+from .objects import ServerMessage
+
 database: Database = app.state.mongo_database
 s3: S3 = app.state.s3
 
@@ -28,13 +29,6 @@ songs_collection: Collection[Song] = database["songs"]
 exercises_collection: Collection[ExerciseDict] = database["exercises"]
 
 router = APIRouter(prefix="/utils", tags=["Content Utils"])
-
-
-class ServerMessage(BaseModel):
-    detail: str
-
-    class Config:
-        extra = "ignore"
 
 
 def _stream(generator):
