@@ -73,20 +73,14 @@ async def _autocomplete_search(
 
 
 async def _hydrate_song(song: Song) -> SongModel:
-    song["song_image_uri"] = await s3.get_presigned_url(
-        f"Songs/{song['mood']}/{song['playlist']}/Image/{song['image_name']}"
-    )
-    song["playlist_image_uri"] = await s3.get_presigned_url(
-        f"Songs/{song['mood']}/{song['playlist']}/{song['playlist'].lower()}.jpg"
-    )
+    song["song_image_uri"] = await s3.get_presigned_url(f"Songs/{song['mood']}/{song['playlist']}/Image/{song['image_name']}")
+    song["playlist_image_uri"] = await s3.get_presigned_url(f"Songs/{song['mood']}/{song['playlist']}/{song['playlist'].lower()}.jpg")
     return SongModel(**song)  # type: ignore
 
 
 async def _hydrate_exercise(exercise: dict) -> ExerciseModel:
     model = ExerciseModel(**exercise)
-    model.image_name_uri = await s3.get_presigned_url(
-        f"ExerciseImages/{model.image_name}"
-    )
+    model.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{model.image_name}")
     return model
 
 
@@ -153,9 +147,7 @@ async def get_songs(
     if playlist:
         query["playlist"] = playlist
 
-    return [
-        _hydrate_song(song) for song in await songs_collection.find(query).to_list()
-    ]
+    return [_hydrate_song(song) for song in await songs_collection.find(query).to_list()]
 
 
 @router.get("/songs/{song_id}", response_model=SongModel)
@@ -167,9 +159,7 @@ async def get_song(song_id: str):
 @router.get("/songs/{song_id}/stream", response_model=ServerMessage)
 async def stream_song(song_id: str):
     song = await _get_or_404(songs_collection, song_id, "Song")
-    uri = await s3.get_presigned_url(
-        f"Songs/{song['mood']}/{song['playlist']}/Song/{song['song_name']}"
-    )
+    uri = await s3.get_presigned_url(f"Songs/{song['mood']}/{song['playlist']}/Song/{song['song_name']}")
     return ServerMessage(detail=uri)
 
 
@@ -182,9 +172,7 @@ async def get_exercise(exercise_id: str):
 @router.get("/exercises/{exercise_id}/stream", response_model=ServerMessage)
 async def stream_exercise(exercise_id: str):
     exercise = await _get_or_404(exercises_collection, exercise_id, "Exercise")
-    uri = await s3.get_presigned_url(
-        f"Exercises/{exercise['name'].lower().replace(' ', '_')}.mp4"
-    )
+    uri = await s3.get_presigned_url(f"Exercises/{exercise['name'].lower().replace(' ', '_')}.mp4")
     return ServerMessage(detail=uri)
 
 

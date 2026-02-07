@@ -52,9 +52,7 @@ class UserExerciseModel(BaseModel):
 
     user_id: str
     exercise_id: str
-    added_at_timestamp: float = Field(
-        default_factory=lambda: arrow.now().float_timestamp
-    )
+    added_at_timestamp: float = Field(default_factory=lambda: arrow.now().float_timestamp)
     video_duration_completed_seconds: float | None = None
 
     class Config:

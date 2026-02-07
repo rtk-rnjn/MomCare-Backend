@@ -16,13 +16,9 @@ install_rich_traceback()
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8080"))
 
-file_handler = logging.handlers.RotatingFileHandler(
-    "app.log", maxBytes=5 * 1024 * 1024, backupCount=2
-)
+file_handler = logging.handlers.RotatingFileHandler("app.log", maxBytes=5 * 1024 * 1024, backupCount=2)
 file_handler.setLevel(logging.DEBUG)
-file_formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(file_formatter)
 
 console_handler = rich.logging.RichHandler(level=logging.INFO)

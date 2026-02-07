@@ -151,29 +151,19 @@ class TokenManager(metaclass=SingletonMeta):
         error_message = f"Invalid token payload: '{key!r}' must be an integer"
         raise ValueError(error_message)
 
-    def _require_literal(
-        self, payload: Mapping[str, Any], key: str, expected: str, /
-    ) -> None:
+    def _require_literal(self, payload: Mapping[str, Any], key: str, expected: str, /) -> None:
         value = payload.get(key)
         if value == expected:
             return
         raise AuthError(f"Invalid token payload: '{key}' must be '{expected}'")
 
     @overload
-    def decode(
-        self, token: str, expected_type: Literal["access"], /
-    ) -> DecodedAccessPayload:
-        ...
+    def decode(self, token: str, expected_type: Literal["access"], /) -> DecodedAccessPayload: ...
 
     @overload
-    def decode(
-        self, token: str, expected_type: Literal["refresh"], /
-    ) -> DecodedRefreshPayload:
-        ...
+    def decode(self, token: str, expected_type: Literal["refresh"], /) -> DecodedRefreshPayload: ...
 
-    def decode(
-        self, token: str, expected_type: Literal["access", "refresh"], /
-    ) -> DecodedAccessPayload | DecodedRefreshPayload:
+    def decode(self, token: str, expected_type: Literal["access", "refresh"], /) -> DecodedAccessPayload | DecodedRefreshPayload:
         try:
             decoded = jwt.decode(
                 token,

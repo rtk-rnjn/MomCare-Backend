@@ -1,0 +1,3 @@
+[tool.ruff]
+line-length = 135
+target-version = "py312"

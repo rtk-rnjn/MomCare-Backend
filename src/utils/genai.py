@@ -79,10 +79,7 @@ class GoogleAPIHandler:
         system_prompt = PROMPTS["tips_prompt"]["system"]
         user_prompt = PROMPTS["tips_prompt"]["user"]
 
-        user_prompt = [
-            Template(part).safe_substitute(user=user, todays_timestamp=time.time())
-            for part in user_prompt
-        ]
+        user_prompt = [Template(part).safe_substitute(user=user, todays_timestamp=time.time()) for part in user_prompt]
 
         tips = await self._generate_response(
             system_prompt=system_prompt,
@@ -95,13 +92,8 @@ class GoogleAPIHandler:
         system_prompt = PROMPTS["exercise_prompt"]["system"]
         user_prompt = PROMPTS["exercise_prompt"]["user"]
 
-        user_prompt = [
-            Template(part).safe_substitute(user=user, todays_timestamp=time.time())
-            for part in user_prompt
-        ]
-        system_prompt = Template(system_prompt).safe_substitute(
-            exercise_sets=exercise_sets
-        )
+        user_prompt = [Template(part).safe_substitute(user=user, todays_timestamp=time.time()) for part in user_prompt]
+        system_prompt = Template(system_prompt).safe_substitute(exercise_sets=exercise_sets)
 
         routine = await self._generate_response(
             system_prompt=system_prompt,

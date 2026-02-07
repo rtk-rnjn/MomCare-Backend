@@ -24,9 +24,7 @@ class Manager:
 
     async def __aenter__(self):
         session = AioSession()
-        self._s3_client = await self._exit_stack.enter_async_context(
-            session.create_client("s3")
-        )
+        self._s3_client = await self._exit_stack.enter_async_context(session.create_client("s3"))
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
@@ -72,12 +70,7 @@ class S3:
                 Prefix=prefix,
                 Delimiter="/",
             )
-            return [
-                item[key]
-                for item in response.get(
-                    key == "Key" and "Contents" or "CommonPrefixes", []
-                )
-            ]
+            return [item[key] for item in response.get(key == "Key" and "Contents" or "CommonPrefixes", [])]
 
     async def list_files(self, prefix: str) -> list[str]:
         return await self._list_s3_items(prefix, "Key")

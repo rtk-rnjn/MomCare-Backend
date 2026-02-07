@@ -96,15 +96,11 @@ def _exercise_pipeline(user_id: str, start: float, end: float) -> list[dict]:
 
 async def _hydrate_exercise(exercise: ExerciseDict) -> ExerciseModel:
     model = ExerciseModel(**exercise)
-    model.image_name_uri = await s3.get_presigned_url(
-        f"ExerciseImages/{model.image_name}"
-    )
+    model.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{model.image_name}")
     return model
 
 
-async def _stream_json(
-    *, cursor: AsyncGenerator | AsyncCursor, model_factory: type[BaseModel]
-):
+async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: type[BaseModel]):
     async for m in cursor:
         yield model_factory(**m).model_dump_json(by_alias=True) + "\n"
 
@@ -203,24 +199,13 @@ async def get_meal_plan(user_id: str = Depends(get_user_id)):
     pipeline: list[dict] = []
 
     if food_intolerances:
-        pipeline.append(
-            {
-                "$match": {
-                    "allergic_ingredients": {
-                        "$not": {"$elemMatch": {"$in": food_intolerances}}
-                    }
-                }
-            }
-        )
+        pipeline.append({"$match": {"allergic_ingredients": {"$not": {"$elemMatch": {"$in": food_intolerances}}}}})
 
     if dietary_preferences:
         pipeline.append({"$match": {"type": {"$in": dietary_preferences}}})
 
     foods_cursor = await foods_collection.aggregate(pipeline)
-    foods = [
-        {"_id": food.get("_id"), "name": food.get("name")}
-        async for food in foods_cursor
-    ]
+    foods = [{"_id": food.get("_id"), "name": food.get("name")} async for food in foods_cursor]
 
     plan = await google_api_handler.generate_plan(user=user, available_foods=foods)
 
@@ -231,9 +216,7 @@ async def get_meal_plan(user_id: str = Depends(get_user_id)):
     plan_dict = cast(MyPlanDict, plan.model_dump(by_alias=True, mode="json"))
     await plans_collection.insert_one(plan_dict)
 
-    return JSONResponse(
-        plan.model_dump(by_alias=True, mode="json"), media_type="application/json"
-    )
+    return JSONResponse(plan.model_dump(by_alias=True, mode="json"), media_type="application/json")
 
 
 @router.get("/generate/exercises", response_model=list[UserExerciseModel])
@@ -255,8 +238,7 @@ async def get_exercises(user_id: str = Depends(get_user_id)):
         return JSONResponse(existing_user_exercises)
 
     exercise_catalog_payload = [
-        ExerciseModel(**exercise).model_dump(by_alias=True, mode="json")
-        for exercise in exercises_collection.find({})
+        ExerciseModel(**exercise).model_dump(by_alias=True, mode="json") for exercise in exercises_collection.find({})
     ]
 
     ai_response = await google_api_handler.generate_exercises(
@@ -268,9 +250,7 @@ async def get_exercises(user_id: str = Depends(get_user_id)):
     created_user_exercises: list[UserExerciseDict] = []
 
     for exercise in ai_response.exercises:
-        exercise.image_name_uri = await s3.get_presigned_url(
-            f"ExerciseImages/{exercise.image_name}"
-        )
+        exercise.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{exercise.image_name}")
 
         user_exercise_record = UserExerciseDict(
             _id=str(uuid.uuid4()),
@@ -300,11 +280,7 @@ async def fetch_all_exercises(
     )
 
     cursor = await user_exercises_collection.aggregate(pipeline)
-    models = (
-        await _hydrate_exercise(doc["exercise"])
-        async for doc in cursor
-        if "exercise" in doc
-    )
+    models = (await _hydrate_exercise(doc["exercise"]) async for doc in cursor if "exercise" in doc)
 
     return StreamingResponse(
         _stream_json(cursor=models, model_factory=ExerciseModel),
