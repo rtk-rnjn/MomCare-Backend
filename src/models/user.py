@@ -1,25 +1,72 @@
 from __future__ import annotations
 
 import uuid
-from typing import NotRequired, TypedDict
+from enum import Enum
+from typing import Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, EmailStr, Field
 
 from .food_item import Allergen, FoodType
 
 
-class CredentialsDict(TypedDict):
+class AuthenticationProvider(str, Enum):
+    INTERNAL = "internal"
+    GOOGLE = "google"
+    APPLE = "apple"
+
+
+class AccountStatus(str, Enum):
+    ACTIVE = "active"
+    LOCKED = "locked"
+    DELETED = "deleted"
+
+
+EMAIL_PROVIDER = Literal[
+    "Apple",
+    "Fastmail",
+    "Google",
+    "Microsoft",
+    "ProtonMail",
+    "Rackspace",
+    "Yahoo",
+    "Yandex",
+    "Zoho",
+]
+
+
+class PasswordAlgorithm(str, Enum):
+    BCRYPT = "bcrypt"
+
+
+class CredentialsDict(TypedDict, total=False):
     _id: NotRequired[str]
 
     email_address: NotRequired[str | None]
-    password: NotRequired[str | None]
+    email_address_normalized: NotRequired[str | None]
+    email_address_provider: NotRequired[EMAIL_PROVIDER | str | None]
+
+    password_hash: NotRequired[str | None]
+    password_algo: NotRequired[PasswordAlgorithm | None]
 
     google_id: str | None
     apple_id: str | None
 
+    authentication_providers: set[AuthenticationProvider]
+
     created_at_timestamp: NotRequired[float]
+    updated_at_timestamp: NotRequired[float]
+
+    failed_login_attempts: NotRequired[int]
+    failed_login_attempts_timestamp: NotRequired[float]
+    locked_until_timestamp: NotRequired[float]
+
+    is_internal: NotRequired[bool]
+    account_status: NotRequired[AccountStatus]
+
     last_login_timestamp: NotRequired[float]
+
     verified_email: NotRequired[bool]
+    verified_email_at_timestamp: NotRequired[float]
 
 
 class CredentialsModel(BaseModel):

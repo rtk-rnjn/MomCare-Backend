@@ -21,9 +21,9 @@ class ExercisesModel(BaseModel):
     exercises: list[ExerciseModel]
 
 
-class DailyInsight(BaseModel):
+class DailyInsightModel(BaseModel):
     todays_focus: str = Field(..., description="The main focus for the day.", title="Today's Focus")
-    daily_tip: str = Field("", description="A helpful tip for the day.", title="Daily Tip")
+    daily_tip: str = Field(..., description="A helpful tip for the day.", title="Daily Tip")
 
 
 class Data(TypedDict):
@@ -84,7 +84,7 @@ class GoogleAPIHandler:
         tips = await self._generate_response(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            response_schema=DailyInsight,
+            response_schema=DailyInsightModel,
         )
         return tips
 

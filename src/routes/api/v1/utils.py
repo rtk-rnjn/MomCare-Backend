@@ -7,6 +7,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
 from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.database import AsyncDatabase as Database
+from starlette.status import HTTP_200_OK, HTTP_206_PARTIAL_CONTENT, HTTP_404_NOT_FOUND
 
 from src.app import app
 from src.models import (
@@ -32,13 +33,13 @@ router = APIRouter(prefix="/utils", tags=["Content Utils"])
 
 
 def _stream(generator):
-    return StreamingResponse(generator, media_type="application/json")
+    return StreamingResponse(generator, media_type="application/json", status_code=HTTP_206_PARTIAL_CONTENT)
 
 
 async def _get_or_404(collection: Collection, _id: str, label: str):
     doc = await collection.find_one({"_id": _id})
     if doc is None:
-        raise HTTPException(status_code=404, detail=f"{label} not found.")
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"{label} not found.")
     return doc
 
 
@@ -51,16 +52,7 @@ async def _autocomplete_search(
 ):
     return await collection.aggregate(
         [
-            {
-                "$search": {
-                    "index": "default",
-                    "autocomplete": {
-                        "query": query,
-                        "path": path,
-                        "fuzzy": {"maxEdits": 1},
-                    },
-                }
-            },
+            {"$search": {"index": "default", "autocomplete": {"query": query, "path": path, "fuzzy": {"maxEdits": 1}}}},
             {"$limit": limit},
         ]
     )
@@ -120,11 +112,11 @@ async def _search_song(text: str):
     response_model=list[FoodItemModel],
     response_class=StreamingResponse,
     name="Search Food",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Search for food items",
     description="Search for food items by name. Returns a list of matching food items.",
     responses={
-        200: {"description": "Food items retrieved successfully."},
+        HTTP_200_OK: {"description": "Food items retrieved successfully."},
     },
 )
 async def search_food(
@@ -139,32 +131,46 @@ async def search_food(
     response_model=list[SongModel],
     response_class=StreamingResponse,
     name="Search Song",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Search for songs",
     description="Search for songs by text. Returns a list of matching songs.",
     responses={
-        200: {"description": "Songs retrieved successfully."},
+        HTTP_200_OK: {"description": "Songs retrieved successfully."},
     },
 )
 async def search_song(text: str = Query(..., description="Text to search for in songs", title="Search Text")):
     return _stream(_search_song(text))
 
 
-@router.get("/search/exercise")
-async def search_exercise(exercise_name: str, limit: int = 1):
+@router.get(
+    "/search/exercise",
+    response_model=list[ExerciseModel],
+    response_class=StreamingResponse,
+    name="Search Exercise",
+    status_code=HTTP_200_OK,
+    summary="Search for exercises",
+    description="Search for exercises by name. Returns a list of matching exercises.",
+    responses={
+        HTTP_200_OK: {"description": "Exercises retrieved successfully."},
+    },
+)
+async def search_exercise(
+    exercise_name: str = Query(..., description="Name of the exercise to search for", examples=["Yoga"], title="Exercise Name"),
+    limit: int = Query(default=1, description="Maximum number of results to return", examples=[1], gt=0, title="Result Limit"),
+):
     return _stream(_search_exercise(exercise_name, limit))
 
 
 @router.get(
     "/songs",
     name="Get Songs",
-    status_code=200,
+    status_code=HTTP_200_OK,
     response_model=list[SongModel],
     response_description="A list of songs matching the search criteria.",
     summary="Search for songs",
     description="Search for songs based on mood, playlist, author, or title.",
     responses={
-        200: {"description": "Songs retrieved successfully."},
+        HTTP_200_OK: {"description": "Songs retrieved successfully."},
     },
 )
 async def get_songs(
@@ -191,12 +197,12 @@ async def get_songs(
     response_model=SongModel,
     response_description="The song matching the provided ID.",
     name="Get Song by ID",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Get song by ID",
     description="Retrieve a song's details by its unique ID.",
     responses={
-        200: {"description": "Song retrieved successfully."},
-        404: {"description": "Song not found."},
+        HTTP_200_OK: {"description": "Song retrieved successfully."},
+        HTTP_404_NOT_FOUND: {"description": "Song not found."},
     },
 )
 async def get_song(
@@ -213,12 +219,12 @@ async def get_song(
     response_model=ServerMessage,
     response_description="A message containing the presigned URL to stream the song.",
     name="Stream Song",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Stream song",
     description="Get a presigned URL to stream the song.",
     responses={
-        200: {"description": "Presigned URL generated successfully."},
-        404: {"description": "Song not found."},
+        HTTP_200_OK: {"description": "Presigned URL generated successfully."},
+        HTTP_404_NOT_FOUND: {"description": "Song not found."},
     },
 )
 async def stream_song(
@@ -236,12 +242,12 @@ async def stream_song(
     response_model=ExerciseModel,
     response_description="The exercise matching the provided ID.",
     name="Get Exercise by ID",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Get exercise by ID",
     description="Retrieve an exercise's details by its unique ID.",
     responses={
-        200: {"description": "Exercise retrieved successfully."},
-        404: {"description": "Exercise not found."},
+        HTTP_200_OK: {"description": "Exercise retrieved successfully."},
+        HTTP_404_NOT_FOUND: {"description": "Exercise not found."},
     },
 )
 async def get_exercise(
@@ -261,12 +267,12 @@ async def get_exercise(
     response_model=ServerMessage,
     response_description="A message containing the presigned URL to stream the exercise video.",
     name="Stream Exercise",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Stream exercise video",
     description="Get a presigned URL to stream the exercise video.",
     responses={
-        200: {"description": "Presigned URL generated successfully."},
-        404: {"description": "Exercise not found."},
+        HTTP_200_OK: {"description": "Presigned URL generated successfully."},
+        HTTP_404_NOT_FOUND: {"description": "Exercise not found."},
     },
 )
 async def stream_exercise(
@@ -287,12 +293,12 @@ async def stream_exercise(
     response_model=FoodItemModel,
     response_description="The food item matching the provided ID.",
     name="Get Food by ID",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Get food by ID",
     description="Retrieve a food item's details by its unique ID.",
     responses={
-        200: {"description": "Food item retrieved successfully."},
-        404: {"description": "Food item not found."},
+        HTTP_200_OK: {"description": "Food item retrieved successfully."},
+        HTTP_404_NOT_FOUND: {"description": "Food item not found."},
     },
 )
 async def get_food(
@@ -312,12 +318,12 @@ async def get_food(
     response_model=ServerMessage,
     response_description="A message containing the presigned URL to the food item's image.",
     name="Get Food Image",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Get food image",
     description="Retrieve a presigned URL to the food item's image by its unique ID.",
     responses={
-        200: {"description": "Presigned URL generated successfully."},
-        404: {"description": "Food item not found."},
+        HTTP_200_OK: {"description": "Presigned URL generated successfully."},
+        HTTP_404_NOT_FOUND: {"description": "Food item not found."},
     },
 )
 async def get_food_image(

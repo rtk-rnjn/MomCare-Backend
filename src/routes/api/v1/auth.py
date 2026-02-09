@@ -3,22 +3,37 @@ from __future__ import annotations
 import inspect
 import random
 import uuid
-from typing import TYPE_CHECKING
 
 import arrow
 import bcrypt
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse as JSONResponse
 from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from redis.asyncio import Redis
+from starlette.status import (
+    HTTP_200_OK,
+    HTTP_201_CREATED,
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_404_NOT_FOUND,
+    HTTP_409_CONFLICT,
+    HTTP_423_LOCKED,
+)
 
 from src.app import app
-from src.models import CredentialsDict, CredentialsModel, UserDict, UserModel
+from src.models import (
+    AccountStatus,
+    CredentialsDict,
+    CredentialsModel,
+    PasswordAlgorithm,
+    UserDict,
+    UserModel,
+)
 from src.routes.api.utils import get_user_id
-from src.utils.email_handler import EmailHandler
-from src.utils.token_manager import AuthError, TokenManager, TokenPair
+from src.utils import EmailHandler, EmailNormalizer
+from src.utils.token_manager import AuthError, TokenManager, TokenPairDict
 
 from .objects import RegistrationResponse, ServerMessage
 
@@ -31,8 +46,8 @@ redis_client: Redis = app.state.redis_client
 credentials_collection: Collection[CredentialsDict] = database["credentials"]
 users_collection: Collection[UserDict] = database["users"]
 
-
 email_handler = EmailHandler()
+email_normalizer = EmailNormalizer()
 
 
 def _hash_password(password: str, /) -> str:
@@ -43,61 +58,73 @@ def _verify_password(*, password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
-async def _get_credential_by_email(email: str, /) -> CredentialsDict:
-    cred = await credentials_collection.find_one({"email_address": email})
+async def _get_credential_by_email(email_address: str, /) -> CredentialsDict:
+    normalization_result = await email_normalizer.normalize(email_address)
+    cred = await credentials_collection.find_one(
+        {
+            "$or": [
+                {"email_address": email_address},
+                {"email_address_normalized": normalization_result.normalized_address},
+            ],
+            "password_hash": {"$exists": True},
+            "account_status": {"$ne": AccountStatus.DELETED},
+        }
+    )
     if cred is None:
-        raise HTTPException(status_code=404, detail="User not found.")
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
     return cred
 
 
 async def _get_credential_by_id(user_id: str, /) -> CredentialsDict:
     cred = await credentials_collection.find_one({"_id": user_id})
     if cred is None:
-        raise HTTPException(status_code=404, detail="User not found.")
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
     return cred
 
 
-def _create_json_response(*, detail: str, status: int = 200):
+def _create_json_response(*, detail: str, status: int = HTTP_200_OK):
     return JSONResponse(content={"detail": detail}, status_code=status)
 
 
 @router.post(
     "/register",
     name="Register User",
-    status_code=201,
+    status_code=HTTP_201_CREATED,
     response_model=RegistrationResponse,
     response_description="The registered email address along with access and refresh tokens for authentication.",
     summary="Register a new user account",
     description="Create a new user account using an email address and password. Returns the registered email address along with access and refresh tokens for authentication.",
     responses={
-        201: {"description": "User registered successfully."},
-        400: {"description": "Email address and password are required."},
-        409: {"description": "Email address already in use."},
-        422: {"description": "Validation error."},
+        HTTP_201_CREATED: {"description": "User registered successfully."},
+        HTTP_400_BAD_REQUEST: {"description": "Email address and password are required."},
+        HTTP_409_CONFLICT: {"description": "Email address already in use."},
     },
 )
 async def register(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
         raise HTTPException(status_code=400, detail="Email address and password are required.")
 
-    if await credentials_collection.find_one({"email_address": data.email_address}):
+    if await credentials_collection.find_one({"email_address": data.email_address, "account_status": {"$ne": AccountStatus.DELETED}}):
         raise HTTPException(status_code=409, detail="Email address already in use.")
 
     cred_id = str(uuid.uuid4())
 
     now = arrow.utcnow().timestamp()
-    await credentials_collection.insert_one(
-        {
-            "_id": cred_id,
-            "email_address": data.email_address,
-            "password": _hash_password(data.password),
-            "created_at_timestamp": now,
-            "last_login_timestamp": now,
-            "verified_email": False,
-            "google_id": None,
-            "apple_id": None,
-        }
+    normalization_result = await email_normalizer.normalize(data.email_address)
+
+    credential = CredentialsDict(
+        _id=cred_id,
+        email_address=data.email_address,
+        email_address_normalized=normalization_result.normalized_address,
+        email_address_provider=normalization_result.mailbox_provider,
+        password_hash=_hash_password(data.password),
+        password_algo=PasswordAlgorithm.BCRYPT,
+        created_at_timestamp=now,
+        updated_at_timestamp=now,
+        account_status=AccountStatus.ACTIVE,
+        verified_email=False,
     )
+    await credentials_collection.insert_one(credential)
 
     await users_collection.insert_one({"_id": cred_id})
 
@@ -108,32 +135,43 @@ async def register(data: CredentialsModel = Body(...)):
 @router.post(
     "/login",
     name="Login User",
-    status_code=200,
-    response_model=TokenPair,
+    status_code=HTTP_200_OK,
+    response_model=TokenPairDict,
     summary="Login to user account",
     description="Authenticate a user using their email address and password. Returns access and refresh tokens for authentication if the credentials are valid.",
     responses={
-        200: {"description": "Login successful."},
-        400: {"description": "Email address and password are required."},
-        401: {"description": "Invalid email address or password."},
-        422: {"description": "Validation error."},
+        HTTP_200_OK: {"description": "Login successful."},
+        HTTP_400_BAD_REQUEST: {"description": "Email address and password are required."},
+        HTTP_401_UNAUTHORIZED: {"description": "Invalid email address or password."},
     },
 )
 async def login(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
-        raise HTTPException(status_code=400, detail="Email address and password are required.")
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Email address and password are required.")
 
     cred = await _get_credential_by_email(data.email_address)
 
-    if TYPE_CHECKING:
-        assert "password" in cred
+    now = arrow.utcnow().timestamp()
 
-    if not _verify_password(password=data.password, hashed=cred.get("password") or _hash_password("")):
+    if not _verify_password(password=data.password, hashed=cred.get("password_hash") or _hash_password("")):
+        await credentials_collection.update_one(
+            {"_id": cred.get("_id")},
+            {
+                "$inc": {"failed_login_attempts": 1},
+                "$set": {"failed_login_attempts_timestamp": now},
+            },
+        )
         raise HTTPException(status_code=401, detail="Invalid email address or password.")
 
     await credentials_collection.update_one(
         {"_id": cred.get("_id")},
-        {"$set": {"last_login_timestamp": arrow.utcnow().timestamp()}},
+        {
+            "$set": {
+                "last_login_timestamp": now,
+                "failed_login_attempts": 0,
+                "failed_login_attempts_timestamp": None,
+            },
+        },
     )
 
     return auth_manager.login(str(cred.get("_id")))
@@ -142,34 +180,33 @@ async def login(data: CredentialsModel = Body(...)):
 @router.get(
     "/me",
     name="Get Current User",
-    status_code=200,
+    status_code=HTTP_200_OK,
     response_model=UserModel,
     summary="Get current authenticated user",
     description="Retrieve the details of the currently authenticated user. Requires a valid access token.",
     responses={
-        200: {"description": "User details retrieved successfully."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        404: {"description": "User not found."},
+        HTTP_200_OK: {"description": "User details retrieved successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
     },
 )
-async def get_current_user(user_id: str = Depends(get_user_id)):
-    user = await users_collection.find_one({"_id": user_id}, {"password": 0})
+async def get_current_user(user_id: str = Depends(get_user_id, use_cache=False)):
+    user = await users_collection.find_one({"_id": user_id})
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found.")
-    return UserModel(**user)  # type: ignore
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
+    return UserModel.model_validate(user)
 
 
 @router.post(
     "/refresh",
     name="Refresh Token",
-    status_code=200,
-    response_model=TokenPair,
+    status_code=HTTP_200_OK,
+    response_model=TokenPairDict,
     summary="Refresh authentication tokens",
     description="Obtain new access and refresh tokens using a valid refresh token. Returns new tokens if the provided refresh token is valid.",
     responses={
-        200: {"description": "Tokens refreshed successfully."},
-        401: {"description": "Invalid refresh token."},
-        422: {"description": "Validation error."},
+        HTTP_200_OK: {"description": "Tokens refreshed successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Invalid refresh token."},
     },
 )
 async def refresh_token(
@@ -184,20 +221,19 @@ async def refresh_token(
     try:
         return auth_manager.refresh(refresh_token)
     except AuthError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token.")
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid refresh token.")
 
 
 @router.post(
     "/logout",
     name="Logout User",
-    status_code=200,
+    status_code=HTTP_200_OK,
     response_model=ServerMessage,
     summary="Logout user",
     description="Invalidate the provided refresh token to log the user out. Requires a valid refresh token. Returns a message confirming successful logout if the token is valid.",
     responses={
-        200: {"description": "Logged out successfully."},
-        401: {"description": "Invalid refresh token."},
-        422: {"description": "Validation error."},
+        HTTP_200_OK: {"description": "Logged out successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Invalid refresh token."},
     },
 )
 async def logout(
@@ -219,17 +255,15 @@ async def logout(
 @router.patch(
     "/update",
     name="Update User Details",
-    status_code=200,
+    status_code=HTTP_200_OK,
     response_model=ServerMessage,
     summary="Update current user details",
     description="Update the details of the currently authenticated user. Requires a valid access token. Accepts any subset of user fields to update and returns a message confirming successful update.",
     responses={
-        200: {"description": "User updated successfully."},
-        304: {"description": "No changes made to the user."},
-        400: {"description": "No fields to update."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        404: {"description": "User not found."},
-        422: {"description": "Validation error."},
+        HTTP_200_OK: {"description": "User updated successfully."},
+        HTTP_400_BAD_REQUEST: {"description": "No fields to update."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
     },
 )
 async def update_user(
@@ -243,12 +277,28 @@ async def update_user(
     if not fields:
         return _create_json_response(detail="No fields to update.")
 
-    result = await users_collection.update_one({"_id": user_id}, {"$set": fields})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found.")
+    credential = await credentials_collection.find_one_and_update(
+        {"_id": user_id},
+        {
+            "$set": {"updated_at_timestamp": arrow.utcnow().timestamp()},
+        },
+    )
 
-    if result.modified_count == 0:
-        return _create_json_response(detail="No changes made to the user.", status=304)
+    if credential is None:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
+
+    if credential.get("account_status") == AccountStatus.DELETED:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="User account has been deleted.")
+
+    if credential.get("account_status") == AccountStatus.LOCKED:
+        raise HTTPException(status_code=HTTP_423_LOCKED, detail="User account is locked.")
+
+    update_result = await users_collection.update_one({"_id": user_id}, {"$set": fields})
+    if update_result.matched_count == 0:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
+
+    if update_result.modified_count == 0:
+        return _create_json_response(detail="No changes made to the user.")
 
     return _create_json_response(detail="User updated successfully.")
 
@@ -256,28 +306,26 @@ async def update_user(
 @router.delete(
     "/delete",
     name="Delete User Account",
-    status_code=200,
+    status_code=HTTP_200_OK,
     response_model=ServerMessage,
     response_description="A message confirming successful deletion of the user account.",
     summary="Delete current user account",
     description="Permanently delete the currently authenticated user's account. Requires a valid access token. Deletes the user's credentials and details from the database and returns a message confirming successful deletion.",
     responses={
-        200: {"description": "User deleted successfully."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        404: {"description": "User not found."},
+        HTTP_200_OK: {"description": "User deleted successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
     },
 )
 async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
-    delete_result = await credentials_collection.delete_one({"_id": user_id})
-    c = delete_result.deleted_count
+    update_result = await credentials_collection.update_one(
+        {"_id": user_id},
+        {"$set": {"account_status": AccountStatus.DELETED, "updated_at_timestamp": arrow.utcnow().timestamp()}},
+    )
+    if update_result.matched_count == 0:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
 
-    delete_result = await users_collection.delete_one({"_id": user_id})
-    u = delete_result.deleted_count
-
-    if not c and not u:
-        raise HTTPException(status_code=404, detail="User not found.")
-
-    return _create_json_response(detail="User deleted successfully.")
+    await users_collection.delete_one({"_id": user_id})
 
 
 @router.patch(
@@ -285,15 +333,14 @@ async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
     response_model=ServerMessage,
     response_description="A message confirming successful password change.",
     name="Change User Password",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Change user password",
     description="Change the password of the currently authenticated user. Requires a valid access token. Accepts the current password and the new password, verifies the current password, and updates to the new password if valid. Returns a message confirming successful password change.",
     responses={
-        200: {"description": "Password changed successfully."},
-        400: {"description": "Current password and new password are required."},
-        401: {"description": "Invalid current password."},
-        404: {"description": "User not found."},
-        422: {"description": "Validation error."},
+        HTTP_200_OK: {"description": "Password changed successfully."},
+        HTTP_400_BAD_REQUEST: {"description": "Current password and new password are required."},
+        HTTP_401_UNAUTHORIZED: {"description": "Invalid current password."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
     },
 )
 async def change_password(
@@ -307,15 +354,15 @@ async def change_password(
     new_password: str = Body(
         embed=True, examples=["new_password123"], description="The user's new password.", title="New Password", alias="new_password"
     ),
-    user_id: str = Depends(get_user_id),
+    user_id: str = Depends(get_user_id, use_cache=False),
 ):
     cred = await _get_credential_by_id(user_id)
-    if not _verify_password(password=current_password, hashed=cred.get("password") or _hash_password("")):
-        raise HTTPException(status_code=401, detail="Invalid current password.")
+    if not _verify_password(password=current_password, hashed=cred.get("password_hash") or _hash_password("")):
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid current password.")
 
     await credentials_collection.update_one(
         {"_id": user_id},
-        {"$set": {"password": _hash_password(new_password)}},
+        {"$set": {"password_hash": _hash_password(new_password)}},
     )
 
     return _create_json_response(detail="Password changed successfully.")
@@ -324,15 +371,14 @@ async def change_password(
 @router.post(
     "/request-otp",
     name="Request OTP for Email Verification",
-    status_code=200,
+    status_code=HTTP_200_OK,
     response_model=ServerMessage,
     response_description="A message confirming that the OTP was sent successfully.",
     summary="Request OTP for email verification",
     description="Request a One-Time Password (OTP) to be sent to the user's email address for verification purposes. Accepts the user's email address and sends an OTP to that address if it exists in the system. Returns a message confirming that the OTP was sent successfully.",
     responses={
-        200: {"description": "OTP sent successfully."},
-        404: {"description": "User with the provided email address not found."},
-        422: {"description": "Validation error."},
+        HTTP_200_OK: {"description": "OTP sent successfully."},
+        HTTP_404_NOT_FOUND: {"description": "User with the provided email address not found."},
     },
 )
 async def request_otp(
@@ -364,14 +410,13 @@ async def request_otp(
     response_model=ServerMessage,
     response_description="A message confirming successful OTP verification.",
     name="Verify OTP for Email Verification",
-    status_code=200,
+    status_code=HTTP_200_OK,
     summary="Verify OTP for email verification",
     description="Verify a One-Time Password (OTP) sent to the user's email address for verification purposes. Accepts the user's email address and the OTP, and verifies the OTP if it matches the one stored in the system. Returns a message confirming successful verification.",
     responses={
-        200: {"description": "OTP verified successfully."},
-        400: {"description": "Invalid OTP."},
-        404: {"description": "User with the provided email address not found."},
-        422: {"description": "Validation error."},
+        HTTP_200_OK: {"description": "OTP verified successfully."},
+        HTTP_400_BAD_REQUEST: {"description": "Invalid OTP."},
+        HTTP_404_NOT_FOUND: {"description": "User with the provided email address not found."},
     },
 )
 async def verify_otp(
@@ -396,11 +441,16 @@ async def verify_otp(
         stored = await stored
 
     if stored is None or stored != otp:
-        raise HTTPException(status_code=400, detail="Invalid OTP.")
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid OTP.")
 
     await credentials_collection.update_one(
         {"_id": cred.get("_id")},
-        {"$set": {"verified_email": True}},
+        {
+            "$set": {
+                "verified_email": True,
+                "verified_email_at_timestamp": arrow.utcnow().timestamp(),
+            },
+        },
     )
 
     return _create_json_response(detail="OTP verified successfully.")

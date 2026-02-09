@@ -6,14 +6,25 @@ from typing import AsyncGenerator, TypedDict, cast
 import arrow
 from fastapi import APIRouter, Body, Depends
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import ORJSONResponse as JSONResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.cursor import AsyncCursor
 from pymongo.asynchronous.database import AsyncDatabase as Database
+from starlette.status import (
+    HTTP_200_OK,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_403_FORBIDDEN,
+    HTTP_404_NOT_FOUND,
+    HTTP_410_GONE,
+    HTTP_423_LOCKED,
+)
 
 from src.app import app
 from src.models import (
+    AccountStatus,
+    CredentialsDict,
     ExerciseDict,
     ExerciseModel,
     FoodItemDict,
@@ -24,7 +35,7 @@ from src.models import (
     UserExerciseModel,
 )
 from src.routes.api.utils import get_user_id
-from src.utils import S3, DailyInsight, GoogleAPIHandler
+from src.utils import S3, DailyInsightModel, GoogleAPIHandler
 
 from .objects import TimestampRange
 
@@ -34,6 +45,7 @@ s3: S3 = app.state.s3
 
 tips_collection: Collection = database["tips"]
 users_collection: Collection[UserDict] = database["users"]
+credentials_collection: Collection[CredentialsDict] = database["credentials"]
 exercises_collection: Collection[ExerciseDict] = database["exercises"]
 foods_collection: Collection[FoodItemDict] = database["foods"]
 plans_collection: Collection[MyPlanDict] = database["plans"]
@@ -63,11 +75,22 @@ def _today_window() -> tuple[float, float]:
 
 
 async def _get_verified_user(user_id: str) -> UserDict:
+    cred = await credentials_collection.find_one({"_id": user_id})
+    if not cred:
+        raise HTTPException(HTTP_404_NOT_FOUND, detail="User credentials not found.")
+
+    if cred.get("account_status") == AccountStatus.DELETED:
+        raise HTTPException(HTTP_410_GONE, detail="User account has been deleted.")
+
+    if cred.get("account_status") == AccountStatus.LOCKED:
+        raise HTTPException(HTTP_403_FORBIDDEN, detail="User account is locked.")
+
     user = await users_collection.find_one({"_id": user_id})
     if not user:
-        raise HTTPException(404, "User not found.")
+        raise HTTPException(HTTP_423_LOCKED, detail="User not found.")
+
     if not user.get("verified_email", False):
-        raise HTTPException(403, "Email not verified.")
+        raise HTTPException(HTTP_403_FORBIDDEN, detail="User email not verified.")
     return user
 
 
@@ -104,18 +127,18 @@ async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: t
 
 @router.get(
     "/generate/tips",
-    response_model=DailyInsight,
+    response_model=DailyInsightModel,
     response_description="The generated daily insight containing today's focus and a helpful tip.",
     summary="Generate daily tips",
     description="Generate daily tips including today's focus and a helpful tip for the user.",
     responses={
-        200: {"description": "Daily tips generated successfully."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        403: {"description": "Forbidden. User email not verified."},
-        404: {"description": "User not found."},
+        HTTP_200_OK: {"description": "Daily tips generated successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
     },
 )
-async def get_tips(user_id: str = Depends(get_user_id)):
+async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await _get_verified_user(user_id)
     start, end = _today_window()
 
@@ -126,7 +149,7 @@ async def get_tips(user_id: str = Depends(get_user_id)):
         }
     )
     if tip:
-        return DailyInsight(**tip)
+        return DailyInsightModel(**tip)
 
     generated = await google_api_handler.generate_tips(user=user)
     await tips_collection.insert_one(
@@ -142,20 +165,20 @@ async def get_tips(user_id: str = Depends(get_user_id)):
 @router.get(
     "/search/tips",
     response_class=StreamingResponse,
-    response_model=list[DailyInsight],
+    response_model=list[DailyInsightModel],
     response_description="A list of daily insights matching the search criteria.",
     summary="Search daily tips",
     description="Search for daily tips within a specified timestamp range.",
     responses={
-        200: {"description": "Daily tips retrieved successfully."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        404: {"description": "User not found."},
-        403: {"description": "Forbidden. User email not verified."},
+        HTTP_200_OK: {"description": "Daily tips retrieved successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
+        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
     },
 )
 async def fetch_all_tips(
     timestamp_range: TimestampRange = Body(...),
-    user_id: str = Depends(get_user_id),
+    user_id: str = Depends(get_user_id, use_cache=False),
 ):
     await _get_verified_user(user_id)
 
@@ -170,7 +193,7 @@ async def fetch_all_tips(
     )
 
     return StreamingResponse(
-        _stream_json(cursor=cursor, model_factory=DailyInsight),
+        _stream_json(cursor=cursor, model_factory=DailyInsightModel),
         media_type="application/json",
     )
 
@@ -183,15 +206,15 @@ async def fetch_all_tips(
     summary="Search meal plans",
     description="Search for meal plans within a specified timestamp range.",
     responses={
-        200: {"description": "Meal plans retrieved successfully."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        404: {"description": "User not found."},
-        403: {"description": "Forbidden. User email not verified."},
+        HTTP_200_OK: {"description": "Meal plans retrieved successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
+        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
     },
 )
 async def fetch_all_plans(
     timestamp_range: TimestampRange = Body(...),
-    user_id: str = Depends(get_user_id),
+    user_id: str = Depends(get_user_id, use_cache=False),
 ):
     await _get_verified_user(user_id)
 
@@ -219,13 +242,13 @@ async def fetch_all_plans(
     summary="Generate meal plan",
     description="Generate a meal plan for the user based on their dietary preferences and food intolerances.",
     responses={
-        200: {"description": "Meal plan generated successfully."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        404: {"description": "User not found."},
-        403: {"description": "Forbidden. User email not verified."},
+        HTTP_200_OK: {"description": "Meal plan generated successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
+        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
     },
 )
-async def get_meal_plan(user_id: str = Depends(get_user_id)):
+async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     user: UserDict = await _get_verified_user(user_id)
 
     now = arrow.now()
@@ -275,13 +298,13 @@ async def get_meal_plan(user_id: str = Depends(get_user_id)):
     summary="Generate exercises",
     description="Generate a list of exercises for the user based on their profile and past exercise history.",
     responses={
-        200: {"description": "Exercises generated successfully."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        404: {"description": "User not found."},
-        403: {"description": "Forbidden. User email not verified."},
+        HTTP_200_OK: {"description": "Exercises generated successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
     },
 )
-async def get_exercises(user_id: str = Depends(get_user_id)):
+async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await _get_verified_user(user_id)
     window_start_ts, window_end_ts = _today_window()
 
@@ -335,15 +358,15 @@ async def get_exercises(user_id: str = Depends(get_user_id)):
     summary="Search exercises",
     description="Search for exercises within a specified timestamp range.",
     responses={
-        200: {"description": "Exercises retrieved successfully."},
-        401: {"description": "Unauthorized. Invalid or missing access token."},
-        404: {"description": "User not found."},
-        403: {"description": "Forbidden. User email not verified."},
+        HTTP_200_OK: {"description": "Exercises retrieved successfully."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
     },
 )
 async def fetch_all_exercises(
     timestamp_range: TimestampRange = Body(...),
-    user_id: str = Depends(get_user_id),
+    user_id: str = Depends(get_user_id, use_cache=False),
 ):
     await _get_verified_user(user_id)
 

@@ -62,7 +62,7 @@ class DecodedRefreshPayload(DecodedBasePayload):
     exp: int
 
 
-class TokenPair(TypedDict):
+class TokenPairDict(TypedDict):
     access_token: str
     refresh_token: str
 
@@ -121,7 +121,7 @@ class TokenManager(metaclass=SingletonMeta):
         }
         return jwt.encode(dict(payload), JWT_SECRET, algorithm=JWT_ALGO)
 
-    def login(self, user_id: str, /) -> TokenPair:
+    def login(self, user_id: str, /) -> TokenPairDict:
         jti = str(uuid.uuid4())
 
         self.redis_client.setex(
@@ -216,7 +216,7 @@ class TokenManager(metaclass=SingletonMeta):
         payload = self.decode(access_token, "access")
         return payload["sub"]
 
-    def refresh(self, refresh_token: str, /) -> TokenPair:
+    def refresh(self, refresh_token: str, /) -> TokenPairDict:
         payload = self.decode(refresh_token, "refresh")
         jti = payload["jti"]
         user_id = payload["sub"]

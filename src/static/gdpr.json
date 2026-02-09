@@ -1,0 +1,48 @@
+{
+    "title": "Your GDPR Rights",
+    "description": "Under the General Data Protection Regulation (GDPR), you have the following rights regarding your personal data. These rights apply subject to certain legal conditions and limitations.",
+    "allRights": [
+        {
+            "id": "right_to_access",
+            "icon": "person.text.rectangle",
+            "title": "The Right to Access",
+            "description": "You have the right to request confirmation as to whether we process your personal data and, where applicable, to access that data along with information about how and why it is processed."
+        },
+        {
+            "id": "right_to_rectification",
+            "icon": "pencil.circle",
+            "title": "The Right to Rectification",
+            "description": "You have the right to request correction of inaccurate personal data and completion of incomplete personal data we hold about you."
+        },
+        {
+            "id": "right_to_erasure",
+            "icon": "trash",
+            "title": "The Right to Erasure",
+            "description": "You have the right to request deletion of your personal data where there is no lawful reason for us to continue processing it, subject to applicable legal and regulatory obligations."
+        },
+        {
+            "id": "right_to_restrict_processing",
+            "icon": "pause.circle",
+            "title": "The Right to Restrict Processing",
+            "description": "You have the right to request that we restrict the processing of your personal data in certain circumstances, including while the accuracy of the data is being verified."
+        },
+        {
+            "id": "right_to_data_portability",
+            "icon": "arrow.down.doc",
+            "title": "The Right to Data Portability",
+            "description": "You have the right to receive your personal data in a structured, commonly used, and machine-readable format and to request its transfer to another data controller where technically feasible."
+        },
+        {
+            "id": "right_to_object",
+            "icon": "speaker.slash",
+            "title": "The Right to Object",
+            "description": "You have the right to object to the processing of your personal data where such processing is based on legitimate interests or carried out for direct marketing purposes."
+        }
+    ],
+    "auditNotes": {
+        "compliance": "GDPR Articles 12-23",
+        "language": "Clear, concise, and non-technical",
+        "lastReviewed": "auto-generated",
+        "jurisdiction": "EU / GDPR"
+    }
+}

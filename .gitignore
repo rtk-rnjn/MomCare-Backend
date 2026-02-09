@@ -18,3 +18,4 @@ test.py
 logs.*
 *.db
 bucket/
+config.json
