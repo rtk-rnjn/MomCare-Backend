@@ -42,7 +42,7 @@ else:
 
 
 def runner():
-    uvicorn.run("src.app:app", host=HOST, port=PORT, reload=True)
+    uvicorn.run("src.app:app", host=HOST, port=PORT)
 
 
 if __name__ == "__main__":

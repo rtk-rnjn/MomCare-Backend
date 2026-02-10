@@ -21,3 +21,4 @@ types-aiobotocore
 aiosmtplib
 orjson
 aiodns
+colorama

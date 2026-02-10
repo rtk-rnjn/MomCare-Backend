@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
@@ -83,19 +82,12 @@ app.state.email_normalizer = email_normalizer
 app.state.mongo_client = mongo_client
 app.state.mongo_database = mongo_client["MomCare"]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
 templates = Jinja2Templates(directory="src/templates")
 app.state.templates = templates
 
 
+from .middleware import *  # noqa: E402, F403
 from .routes import api_router, web_router  # noqa: E402
 
 app.include_router(api_router)
