@@ -8,7 +8,6 @@ from .api import (
     v2_auth_router,
     v2_devices_router,
 )
-from .error import *  # noqa
 from .web import index_router
 
 api_router = APIRouter(prefix="/api")
