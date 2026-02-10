@@ -96,6 +96,7 @@ templates = Jinja2Templates(directory="src/templates")
 app.state.templates = templates
 
 
-from .routes import api_router  # noqa: E402
+from .routes import api_router, web_router  # noqa: E402
 
 app.include_router(api_router)
+app.include_router(web_router)

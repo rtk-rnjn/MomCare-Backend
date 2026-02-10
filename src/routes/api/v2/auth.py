@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import uuid
 from typing import Any, Literal, TypedDict
 
@@ -39,7 +38,7 @@ users_collection: Collection[UserDict] = database["users"]
 load_dotenv()
 
 APPLE_ISSUER = "https://appleid.apple.com"
-APPLE_AUDIENCE = os.getenv("APPLE_CLIENT_ID", "site.MomCare")
+APPLE_AUDIENCE = "com.Team05.MomCare"  # TODO: Update this to the actual Apple Service ID or Bundle ID used for Sign in with Apple
 APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys"
 
 
