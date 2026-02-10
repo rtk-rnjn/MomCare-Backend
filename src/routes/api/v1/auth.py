@@ -19,6 +19,7 @@ from starlette.status import (
     HTTP_401_UNAUTHORIZED,
     HTTP_404_NOT_FOUND,
     HTTP_409_CONFLICT,
+    HTTP_410_GONE,
     HTTP_423_LOCKED,
 )
 
@@ -79,6 +80,12 @@ async def _get_credential_by_id(user_id: str, /) -> CredentialsDict:
     cred = await credentials_collection.find_one({"_id": user_id})
     if cred is None:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
+
+    if cred.get("account_status") == AccountStatus.DELETED:
+        raise HTTPException(status_code=HTTP_410_GONE, detail="User account has been deleted.")
+
+    if cred.get("account_status") == AccountStatus.LOCKED:
+        raise HTTPException(status_code=HTTP_423_LOCKED, detail="User account is locked.")
     return cred
 
 
@@ -326,6 +333,65 @@ async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
 
     await users_collection.delete_one({"_id": user_id})
+
+
+@router.patch(
+    "/change-email",
+    name="Change User Email",
+    status_code=HTTP_200_OK,
+    response_model=ServerMessage,
+    response_description="A message confirming successful email change.",
+    summary="Change user email address",
+    description="Change the email address of the currently authenticated user. Requires a valid access token. Accepts the new email address, updates it in the user's credentials, and returns a message confirming successful email change.",
+    responses={
+        HTTP_200_OK: {"description": "Email address changed successfully."},
+        HTTP_400_BAD_REQUEST: {"description": "New email address is required."},
+        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
+        HTTP_404_NOT_FOUND: {"description": "User not found."},
+        HTTP_409_CONFLICT: {"description": "Email address already in use."},
+    },
+)
+async def change_email(
+    new_email_address: str = Body(
+        embed=True,
+        examples=["new_email@example.com"],
+        description="The user's new email address.",
+        title="New Email Address",
+        alias="new_email_address",
+    ),
+    user_id: str = Depends(get_user_id, use_cache=False),
+):
+    cred = await _get_credential_by_id(user_id)
+    if not cred:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
+
+    normalised_email_result = await email_normalizer.normalize(new_email_address)
+
+    existing_user = await credentials_collection.find_one(
+        {
+            "$or": [
+                {"email_address": new_email_address},
+                {"email_address_normalized": normalised_email_result.cleaned_email},
+            ]
+        }
+    )
+    if existing_user and existing_user.get("_id") != user_id and existing_user.get("account_status") != AccountStatus.DELETED:
+        raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Email address already in use.")
+
+    await credentials_collection.update_one(
+        {"_id": user_id},
+        {
+            "$set": {
+                "email_address": new_email_address,
+                "email_address_normalized": normalised_email_result.cleaned_email,
+                "email_address_provider": normalised_email_result.mailbox_provider,
+                "verified_email": False,
+                "updated_at_timestamp": arrow.utcnow().timestamp(),
+            },
+        },
+    )
+
+    return _create_json_response(detail="Email address changed successfully.")
 
 
 @router.patch(
