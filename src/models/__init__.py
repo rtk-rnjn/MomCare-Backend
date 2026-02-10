@@ -9,6 +9,7 @@ from .plan import MyPlanDict, MyPlanModel  # noqa: F401
 from .song import SongDict, SongMetadata, SongMetadataModel, SongModel  # noqa: F401
 from .user import (  # noqa: F401
     AccountStatus,
+    AuthenticationProvider,
     CredentialsDict,
     CredentialsModel,
     PasswordAlgorithm,

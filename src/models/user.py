@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from enum import Enum
+from enum import StrEnum
 from typing import Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, EmailStr, Field
@@ -9,13 +9,13 @@ from pydantic import BaseModel, EmailStr, Field
 from .food_item import Allergen, FoodType
 
 
-class AuthenticationProvider(str, Enum):
+class AuthenticationProvider(StrEnum):
     INTERNAL = "internal"
     GOOGLE = "google"
     APPLE = "apple"
 
 
-class AccountStatus(str, Enum):
+class AccountStatus(StrEnum):
     ACTIVE = "active"
     LOCKED = "locked"
     DELETED = "deleted"
@@ -34,7 +34,7 @@ EMAIL_PROVIDER = Literal[
 ]
 
 
-class PasswordAlgorithm(str, Enum):
+class PasswordAlgorithm(StrEnum):
     BCRYPT = "bcrypt"
 
 
@@ -51,7 +51,7 @@ class CredentialsDict(TypedDict, total=False):
     google_id: str | None
     apple_id: str | None
 
-    authentication_providers: set[AuthenticationProvider]
+    authentication_providers: list[AuthenticationProvider]
 
     created_at_timestamp: NotRequired[float]
     updated_at_timestamp: NotRequired[float]

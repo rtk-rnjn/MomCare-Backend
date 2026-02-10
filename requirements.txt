@@ -20,3 +20,4 @@ aiobotocore
 types-aiobotocore
 aiosmtplib
 orjson
+aiodns

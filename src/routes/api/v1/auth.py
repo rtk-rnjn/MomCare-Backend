@@ -42,12 +42,12 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 auth_manager: TokenManager = app.state.auth_manager
 database: Database = app.state.mongo_database
 redis_client: Redis = app.state.redis_client
+email_normalizer: EmailNormalizer = app.state.email_normalizer
 
 credentials_collection: Collection[CredentialsDict] = database["credentials"]
 users_collection: Collection[UserDict] = database["users"]
 
 email_handler = EmailHandler()
-email_normalizer = EmailNormalizer()
 
 
 def _hash_password(password: str, /) -> str:
@@ -64,7 +64,7 @@ async def _get_credential_by_email(email_address: str, /) -> CredentialsDict:
         {
             "$or": [
                 {"email_address": email_address},
-                {"email_address_normalized": normalization_result.normalized_address},
+                {"email_address_normalized": normalization_result.cleaned_email},
             ],
             "password_hash": {"$exists": True},
             "account_status": {"$ne": AccountStatus.DELETED},
@@ -115,7 +115,7 @@ async def register(data: CredentialsModel = Body(...)):
     credential = CredentialsDict(
         _id=cred_id,
         email_address=data.email_address,
-        email_address_normalized=normalization_result.normalized_address,
+        email_address_normalized=normalization_result.cleaned_email,
         email_address_provider=normalization_result.mailbox_provider,
         password_hash=_hash_password(data.password),
         password_algo=PasswordAlgorithm.BCRYPT,

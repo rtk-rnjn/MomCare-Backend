@@ -125,7 +125,7 @@ class Result:
     """
 
     address: str
-    normalized_address: str
+    cleaned_email: str
     mailbox_provider: str | None = None
 
 
@@ -168,13 +168,11 @@ class Normalizer:
     def __init__(
         self,
         name_servers: list[str] | None = None,
-        cache_limit: int = 1024,
         cache_failures: bool = True,
         failure_ttl: int = 300,
     ):
         self._resolver = aiodns.DNSResolver(name_servers)
         self.cache_failures = cache_failures
-        self.cache_limit = cache_limit
         self.failure_ttl = failure_ttl
 
         self._cache: dict[str, list[str]] = {}
