@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="mb-1">API Health Monitoring</h3>
+        <div class="section-subtitle">Last updated {{ last_updated }}</div>
+    </div>
+    <a class="btn btn-dark btn-sm" href="{{ request.url_for('api_health') }}">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="text-muted text-uppercase" style="font-size: 0.85rem;">API Status</h5>
+                <h3 class="mb-0">{{ api_status }}</h3>
+                <small class="text-muted">MongoDB + Redis</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="text-muted text-uppercase" style="font-size: 0.85rem;">Mongo Latency</h5>
+                <h3 class="mb-0">{{ mongo_metrics.latency_ms }} ms</h3>
+                <small class="text-muted">Ping response time</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="text-muted text-uppercase" style="font-size: 0.85rem;">Redis Latency</h5>
+                <h3 class="mb-0">{{ redis_metrics.latency_ms }} ms</h3>
+                <small class="text-muted">Ping response time</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">MongoDB Status</div>
+            <div class="card-body">
+                <p><strong>Connection:</strong>
+                    {% if mongo_metrics.ok %}
+                    <span class="badge bg-success">Connected</span>
+                    {% else %}
+                    <span class="badge bg-danger">Unavailable</span>
+                    {% endif %}
+                </p>
+                <p><strong>Collections:</strong> {{ mongo_metrics.collections }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">Redis Status</div>
+            <div class="card-body">
+                <p><strong>Connection:</strong>
+                    {% if redis_metrics.ok %}
+                    <span class="badge bg-success">Connected</span>
+                    {% else %}
+                    <span class="badge bg-danger">Unavailable</span>
+                    {% endif %}
+                </p>
+                <p><strong>Memory Used:</strong> {{ redis_metrics.used_memory }}</p>
+                <p><strong>Keys:</strong> {{ redis_metrics.keys }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

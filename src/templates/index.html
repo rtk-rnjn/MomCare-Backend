@@ -1,130 +1,123 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="mb-1">Dashboard Overview</h3>
+        <div class="section-subtitle">Last updated {{ last_updated }}</div>
+    </div>
+    <a class="btn btn-dark btn-sm" href="{{ request.url_for('internal_index') }}">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+    </a>
+</div>
 
-<!-- HERO -->
-<section class="py-5 bg-dark text-white">
-    <div class="container text-center">
-        <h1 class="display-5 fw-bold">
-            {{ app_title or "MomCare" }}
-        </h1>
-
-        <p class="lead text-secondary mt-3">
-            Production-grade healthcare APIs. Built for scale, security, and speed.
-        </p>
-
-        <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
-            <a href="/docs" target="_blank" class="btn btn-primary btn-lg">
-                Explore API Docs
-            </a>
-            <a href="/openapi.json" target="_blank" class="btn btn-outline-light btn-lg">
-                OpenAPI Spec
-            </a>
-        </div>
-
-        <div class="mt-4 small text-secondary">
-            Version <span class="font-monospace">{{ app_version or "unknown" }}</span>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm card-metric">
+            <div class="card-body">
+                <h5>Total Users</h5>
+                <h3>{{ metrics.total_users }}</h3>
+                <small class="text-muted">All active accounts</small>
+            </div>
         </div>
     </div>
-</section>
 
-<!-- VALUE PROPS -->
-<section class="py-5">
-    <div class="container">
-        <div class="row g-4">
-
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Developer-First</h5>
-                        <p class="card-text text-secondary">
-                            Clean REST APIs, strict schemas, predictable contracts.
-                            No guesswork.
-                        </p>
-                    </div>
-                </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm card-metric">
+            <div class="card-body">
+                <h5>Active Users</h5>
+                <h3>{{ metrics.active_users }}</h3>
+                <small class="text-muted">Currently enabled</small>
             </div>
-
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Secure by Default</h5>
-                        <p class="card-text text-secondary">
-                            OAuth, tokenized access, audited flows.
-                            Built for regulated environments.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Operationally Boring</h5>
-                        <p class="card-text text-secondary">
-                            Observable, versioned, and stable.
-                            Exactly how backend systems should be.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
-</section>
 
-<!-- DEVELOPER ACCESS -->
-<section class="py-5 bg-white border-top">
-    <div class="container">
-        <div class="row align-items-center g-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm card-metric">
+            <div class="card-body">
+                <h5>Verified Emails</h5>
+                <h3>{{ metrics.verified_users }}</h3>
+                <small class="text-muted">Email verified</small>
+            </div>
+        </div>
+    </div>
 
-            <div class="col-md-6">
-                <h2 class="fw-semibold">Built for Web & Mobile Teams</h2>
-                <p class="text-secondary mt-3">
-                    iOS, Android, Web, internal tools—one API surface.
-                    Backwards-compatible versioning keeps teams shipping.
+    <div class="col-md-3">
+        <div class="card shadow-sm card-metric">
+            <div class="card-body">
+                <h5>Redis Keys</h5>
+                <h3>{{ metrics.redis_keys }}</h3>
+                <small class="text-muted">Cache entries</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">MongoDB Status</div>
+            <div class="card-body">
+                <p><strong>Connection:</strong>
+                    {% if mongo_metrics.ok %}
+                    <span class="badge bg-success">Connected</span>
+                    {% else %}
+                    <span class="badge bg-danger">Unavailable</span>
+                    {% endif %}
                 </p>
-
-                <ul class="list-unstyled text-secondary">
-                    <li>• RESTful endpoints</li>
-                    <li>• Explicit versioning</li>
-                    <li>• Typed responses</li>
-                    <li>• Zero hidden behavior</li>
-                </ul>
+                <p><strong>Latency:</strong> {{ mongo_metrics.latency_ms }} ms</p>
+                <p><strong>Collections:</strong> {{ mongo_metrics.collections }}</p>
             </div>
-
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h6 class="text-uppercase text-secondary">API Base Paths</h6>
-
-                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-                            <span class="font-monospace">/api/v1</span>
-                            <a href="/docs" target="_blank" class="btn btn-sm btn-outline-primary">
-                                View
-                            </a>
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center py-2">
-                            <span class="font-monospace">/api/v2</span>
-                            <a href="/docs" target="_blank" class="btn btn-sm btn-outline-primary">
-                                View
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
-</section>
 
-<!-- FOOTER -->
-<footer class="py-4 bg-light border-top">
-    <div class="container text-center small text-secondary">
-        Internal access: <span class="font-monospace">/_/index.html</span><br />
-        © {{ app_title or "MomCare" }} · Ritik Ranjan
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">Redis Status</div>
+            <div class="card-body">
+                <p><strong>Connection:</strong>
+                    {% if redis_metrics.ok %}
+                    <span class="badge bg-success">Connected</span>
+                    {% else %}
+                    <span class="badge bg-danger">Unavailable</span>
+                    {% endif %}
+                </p>
+                <p><strong>Latency:</strong> {{ redis_metrics.latency_ms }} ms</p>
+                <p><strong>Memory Used:</strong> {{ redis_metrics.used_memory }}</p>
+                <p><strong>Keys:</strong> {{ redis_metrics.keys }}</p>
+            </div>
+        </div>
     </div>
-</footer>
+</div>
 
+<div class="card shadow-sm">
+    <div class="card-header">Recent Activity</div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in activity %}
+                <tr>
+                    <td>{{ row.timestamp }}</td>
+                    <td>{{ row.user }}</td>
+                    <td>{{ row.action }}</td>
+                    <td>{{ row.status }}</td>
+                </tr>
+                {% endfor %}
+                {% if activity|length == 0 %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">No activity recorded yet.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

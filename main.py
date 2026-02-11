@@ -10,11 +10,18 @@ import uvicorn
 from dotenv import load_dotenv
 from rich.traceback import install as install_rich_traceback
 
-_ = load_dotenv(verbose=True)
+load_dotenv()
 install_rich_traceback()
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8080"))
+
+uvicorn_access_logger = logging.getLogger("uvicorn.access")
+uvicorn_access_logger.disabled = True
+uvicorn_access_logger.propagate = False
+
+uvicorn_logger = logging.getLogger("uvicorn")
+uvicorn_logger.setLevel(logging.INFO)
 
 file_handler = logging.handlers.RotatingFileHandler("app.log", maxBytes=5 * 1024 * 1024, backupCount=2)
 file_handler.setLevel(logging.DEBUG)
@@ -41,8 +48,8 @@ else:
         pass
 
 
-def runner():
-    uvicorn.run("src.app:app", host=HOST, port=PORT)
+def runner(*, host: str = HOST, port: int = PORT) -> None:
+    uvicorn.run("src.app:app", host=host, port=port)
 
 
 if __name__ == "__main__":

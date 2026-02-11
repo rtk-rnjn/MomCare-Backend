@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import logging
 import sys
+import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -16,7 +16,7 @@ colorama.init(autoreset=True)
 
 
 @dataclass
-class GoStyleLoggingMiddleware:
+class ConsoleLoggingMiddleware:
     app: ASGIApp
     output: TextIO = sys.stdout
 
