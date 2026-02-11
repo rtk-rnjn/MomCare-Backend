@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 
+import arrow
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -70,7 +71,7 @@ redis_client = Redis(
     protocol=3,
 )
 
-mongo_client = AsyncMongoClient(MONGODB_URI)
+mongo_client = AsyncMongoClient(MONGODB_URI, tz_aware=True)
 email_normalizer = EmailNormalizer()
 
 app.state.auth_manager = auth_manager
@@ -78,6 +79,7 @@ app.state.google_api_handler = google_api_handler
 app.state.s3 = s3
 app.state.redis_client = redis_client
 app.state.email_normalizer = email_normalizer
+app.state.start_time = arrow.utcnow()
 
 app.state.mongo_client = mongo_client
 app.state.mongo_database = mongo_client["MomCare"]

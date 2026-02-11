@@ -181,7 +181,27 @@ async def login(data: CredentialsModel = Body(...)):
         },
     )
 
-    return auth_manager.login(str(cred.get("_id")))
+    token_pair_dict = redis_client.hgetall(f"token_blocklist:{cred.get('_id')}")
+    if inspect.isawaitable(token_pair_dict):
+        token_pair_dict = await token_pair_dict
+
+    if token_pair_dict:
+        return JSONResponse(
+            TokenPairDict(
+                access_token=token_pair_dict["access_token"],
+                refresh_token=token_pair_dict["refresh_token"],
+                expires_at_timestamp=int(token_pair_dict["expires_at_timestamp"]),
+            ),
+            status_code=HTTP_200_OK,
+        )
+
+    token_pair = auth_manager.login(str(cred.get("_id")))
+    maybe_awaitable = redis_client.hset(f"token_blocklist:{cred.get('_id')}", mapping=dict(token_pair))
+    await redis_client.expire(f"token_blocklist:{cred.get('_id')}", 15 * 60)
+    if inspect.isawaitable(maybe_awaitable):
+        await maybe_awaitable
+
+    return JSONResponse(token_pair, status_code=HTTP_200_OK)
 
 
 @router.get(

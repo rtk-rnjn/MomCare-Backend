@@ -65,6 +65,7 @@ class DecodedRefreshPayload(DecodedBasePayload):
 class TokenPairDict(TypedDict):
     access_token: str
     refresh_token: str
+    expires_at_timestamp: int
 
 
 class AuthError(Exception):
@@ -133,6 +134,7 @@ class TokenManager(metaclass=SingletonMeta):
         return {
             "access_token": self.create_access_token(user_id),
             "refresh_token": self.create_refresh_token(user_id, jti),
+            "expires_at_timestamp": int((self.utc_now() + ACCESS_EXP).timestamp()),
         }
 
     def _require_str(self, payload: Mapping[str, Any], key: str, /) -> str:
@@ -238,6 +240,7 @@ class TokenManager(metaclass=SingletonMeta):
         return {
             "access_token": self.create_access_token(user_id),
             "refresh_token": self.create_refresh_token(user_id, new_jti),
+            "expires_at_timestamp": int((self.utc_now() + ACCESS_EXP).timestamp()),
         }
 
     def logout(self, refresh_token: str, /):

@@ -26,3 +26,17 @@ async def register_device_token(
 ) -> bool:
     await redis_client.set(f"device_token:{user_id}", device_token)
     return True
+
+
+@router.delete(
+    "/apns",
+    summary="Unregister APNs Device Token",
+    name="Unregister APNs Device Token",
+    description="Unregister a device token for Apple Push Notification Service (APNs) to stop receiving push notifications on iOS devices.",
+    response_model=bool,
+    response_description="Always returns true if the device token was successfully unregistered.",
+    status_code=HTTP_200_OK,
+)
+async def unregister_device_token(user_id: str = Depends(get_user_id, use_cache=False)) -> bool:
+    await redis_client.delete(f"device_token:{user_id}")
+    return True
