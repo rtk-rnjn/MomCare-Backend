@@ -289,17 +289,3 @@ async def normalize(email_address: str) -> Result:
     """
     normalizer = Normalizer()
     return await normalizer.normalize(email_address)
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) != 2:
-        print("Usage: python email_normaliser.py <email_address>")
-        sys.exit(1)
-
-    async def main():
-        result = await normalize(sys.argv[1])
-        print(result)
-
-    asyncio.run(main())

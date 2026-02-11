@@ -247,7 +247,6 @@ async def extract_mongo_metadata(mongo_client: AsyncMongoClient) -> MongoMetadat
 async def get_database_stats() -> ORJSONResponse:
     mongo_client = app.state.mongo_client
     metadata = await extract_mongo_metadata(mongo_client)
-    print("MongoDB Metadata:", metadata)  # Debug log
     return ORJSONResponse(content=metadata)
 
 
