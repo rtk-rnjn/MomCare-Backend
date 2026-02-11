@@ -173,6 +173,22 @@ async def get_api_uptime() -> int:
 database_router = APIRouter(prefix="/database", tags=["System & Meta"])
 
 
+def camel_to_snake(name: str) -> str:
+    import re
+
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def parse_mongo_metadata(data: Any) -> Any:
+    if isinstance(data, dict):
+        return {camel_to_snake(key): parse_mongo_metadata(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [parse_mongo_metadata(item) for item in data]
+    else:
+        return data
+
+
 async def extract_mongo_metadata(mongo_client: AsyncMongoClient) -> MongoMetadata:
     """
     Extract operational + topology metadata from MongoDB.
@@ -235,7 +251,7 @@ async def extract_mongo_metadata(mongo_client: AsyncMongoClient) -> MongoMetadat
     except PyMongoError as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving MongoDB metadata: {str(e)}")
 
-    return metadata
+    return parse_mongo_metadata(metadata)
 
 
 @database_router.get(
