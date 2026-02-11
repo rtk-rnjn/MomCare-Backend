@@ -10,8 +10,8 @@ from types_aiobotocore_s3.client import S3Client
 
 _ = load_dotenv(verbose=True)
 
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
+AWS_ACCESS_KEY = os.environ["AWS_ACCESS_KEY"]
+AWS_SECRET_KEY = os.environ["AWS_SECRET_KEY"]
 
 BUCKET_NAME = os.environ["AWS_BUCKET_NAME"]
 REGION = os.environ["AWS_REGION"]

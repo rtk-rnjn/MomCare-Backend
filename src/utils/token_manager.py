@@ -12,8 +12,8 @@ from redis import Redis
 
 _ = load_dotenv(verbose=True)
 
-JWT_SECRET = os.getenv("JWT_SECRET", "CHANGE_ME")
-JWT_ALGO = "HS256"
+JWT_SECRET = os.environ["JWT_SECRET_KEY"]
+JWT_ALGO = os.environ["JWT_ALGORITHM"]
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
