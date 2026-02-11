@@ -49,7 +49,12 @@ else:
 
 
 def runner(*, host: str = HOST, port: int = PORT) -> None:
-    uvicorn.run("src.app:app", host=host, port=port)
+    development_mode = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"
+    if development_mode:
+        logging.info("Running in development mode with auto-reload enabled.")
+        uvicorn.run("src.app:app", host=host, port=port, reload=True)
+    else:
+        uvicorn.run("src.app:app", host=host, port=port)
 
 
 if __name__ == "__main__":

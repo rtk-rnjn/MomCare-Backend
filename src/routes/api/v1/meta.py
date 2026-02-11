@@ -295,7 +295,7 @@ async def extract_redis_metadata(redis_client: Redis) -> RedisMetadata:
     return metadata
 
 
-@router.get(
+@database_router.get(
     "/redis/stats",
     summary="Get Redis Stats",
     description="Retrieve statistics about the Redis instance, including memory usage and uptime.",

@@ -9,6 +9,7 @@ from .api import (
     v2_auth_router,
     v2_devices_router,
 )
+from .web import *  # noqa: F401, F403
 
 api_router = APIRouter(prefix="/api")
 web_router = APIRouter(include_in_schema=False)

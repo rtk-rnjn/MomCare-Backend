@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Docs</title>
+
+    {% if framework == "rapidoc" %}
+    <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+    {% elif framework == "spotlight" %}
+    <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css" />
+    {% endif %}
+</head>
+
+<body>
+    {% if framework == "rapidoc" %}
+    <rapi-doc spec-url="/openapi.json" render-style="read" show-header="true" allow-try="true"></rapi-doc>
+    {% elif framework == "spotlight" %}
+    <elements-api apiDescriptionUrl="/openapi.json" router="hash" layout="sidebar"></elements-api>
+    {% endif %}
+</body>
+
+</html>
