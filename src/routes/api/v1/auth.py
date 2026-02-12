@@ -111,13 +111,21 @@ async def register(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
         raise HTTPException(status_code=400, detail="Email address and password are required.")
 
-    if await credentials_collection.find_one({"email_address": data.email_address, "account_status": {"$ne": AccountStatus.DELETED}}):
+    normalization_result = await email_normalizer.normalize(data.email_address)
+    if await credentials_collection.find_one(
+        {
+            "$or": [
+                {"email_address": data.email_address},
+                {"email_address_normalized": normalization_result.cleaned_email},
+            ],
+            "account_status": {"$ne": AccountStatus.DELETED},
+        }
+    ):
         raise HTTPException(status_code=409, detail="Email address already in use.")
 
     cred_id = str(uuid.uuid4())
 
     now = arrow.utcnow().timestamp()
-    normalization_result = await email_normalizer.normalize(data.email_address)
 
     credential = CredentialsDict(
         _id=cred_id,
