@@ -28,6 +28,7 @@ from src.models import (
     ExerciseDict,
     ExerciseModel,
     FoodItemDict,
+    FoodReferenceModel,
     MyPlanDict,
     MyPlanModel,
     UserDict,
@@ -263,7 +264,16 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
         }
     )
     if existing_plan:
-        return MyPlanModel(**existing_plan)  # type: ignore
+        model = MyPlanModel(
+            _id=existing_plan.get("_id"),  # type: ignore
+            user_id=existing_plan.get("user_id"),
+            breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("breakfast", [])],
+            lunch=[FoodReferenceModel(**item) for item in existing_plan.get("lunch", [])],
+            dinner=[FoodReferenceModel(**item) for item in existing_plan.get("dinner", [])],
+            snacks=[FoodReferenceModel(**item) for item in existing_plan.get("snacks", [])],
+            created_at_timestamp=existing_plan.get("created_at_timestamp"),
+        )
+        return JSONResponse(model.model_dump(by_alias=True))
 
     food_intolerances = user.get("food_intolerances", [])
     dietary_preferences = user.get("dietary_preferences", [])
