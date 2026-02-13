@@ -27,10 +27,10 @@ class RegistrationResponse(BaseModel):
         examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."],
         title="Refresh Token",
     )
-    expires_at_timestamp: int = Field(
+    expires_at_timestamp: float = Field(
         ...,
         description="The timestamp when the access token expires.",
-        examples=[1622592000],
+        examples=[1622592000.0],
         title="Expires At Timestamp",
     )
 

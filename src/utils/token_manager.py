@@ -3,9 +3,10 @@ from __future__ import annotations
 import os
 import threading
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Literal, Mapping, TypedDict, overload
 
+import arrow
 import jwt
 from dotenv import load_dotenv
 from redis import Redis
@@ -65,7 +66,7 @@ class DecodedRefreshPayload(DecodedBasePayload):
 class TokenPairDict(TypedDict):
     access_token: str
     refresh_token: str
-    expires_at_timestamp: int
+    expires_at_timestamp: float
 
 
 class AuthError(Exception):
@@ -93,7 +94,7 @@ class TokenManager(metaclass=SingletonMeta):
         )
 
     def utc_now(self):
-        return datetime.now(timezone.utc)
+        return arrow.utcnow().datetime
 
     def _base_payload(self, user_id: str, /) -> BasePayload:
         return {
