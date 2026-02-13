@@ -42,12 +42,10 @@ class TimestampRange(BaseModel):
     start_timestamp: float = Field(
         ...,
         description="The start of the timestamp range.",
-        examples=[1622505600.0],
         title="Start Timestamp",
     )
     end_timestamp: float = Field(
         ...,
         description="The end of the timestamp range.",
-        examples=[1622592000.0],
         title="End Timestamp",
     )

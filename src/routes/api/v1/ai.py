@@ -76,7 +76,6 @@ def _today_window() -> tuple[float, float]:
 
 async def _get_verified_user(user_id: str) -> UserDict:
     cred = await credentials_collection.find_one({"_id": user_id})
-    print(cred)
     if not cred:
         raise HTTPException(HTTP_404_NOT_FOUND, detail="User credentials not found.")
 

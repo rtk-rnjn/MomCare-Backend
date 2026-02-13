@@ -17,15 +17,11 @@ class FoodReferenceModel(BaseModel):
         None,
         description="The timestamp when the food was consumed. Null if not consumed yet.",
         title="Consumed At Timestamp",
-        examples=[1622505600.0],
-        gt=0,
     )
     count: int = Field(
         ...,
         description="The count of the food items.",
         title="Count",
-        examples=[1],
-        gt=0,
     )
 
     class Config:
@@ -50,7 +46,6 @@ class MyPlanModel(BaseModel):
         ...,
         alias="_id",
         description="The unique identifier for the plan.",
-        examples=["123e4567-e89b-12d3-a456-426614174000"],
         title="Plan ID",
     )
 
@@ -62,7 +57,7 @@ class MyPlanModel(BaseModel):
     snacks: list[FoodReferenceModel] = Field(..., description="The list of food items for snacks.", title="Snacks")
 
     created_at_timestamp: float | None = Field(
-        None, description="The timestamp when the plan was created.", title="Created At Timestamp", examples=[1622505600.0], gt=0
+        None, description="The timestamp when the plan was created.", title="Created At Timestamp"
     )
 
     class Config:
