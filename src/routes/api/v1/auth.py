@@ -189,7 +189,7 @@ async def login(data: CredentialsModel = Body(...)):
         },
     )
 
-    token_pair_dict = redis_client.hgetall(f"token_blocklist:{cred.get('_id')}")
+    token_pair_dict = redis_client.hgetall(f"token:{cred.get('_id')}")
     if inspect.isawaitable(token_pair_dict):
         token_pair_dict = await token_pair_dict
 
@@ -204,8 +204,8 @@ async def login(data: CredentialsModel = Body(...)):
         )
 
     token_pair = auth_manager.login(str(cred.get("_id")))
-    maybe_awaitable = redis_client.hset(f"token_blocklist:{cred.get('_id')}", mapping=dict(token_pair))
-    await redis_client.expire(f"token_blocklist:{cred.get('_id')}", 15 * 60)
+    maybe_awaitable = redis_client.hset(f"token:{cred.get('_id')}", mapping=dict(token_pair))
+    await redis_client.expire(f"token:{cred.get('_id')}", 15 * 60)
     if inspect.isawaitable(maybe_awaitable):
         await maybe_awaitable
 
