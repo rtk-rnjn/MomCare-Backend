@@ -76,6 +76,7 @@ def _today_window() -> tuple[float, float]:
 
 async def _get_verified_user(user_id: str) -> UserDict:
     cred = await credentials_collection.find_one({"_id": user_id})
+    print(cred)
     if not cred:
         raise HTTPException(HTTP_404_NOT_FOUND, detail="User credentials not found.")
 
@@ -89,9 +90,10 @@ async def _get_verified_user(user_id: str) -> UserDict:
     if not user:
         raise HTTPException(HTTP_423_LOCKED, detail="User not found.")
 
-    if not user.get("verified_email", False):
-        raise HTTPException(HTTP_403_FORBIDDEN, detail="User email not verified.")
-    return user
+    if cred.get("verified_email", False):
+        return user
+
+    raise HTTPException(HTTP_403_FORBIDDEN, detail="User email not verified.")
 
 
 def _exercise_pipeline(user_id: str, start: float, end: float) -> list[dict]:
