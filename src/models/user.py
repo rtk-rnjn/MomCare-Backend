@@ -101,6 +101,7 @@ class UserDict(TypedDict, total=False):
 
     food_intolerances: list[Allergen]
     dietary_preferences: list[FoodType]
+    timezone: NotRequired[str | None]
 
 
 class UserModel(BaseModel):
@@ -173,6 +174,12 @@ class UserModel(BaseModel):
         description="A list of the user's dietary preferences.",
         examples=[[FoodType.VEG]],
         title="Dietary Preferences",
+    )
+    timezone: str | None = Field(
+        default=None,
+        description="The user's timezone in IANA format.",
+        examples=["America/New_York"],
+        title="Timezone",
     )
 
     class Config:

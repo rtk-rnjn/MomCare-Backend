@@ -67,8 +67,8 @@ DailyInsightDict = TypedDict(
 )
 
 
-def _today_window() -> tuple[float, float]:
-    now = arrow.now()
+def _today_window(tz: str = "Asia/Kolkata", /) -> tuple[float, float]:
+    now = arrow.now(tz)
     return (
         now.shift(days=-1).float_timestamp,
         now.shift(days=1).float_timestamp,
@@ -142,7 +142,8 @@ async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: t
 )
 async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await _get_verified_user(user_id)
-    start, end = _today_window()
+    timezone = user.get("timezone") or "Asia/Kolkata"
+    start, end = _today_window(timezone)
 
     tip = await tips_collection.find_one(
         {
@@ -252,8 +253,8 @@ async def fetch_all_plans(
 )
 async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     user: UserDict = await _get_verified_user(user_id)
-
-    now = arrow.now()
+    timezone = user.get("timezone") or "Asia/Kolkata"
+    now = arrow.now(timezone)
     existing_plan = await plans_collection.find_one(
         {
             "user_id": user_id,
@@ -317,7 +318,8 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
 )
 async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await _get_verified_user(user_id)
-    window_start_ts, window_end_ts = _today_window()
+    timezone = user.get("timezone") or "Asia/Kolkata"
+    window_start_ts, window_end_ts = _today_window(timezone)
 
     existing_user_exercises = await user_exercises_collection.find(
         {
