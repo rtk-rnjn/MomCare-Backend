@@ -44,7 +44,7 @@ google_api_handler: GoogleAPIHandler = app.state.google_api_handler
 database: Database = app.state.mongo_database
 s3: S3 = app.state.s3
 
-tips_collection: Collection = database["tips"]
+tips_collection: Collection["DailyInsightDict"] = database["tips"]
 users_collection: Collection[UserDict] = database["users"]
 credentials_collection: Collection[CredentialsDict] = database["credentials"]
 exercises_collection: Collection[ExerciseDict] = database["exercises"]
@@ -60,6 +60,7 @@ DailyInsightDict = TypedDict(
     "DailyInsightDict",
     {
         "_id": str,
+        "user_id": str,
         "todays_focus": str,
         "daily_tip": str,
         "created_at_timestamp": float,
@@ -148,22 +149,25 @@ async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
 
     tip = await tips_collection.find_one(
         {
-            "_id": user_id,
+            "_id": str(uuid.uuid4()),
+            "user_id": user_id,
             "created_at_timestamp": {"$gte": start, "$lt": end},
         }
     )
     if tip:
-        return DailyInsightModel(**tip)
+        return JSONResponse(DailyInsightModel(daily_tip=tip["daily_tip"], todays_focus=tip["todays_focus"]).model_dump(by_alias=True))
 
     generated = await google_api_handler.generate_tips(user=user)
     await tips_collection.insert_one(
         {
-            "_id": user_id,
-            **generated.model_dump(),
+            "_id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "todays_focus": generated.todays_focus,
+            "daily_tip": generated.daily_tip,
             "created_at_timestamp": arrow.now().float_timestamp,
         }
     )
-    return generated
+    return JSONResponse(generated.model_dump(by_alias=True))
 
 
 @router.get(
@@ -188,7 +192,7 @@ async def fetch_all_tips(
 
     cursor = tips_collection.find(
         {
-            "_id": user_id,
+            "user_id": user_id,
             "created_at_timestamp": {
                 "$gte": timestamp_range.start_timestamp,
                 "$lte": timestamp_range.end_timestamp,

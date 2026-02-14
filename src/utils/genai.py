@@ -25,6 +25,8 @@ class DailyInsightModel(BaseModel):
     todays_focus: str = Field(..., description="The main focus for the day.", title="Today's Focus")
     daily_tip: str = Field(..., description="A helpful tip for the day.", title="Daily Tip")
 
+    class Config:
+        extra = "ignore"
 
 class Data(TypedDict):
     system: str
