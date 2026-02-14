@@ -118,7 +118,8 @@ def _exercise_pipeline(user_id: str, start: float, end: float) -> list[dict]:
 
 async def _hydrate_exercise(exercise: ExerciseDict) -> ExerciseModel:
     model = ExerciseModel(**exercise)
-    model.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{model.image_name}")
+    name = model.name.lower().strip().replace(" ", "_").replace("'", "")
+    model.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{name}.png")
     return model
 
 
@@ -347,7 +348,8 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
     created_user_exercises: list[UserExerciseDict] = []
 
     for exercise in ai_response.exercises:
-        exercise.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{exercise.image_name}")
+        name = exercise.name.lower().strip().replace(" ", "_").replace("'", "")
+        exercise.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{name}.png")
 
         user_exercise_record = UserExerciseDict(
             _id=str(uuid.uuid4()),

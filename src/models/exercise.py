@@ -16,7 +16,6 @@ class ExerciseDict(TypedDict):
     week: str
     tags: list[str]
     targeted_body_parts: list[str]
-    image_name: str
     image_name_uri: str | None
     video_duration_seconds: float
 
@@ -50,7 +49,6 @@ class ExerciseModel(BaseModel):
     targeted_body_parts: list[str] = Field(
         ..., description="A list of body parts targeted by the exercise.", title="Targeted Body Parts"
     )
-    image_name: str = Field(..., description="The name of the image file associated with the exercise.", title="Exercise Image Name")
     image_name_uri: str | None = Field(None, description="The URI of the image representing the exercise.", title="Exercise Image URI")
     video_duration_seconds: float = Field(
         ..., description="The duration of the exercise video in seconds.", title="Exercise Video Duration in Seconds"
