@@ -335,7 +335,7 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
         return JSONResponse(existing_user_exercises)
 
     exercise_catalog_payload = [
-        ExerciseModel(**exercise).model_dump(by_alias=True, mode="json") for exercise in exercises_collection.find({})
+        ExerciseModel(**exercise).model_dump(by_alias=True, mode="json") async for exercise in exercises_collection.find({})
     ]
 
     ai_response = await google_api_handler.generate_exercises(

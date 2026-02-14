@@ -7,7 +7,7 @@
         ]
     },
     "exercise_prompt": {
-        "system": "Suggest what exercise should a pregnant woman do today.\nKeep it specific to her current pregnancy week based on the due date. 4-5 Exercises would be enough.\nAvaiable yoga sets: $exercise_sets",
+        "system": "Suggest what exercise should a pregnant woman do today.\nKeep it specific to her current pregnancy week based on the due date. 4-5 Exercises would be enough. Do not generated anything other than given exercise set. When generating set `_id`/`id`. \nAvaiable yoga sets: $exercise_sets",
         "user": [
             "User data: $user",
             "Today's date: $todays_timestamp"

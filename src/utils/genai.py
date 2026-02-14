@@ -63,6 +63,7 @@ class GoogleAPIHandler:
             system_instruction=system_prompt,
             response_mime_type="application/json",
             response_schema=response_schema,
+            tools=[],
         )
         model = self.model
         response = await self.client.aio.models.generate_content(

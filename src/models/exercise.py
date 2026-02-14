@@ -34,7 +34,7 @@ class ExerciseModel(BaseModel):
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
         alias="_id",
-        description="The unique identifier for the exercise.",
+        description="The unique identifier.",
         title="Exercise ID",
     )
 
