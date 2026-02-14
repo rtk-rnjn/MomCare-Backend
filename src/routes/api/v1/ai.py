@@ -70,9 +70,11 @@ DailyInsightDict = TypedDict(
 
 def _today_window(tz: str = "Asia/Kolkata", /) -> tuple[float, float]:
     now = arrow.now(tz)
+    start_of_the_day = now.floor("day")
+    end_of_the_day = now.ceil("day")
     return (
-        now.shift(days=-1).float_timestamp,
-        now.shift(days=1).float_timestamp,
+        start_of_the_day.float_timestamp,
+        end_of_the_day.float_timestamp,
     )
 
 
@@ -259,13 +261,13 @@ async def fetch_all_plans(
 async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     user: UserDict = await _get_verified_user(user_id)
     timezone = user.get("timezone") or "Asia/Kolkata"
-    now = arrow.now(timezone)
+    start, end = _today_window(timezone)
     existing_plan = await plans_collection.find_one(
         {
             "user_id": user_id,
             "created_at_timestamp": {
-                "$gte": now.shift(days=-1).float_timestamp,
-                "$lte": now.shift(days=1).float_timestamp,
+                "$gte": start,
+                "$lte": end,
             },
         }
     )
