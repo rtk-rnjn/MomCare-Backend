@@ -35,7 +35,6 @@ class ExerciseModel(BaseModel):
         default_factory=lambda: str(uuid.uuid4()),
         alias="_id",
         description="The unique identifier for the exercise.",
-        examples=["123e4567-e89b-12d3-a456-426614174000"],
         title="Exercise ID",
     )
 
@@ -43,7 +42,6 @@ class ExerciseModel(BaseModel):
     level: Literal["Advanced", "Beginner", "Intermediate"] = Field(
         ...,
         description="The difficulty level of the exercise.",
-        examples=["Beginner", "Intermediate", "Advanced"],
         title="Exercise Level",
     )
     description: str = Field(..., description="A detailed description of the exercise.", title="Exercise Description")

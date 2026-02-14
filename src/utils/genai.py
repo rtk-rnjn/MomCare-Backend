@@ -71,7 +71,6 @@ class GoogleAPIHandler:
             config=config,
         )
         if response.text:
-            print(response.text)
             return response_schema(**json.loads(response.text))
 
         return response_schema()
