@@ -337,5 +337,5 @@ async def get_food_image(
     ),
 ):
     food = await _get_or_404(foods_collection, food_id, "Food item")
-    uri = await s3.get_presigned_url(f"FoodImages/{food['image_name']}")
+    uri = await s3.get_presigned_url(f"FoodImages/{food['name'].lower().replace(' ', '_')}.png")
     return ServerMessage(detail=uri)
