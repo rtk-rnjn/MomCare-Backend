@@ -311,7 +311,8 @@ async def get_food(
     ),
 ):
     food = await _get_or_404(foods_collection, food_id, "Food item")
-    return FoodItemModel(**food)
+    uri = await s3.get_presigned_url(f"FoodImages/{food['name'].lower().replace(' ', '_')}.png")
+    return FoodItemModel(**food, image_uri=uri)
 
 
 @router.get(
