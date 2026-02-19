@@ -15,7 +15,7 @@ from src.routes.api.utils import get_user_id
 router = APIRouter(prefix="/update", tags=["Update Management"])
 
 database: Database = app.state.mongo_database
-exercises_collection: Collection[UserExerciseDict] = database["exercises"]
+exercises_collection: Collection[UserExerciseDict] = database["user_exercises"]
 plans_collection: Collection[MyPlanDict] = database["plans"]
 
 
