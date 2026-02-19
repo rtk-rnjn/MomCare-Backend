@@ -67,14 +67,14 @@ async def update_exercise(
         description="The duration of the exercise in seconds.",
         examples=[120.0],
         embed=True,
-        gt=0,
         alias="duration",
         title="Exercise Duration",
     ),
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
+    duration = min(0, duration)
     update_result = await exercises_collection.update_one(
-        {"_id": exercise_id, "user_id": user_id},
+        {"exercise_id": exercise_id, "user_id": user_id},
         {"$set": {"video_duration_completed_seconds": duration}},
     )
     if update_result.matched_count == 0:
