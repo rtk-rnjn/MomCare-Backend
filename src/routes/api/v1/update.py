@@ -72,7 +72,7 @@ async def update_exercise(
     ),
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
-    duration = min(0, duration)
+    duration = min(max(0, duration), duration)
     update_result = await exercises_collection.update_one(
         {"exercise_id": exercise_id, "user_id": user_id},
         {"$set": {"video_duration_completed_seconds": duration}},
