@@ -24,3 +24,4 @@ aiodns
 colorama
 itsdangerous
 python-multipart
+psutil

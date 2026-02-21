@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Any, TypedDict
 
 import arrow
@@ -10,7 +9,7 @@ from bson.timestamp import Timestamp
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import ORJSONResponse as _ORJSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from pymongo.errors import PyMongoError
@@ -27,16 +26,7 @@ redis_client: Redis = app.state.redis_client
 
 security = HTTPBearer()
 
-
-async def admin_required(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    if token != os.environ["ADMIN_TOKEN"]:
-        raise HTTPException(
-            status_code=403,
-        )
-
-
-router = APIRouter(prefix="/meta", tags=["System & Meta"], dependencies=[Depends(admin_required), Depends(rate_limiter)])
+router = APIRouter(prefix="/meta", tags=["System & Meta"], dependencies=[Depends(rate_limiter)])
 
 
 class ORJSONResponse(_ORJSONResponse):

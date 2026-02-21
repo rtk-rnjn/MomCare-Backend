@@ -1,0 +1,689 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Data Manager{% endblock %}
+{% block page_title %}Data Manager{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 space-y-4">
+        <div class="flex flex-wrap items-end gap-3">
+            <div>
+                <label for="collectionSelect" class="block text-xs font-medium text-gray-500 mb-1">Collection</label>
+                <select id="collectionSelect" class="px-3 py-2 border rounded-md dark:bg-gray-900 min-w-52"></select>
+            </div>
+
+            <div>
+                <label for="pageSizeSelect" class="block text-xs font-medium text-gray-500 mb-1">Page Size</label>
+                <select id="pageSizeSelect" class="px-3 py-2 border rounded-md dark:bg-gray-900">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <button id="refreshBtn" class="px-4 py-2 border rounded-md text-sm">Refresh</button>
+            <button id="createBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm">Create</button>
+        </div>
+
+        <p id="statusText" class="text-xs text-gray-500">Ready</p>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr class="text-left">
+                    <th class="px-4 py-3">ID</th>
+                    <th class="px-4 py-3">Document</th>
+                    <th class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="recordsBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+        </table>
+    </div>
+
+    <div class="flex items-center justify-between">
+        <div id="paginationInfo" class="text-sm text-gray-500">Page 1 of 1</div>
+        <div class="flex gap-2">
+            <button id="prevBtn" class="px-3 py-1 border rounded">Prev</button>
+            <button id="nextBtn" class="px-3 py-1 border rounded">Next</button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 space-y-4">
+        <h3 class="text-sm font-semibold">Collection Shortcuts</h3>
+
+        <p id="shortcutHint" class="text-xs text-gray-500">Select a collection to see available shortcuts.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <input id="quickUserId" type="text" placeholder="Credential/User ID" class="px-3 py-2 border rounded-md dark:bg-gray-900" />
+            <input id="quickEmail" type="email" placeholder="New email address" class="px-3 py-2 border rounded-md dark:bg-gray-900" />
+            <button id="lockUserBtn" class="px-4 py-2 border rounded-md text-sm">Lock User</button>
+            <button id="unlockUserBtn" class="px-4 py-2 border rounded-md text-sm">Unlock User</button>
+            <button id="changeEmailBtn" class="px-4 py-2 border rounded-md text-sm">Change Email</button>
+            <button id="regenPlanBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm">Regenerate Plan</button>
+            <button id="deleteTodayPlanBtn" class="px-4 py-2 border rounded-md text-sm">Delete Today's Plan</button>
+            <button id="verifyEmailBtn" class="px-4 py-2 border rounded-md text-sm">Verify Email</button>
+            <button id="unverifyEmailBtn" class="px-4 py-2 border rounded-md text-sm">Unverify Email</button>
+            <button id="resetAttemptsBtn" class="px-4 py-2 border rounded-md text-sm">Reset Login Attempts</button>
+        </div>
+    </div>
+
+</div>
+
+<div id="editorModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 id="modalTitle" class="text-lg font-semibold">Edit</h3>
+            <div class="flex items-center gap-2">
+                <button id="switchFieldModeBtn" class="px-3 py-1 border rounded text-sm">Field Mode</button>
+                <button id="switchJsonModeBtn" class="px-3 py-1 border rounded text-sm">JSON Mode</button>
+                <button id="closeModalBtn" class="px-3 py-1 border rounded">Close</button>
+            </div>
+        </div>
+
+        <p class="text-xs text-gray-500">Field-aware mode is preferred. JSON mode remains available for advanced/nested edits.</p>
+
+        <div id="fieldModePanel" class="space-y-3"></div>
+        <textarea id="modalJson" class="w-full h-80 p-3 border rounded-md font-mono text-xs dark:bg-gray-900 hidden"></textarea>
+
+        <div class="flex justify-end gap-2">
+            <button id="saveModalBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm">Save</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const collectionSelect = document.getElementById('collectionSelect');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const createBtn = document.getElementById('createBtn');
+    const recordsBody = document.getElementById('recordsBody');
+    const statusText = document.getElementById('statusText');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const paginationInfo = document.getElementById('paginationInfo');
+
+    const editorModal = document.getElementById('editorModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalJson = document.getElementById('modalJson');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const saveModalBtn = document.getElementById('saveModalBtn');
+    const fieldModePanel = document.getElementById('fieldModePanel');
+    const switchFieldModeBtn = document.getElementById('switchFieldModeBtn');
+    const switchJsonModeBtn = document.getElementById('switchJsonModeBtn');
+
+    const quickUserId = document.getElementById('quickUserId');
+    const quickEmail = document.getElementById('quickEmail');
+    const lockUserBtn = document.getElementById('lockUserBtn');
+    const unlockUserBtn = document.getElementById('unlockUserBtn');
+    const changeEmailBtn = document.getElementById('changeEmailBtn');
+    const regenPlanBtn = document.getElementById('regenPlanBtn');
+    const deleteTodayPlanBtn = document.getElementById('deleteTodayPlanBtn');
+    const verifyEmailBtn = document.getElementById('verifyEmailBtn');
+    const unverifyEmailBtn = document.getElementById('unverifyEmailBtn');
+    const resetAttemptsBtn = document.getElementById('resetAttemptsBtn');
+    const shortcutHint = document.getElementById('shortcutHint');
+
+    const state = {
+        page: 1,
+        totalPages: 1,
+        pageSize: 20,
+        mode: 'create',
+        editingId: null,
+        items: [],
+        currentSchema: [],
+        currentShortcuts: [],
+        editorMode: 'field',
+    };
+
+    function setStatus(message, isError = false) {
+        statusText.textContent = message;
+        statusText.className = isError ? 'text-xs text-red-500' : 'text-xs text-gray-500';
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    async function fetchJson(url, options = {}) {
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...(options.headers || {}),
+            },
+            ...options,
+        });
+
+        let payload = {};
+        try {
+            payload = await response.json();
+        } catch (_) {
+        }
+
+        if (!response.ok) {
+            throw new Error(payload.detail || `Request failed (${response.status})`);
+        }
+
+        return payload;
+    }
+
+    async function loadCollections() {
+        const payload = await fetchJson('/admin/data-manager/api/collections');
+        collectionSelect.innerHTML = '';
+        payload.collections.forEach((name) => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            collectionSelect.appendChild(option);
+        });
+    }
+
+    async function loadRecords() {
+        const collection = collectionSelect.value;
+        if (!collection) {
+            return;
+        }
+
+        setStatus('Loading records...');
+        const payload = await fetchJson(`/admin/data-manager/api/${collection}?page=${state.page}&page_size=${state.pageSize}`);
+        state.items = payload.items || [];
+        state.totalPages = payload.total_pages || 1;
+        renderRecords();
+        paginationInfo.textContent = `Page ${payload.page} of ${state.totalPages} | Total ${payload.total}`;
+        setStatus('Loaded');
+    }
+
+    async function loadCollectionSchema() {
+        const collection = collectionSelect.value;
+        if (!collection) {
+            return;
+        }
+
+        const payload = await fetchJson(`/admin/data-manager/api/schema/${collection}`);
+        state.currentSchema = payload.fields || [];
+        state.currentShortcuts = payload.shortcuts || [];
+        applyShortcutVisibility();
+    }
+
+    function applyShortcutVisibility() {
+        const actions = new Set(state.currentShortcuts.map((s) => s.action));
+
+        lockUserBtn.classList.toggle('hidden', !actions.has('lock'));
+        unlockUserBtn.classList.toggle('hidden', !actions.has('unlock'));
+        changeEmailBtn.classList.toggle('hidden', !actions.has('change_email'));
+        regenPlanBtn.classList.toggle('hidden', !actions.has('regen_plan'));
+        deleteTodayPlanBtn.classList.toggle('hidden', !actions.has('delete_today_plan'));
+        verifyEmailBtn.classList.toggle('hidden', !actions.has('verify_email'));
+        unverifyEmailBtn.classList.toggle('hidden', !actions.has('unverify_email'));
+        resetAttemptsBtn.classList.toggle('hidden', !actions.has('reset_login_attempts'));
+
+        shortcutHint.textContent = actions.size
+            ? `Shortcuts available for ${collectionSelect.value}`
+            : `No shortcuts available for ${collectionSelect.value}`;
+    }
+
+    function getFieldInputType(type) {
+        if (type === 'number') return 'number';
+        return 'text';
+    }
+
+    function openFieldModePanel(documentData = {}) {
+        const fields = state.currentSchema || [];
+        if (!fields.length) {
+            fieldModePanel.innerHTML = '<p class="text-xs text-gray-500">No schema available. Use JSON mode.</p>';
+            return;
+        }
+
+        fieldModePanel.innerHTML = fields.map((field) => {
+            const value = documentData[field.name];
+            const readonly = state.mode === 'edit' && field.name === '_id' ? 'readonly' : (field.readonly ? 'readonly' : '');
+
+            if (field.type === 'boolean') {
+                const checked = value === true ? 'checked' : '';
+                return `
+                    <label class="flex items-center gap-2 text-sm">
+                        <input data-field-name="${field.name}" data-field-type="boolean" type="checkbox" ${checked} ${readonly} />
+                        <span>${field.name}</span>
+                    </label>
+                `;
+            }
+
+            if (field.type === 'enum') {
+                const options = (field.options || []).map((opt) => `<option value="${escapeHtml(opt)}" ${String(value) === String(opt) ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('');
+                return `
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">${field.name}</label>
+                        <select data-field-name="${field.name}" data-field-type="enum" class="w-full px-3 py-2 border rounded-md dark:bg-gray-900" ${readonly}>
+                            <option value=""></option>
+                            ${options}
+                        </select>
+                    </div>
+                `;
+            }
+
+            if (field.type === 'json') {
+                const textValue = value === undefined ? '' : JSON.stringify(value, null, 2);
+                return `
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">${field.name} (JSON)</label>
+                        <textarea data-field-name="${field.name}" data-field-type="json" class="w-full h-24 p-2 border rounded-md font-mono text-xs dark:bg-gray-900" ${readonly}>${escapeHtml(textValue)}</textarea>
+                    </div>
+                `;
+            }
+
+            const inputValue = value === undefined || value === null ? '' : String(value);
+            return `
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">${field.name}</label>
+                    <input data-field-name="${field.name}" data-field-type="${field.type || 'string'}" type="${getFieldInputType(field.type)}" value="${escapeHtml(inputValue)}" class="w-full px-3 py-2 border rounded-md dark:bg-gray-900" ${readonly} />
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderRecords() {
+        if (!state.items.length) {
+            recordsBody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-gray-500">No records found</td></tr>';
+            return;
+        }
+
+        recordsBody.innerHTML = state.items.map((item) => {
+            const docString = JSON.stringify(item, null, 2);
+            const id = item._id ?? '';
+            return `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 align-top">
+                    <td class="px-4 py-3 font-mono text-xs">${escapeHtml(id)}</td>
+                    <td class="px-4 py-3"><pre class="text-xs whitespace-pre-wrap">${escapeHtml(docString)}</pre></td>
+                    <td class="px-4 py-3">
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1 border rounded text-xs" data-action="edit" data-id="${escapeHtml(id)}">Edit</button>
+                            <button class="px-3 py-1 border rounded text-xs" data-action="delete" data-id="${escapeHtml(id)}">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function openModal(mode, documentData = {}, id = null) {
+        state.mode = mode;
+        state.editingId = id;
+        modalTitle.textContent = mode === 'create' ? 'Create Document' : 'Update Document';
+        modalJson.value = JSON.stringify(documentData, null, 2);
+        openFieldModePanel(documentData);
+
+        if (state.editorMode === 'field') {
+            fieldModePanel.classList.remove('hidden');
+            modalJson.classList.add('hidden');
+        } else {
+            fieldModePanel.classList.add('hidden');
+            modalJson.classList.remove('hidden');
+        }
+
+        editorModal.classList.remove('hidden');
+        editorModal.classList.add('flex');
+    }
+
+    function closeModal() {
+        editorModal.classList.remove('flex');
+        editorModal.classList.add('hidden');
+    }
+
+    async function saveModal() {
+        const collection = collectionSelect.value;
+        if (!collection) {
+            return;
+        }
+
+        let parsed;
+        if (state.editorMode === 'json') {
+            try {
+                parsed = JSON.parse(modalJson.value);
+            } catch (error) {
+                setStatus('Invalid JSON in modal', true);
+                return;
+            }
+
+            if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                setStatus('JSON must be an object', true);
+                return;
+            }
+        } else {
+            parsed = {};
+            const controls = fieldModePanel.querySelectorAll('[data-field-name]');
+
+            for (const control of controls) {
+                const name = control.getAttribute('data-field-name');
+                const type = control.getAttribute('data-field-type');
+                if (!name) continue;
+
+                if (type === 'boolean') {
+                    parsed[name] = control.checked;
+                    continue;
+                }
+
+                const raw = control.value;
+                if (raw === '') {
+                    continue;
+                }
+
+                if (type === 'number') {
+                    parsed[name] = Number(raw);
+                    continue;
+                }
+
+                if (type === 'json') {
+                    try {
+                        parsed[name] = JSON.parse(raw);
+                    } catch (_) {
+                        setStatus(`Invalid JSON for field ${name}`, true);
+                        return;
+                    }
+                    continue;
+                }
+
+                parsed[name] = raw;
+            }
+        }
+
+        if (state.mode === 'create') {
+            await fetchJson(`/admin/data-manager/api/${collection}`, {
+                method: 'POST',
+                body: JSON.stringify({ document: parsed }),
+            });
+            setStatus('Document created');
+        } else {
+            await fetchJson(`/admin/data-manager/api/${collection}/${encodeURIComponent(state.editingId)}`, {
+                method: 'PUT',
+                body: JSON.stringify({ updates: parsed }),
+            });
+            setStatus('Document updated');
+        }
+
+        closeModal();
+        await loadRecords();
+    }
+
+    async function deleteRecord(id) {
+        const collection = collectionSelect.value;
+        if (!collection) {
+            return;
+        }
+
+        const confirmed = confirm(`Delete document ${id}?`);
+        if (!confirmed) {
+            return;
+        }
+
+        await fetchJson(`/admin/data-manager/api/${collection}/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+        });
+        setStatus('Document deleted');
+        await loadRecords();
+    }
+
+    async function quickUserAction(path, body = null, successMessage) {
+        const userId = quickUserId.value.trim();
+        if (!userId) {
+            setStatus('User ID is required for quick action', true);
+            return;
+        }
+
+        const collection = collectionSelect.value;
+        const baseCollection = collection === 'credentials' ? 'credentials' : 'users';
+
+        await fetchJson(`/admin/data-manager/api/${baseCollection}/${encodeURIComponent(userId)}${path}`, {
+            method: 'POST',
+            body: body ? JSON.stringify(body) : '{}',
+        });
+
+        setStatus(successMessage);
+    }
+
+    function syncSelectedId(id) {
+        if (!id) return;
+        quickUserId.value = String(id);
+    }
+
+    recordsBody.addEventListener('click', async (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) {
+            return;
+        }
+
+        const id = button.getAttribute('data-id');
+        const action = button.getAttribute('data-action');
+        const item = state.items.find((row) => String(row._id) === String(id));
+
+        try {
+            if (action === 'edit') {
+                syncSelectedId(id);
+                openModal('edit', item || {}, id);
+            } else if (action === 'delete') {
+                await deleteRecord(id);
+            }
+        } catch (error) {
+            setStatus(error.message || 'Action failed', true);
+        }
+    });
+
+    refreshBtn.addEventListener('click', async () => {
+        try {
+            await loadRecords();
+        } catch (error) {
+            setStatus(error.message || 'Refresh failed', true);
+        }
+    });
+
+    createBtn.addEventListener('click', () => {
+        if (!state.currentSchema.length) {
+            state.editorMode = 'json';
+        }
+        openModal('create', {});
+    });
+
+    collectionSelect.addEventListener('change', async () => {
+        state.page = 1;
+        try {
+            await loadCollectionSchema();
+            await loadRecords();
+        } catch (error) {
+            setStatus(error.message || 'Load failed', true);
+        }
+    });
+
+    pageSizeSelect.addEventListener('change', async () => {
+        state.pageSize = Number(pageSizeSelect.value || '20');
+        state.page = 1;
+        try {
+            await loadRecords();
+        } catch (error) {
+            setStatus(error.message || 'Load failed', true);
+        }
+    });
+
+    prevBtn.addEventListener('click', async () => {
+        if (state.page <= 1) {
+            return;
+        }
+        state.page -= 1;
+        try {
+            await loadRecords();
+        } catch (error) {
+            setStatus(error.message || 'Pagination failed', true);
+        }
+    });
+
+    nextBtn.addEventListener('click', async () => {
+        if (state.page >= state.totalPages) {
+            return;
+        }
+        state.page += 1;
+        try {
+            await loadRecords();
+        } catch (error) {
+            setStatus(error.message || 'Pagination failed', true);
+        }
+    });
+
+    closeModalBtn.addEventListener('click', closeModal);
+
+    switchFieldModeBtn.addEventListener('click', () => {
+        state.editorMode = 'field';
+        fieldModePanel.classList.remove('hidden');
+        modalJson.classList.add('hidden');
+    });
+
+    switchJsonModeBtn.addEventListener('click', () => {
+        state.editorMode = 'json';
+        fieldModePanel.classList.add('hidden');
+        modalJson.classList.remove('hidden');
+    });
+
+    saveModalBtn.addEventListener('click', async () => {
+        try {
+            await saveModal();
+        } catch (error) {
+            setStatus(error.message || 'Save failed', true);
+        }
+    });
+
+    lockUserBtn.addEventListener('click', async () => {
+        try {
+            await quickUserAction('/lock', { lock: true }, 'User locked');
+        } catch (error) {
+            setStatus(error.message || 'Lock failed', true);
+        }
+    });
+
+    unlockUserBtn.addEventListener('click', async () => {
+        try {
+            await quickUserAction('/lock', { lock: false }, 'User unlocked');
+        } catch (error) {
+            setStatus(error.message || 'Unlock failed', true);
+        }
+    });
+
+    changeEmailBtn.addEventListener('click', async () => {
+        const email = quickEmail.value.trim();
+        if (!email) {
+            setStatus('Email is required', true);
+            return;
+        }
+
+        try {
+            await quickUserAction('/email', { email }, 'Email updated');
+        } catch (error) {
+            setStatus(error.message || 'Email update failed', true);
+        }
+    });
+
+    regenPlanBtn.addEventListener('click', async () => {
+        try {
+            await quickUserAction('/regen-plan', null, 'Plan regenerated');
+        } catch (error) {
+            setStatus(error.message || 'Plan regeneration failed', true);
+        }
+    });
+
+    deleteTodayPlanBtn.addEventListener('click', async () => {
+        try {
+            await quickUserAction('/delete-today-plan', null, 'Deleted today\'s plan');
+        } catch (error) {
+            setStatus(error.message || 'Delete plan failed', true);
+        }
+    });
+
+    verifyEmailBtn.addEventListener('click', async () => {
+        const userId = quickUserId.value.trim();
+        if (!userId) {
+            setStatus('Credential/User ID is required', true);
+            return;
+        }
+
+        if (collectionSelect.value !== 'credentials') {
+            setStatus('Select credentials collection for verify email', true);
+            return;
+        }
+
+        try {
+            await fetchJson(`/admin/data-manager/api/credentials/${encodeURIComponent(userId)}/verify-email`, {
+                method: 'POST',
+                body: JSON.stringify({ verified: true }),
+            });
+            setStatus('Email marked verified');
+        } catch (error) {
+            setStatus(error.message || 'Verify email failed', true);
+        }
+    });
+
+    unverifyEmailBtn.addEventListener('click', async () => {
+        const userId = quickUserId.value.trim();
+        if (!userId) {
+            setStatus('Credential/User ID is required', true);
+            return;
+        }
+
+        if (collectionSelect.value !== 'credentials') {
+            setStatus('Select credentials collection for verify email', true);
+            return;
+        }
+
+        try {
+            await fetchJson(`/admin/data-manager/api/credentials/${encodeURIComponent(userId)}/verify-email`, {
+                method: 'POST',
+                body: JSON.stringify({ verified: false }),
+            });
+            setStatus('Email marked unverified');
+        } catch (error) {
+            setStatus(error.message || 'Unverify email failed', true);
+        }
+    });
+
+    resetAttemptsBtn.addEventListener('click', async () => {
+        const userId = quickUserId.value.trim();
+        if (!userId) {
+            setStatus('Credential/User ID is required', true);
+            return;
+        }
+
+        if (collectionSelect.value !== 'credentials') {
+            setStatus('Select credentials collection for reset attempts', true);
+            return;
+        }
+
+        try {
+            await fetchJson(`/admin/data-manager/api/credentials/${encodeURIComponent(userId)}/reset-login-attempts`, {
+                method: 'POST',
+                body: '{}',
+            });
+            setStatus('Login attempts reset');
+        } catch (error) {
+            setStatus(error.message || 'Reset login attempts failed', true);
+        }
+    });
+
+    async function bootstrap() {
+        try {
+            await loadCollections();
+            await loadCollectionSchema();
+            state.pageSize = Number(pageSizeSelect.value || '20');
+            await loadRecords();
+        } catch (error) {
+            setStatus(error.message || 'Initialization failed', true);
+        }
+    }
+
+    bootstrap();
+</script>
+{% endblock %}
