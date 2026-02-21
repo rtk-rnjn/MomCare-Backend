@@ -1,125 +1,394 @@
 <!DOCTYPE html>
-<html lang="en" x-data="{ sidebarOpen: false, dark: false }" :class="{ 'dark': dark }">
+<html lang="en" x-data="{ sidebarOpen: false, dark: true }" :class="{ 'dark': dark }">
 
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Admin Dashboard{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='output.css') }}">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        [x-cloak] {
-            display: none !important;
+        :root {
+            --bg-base: #09090f;
+            --bg-surface: #111118;
+            --bg-elevated: #17171f;
+            --bg-hover: #1e1e28;
+            --border: rgba(255,255,255,0.06);
+            --border-accent: rgba(99,102,241,0.4);
+            --accent: #6366f1;
+            --accent-glow: rgba(99,102,241,0.15);
+            --accent-subtle: rgba(99,102,241,0.08);
+            --text-primary: #fafafa;
+            --text-secondary: #d9d9d9;
+            --text-muted: #78788d;
+            --success: #22d3a0;
+            --warning: #f59e0b;
+            --danger: #f43f5e;
+            --sidebar-width: 240px;
         }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .layout {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── SIDEBAR ── */
+        aside {
+            width: var(--sidebar-width);
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+            z-index: 30;
+        }
+
+        .sidebar-brand {
+            padding: 28px 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-brand h1 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-brand p {
+            font-size: 10px;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .sidebar-indicator {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            margin-right: 6px;
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        nav {
+            flex: 1;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow-y: auto;
+        }
+
+        nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        nav a::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%) scaleY(0);
+            width: 2px;
+            height: 60%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: transform 0.2s ease;
+        }
+
+        nav a:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        nav a:hover::before {
+            transform: translateY(-50%) scaleY(1);
+        }
+
+        nav .nav-icon {
+            width: 16px;
+            height: 16px;
+            opacity: 0.5;
+        }
+
+        nav a:hover .nav-icon { opacity: 1; }
+
+        .sidebar-footer {
+            padding: 16px 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── MAIN AREA ── */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── TOPBAR ── */
+        header {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .topbar-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: -0.01em;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-theme {
+            padding: 6px 14px;
+            font-size: 12px;
+            font-family: 'DM Mono', monospace;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-theme:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-accent);
+        }
+
+        .admin-badge {
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-muted);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.05em;
+        }
+
+        .hamburger-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 18px;
+            transition: color 0.15s;
+            display: none;
+        }
+
+        /* ── CONTENT ── */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px;
+            scroll-behavior: smooth;
+        }
+
+        main::-webkit-scrollbar { width: 4px; }
+        main::-webkit-scrollbar-track { background: transparent; }
+        main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        /* ── FLASH MESSAGES ── */
+        .flash-msg {
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: rgba(34, 211, 160, 0.1);
+            border: 1px solid rgba(34, 211, 160, 0.3);
+            color: var(--success);
+            font-size: 13px;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            aside {
+                position: fixed;
+                inset-y: 0;
+                left: 0;
+                transform: translateX(-100%);
+            }
+            aside.open { transform: translateX(0); }
+            .hamburger-btn { display: flex; }
+        }
+
+        [x-cloak] { display: none !important; }
     </style>
 
     {% block head %}{% endblock %}
 </head>
 
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+<body class="bg-gray-900 text-gray-100">
 
-    <div class="flex h-screen overflow-hidden">
+    <div class="layout">
 
         <!-- SIDEBAR -->
-        <aside class="bg-white dark:bg-gray-800 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform
-               md:relative md:translate-x-0 transition duration-200 ease-in-out z-30" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+        <aside :class="sidebarOpen ? 'open' : ''">
 
-            <div class="px-4">
-                <h1 class="text-2xl font-bold tracking-tight">
-                    Admin Panel
-                </h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                    FastAPI Internal
-                </p>
+            <div class="sidebar-brand">
+                <h1>Admin Panel</h1>
+                <p><span class="sidebar-indicator"></span>FastAPI Internal</p>
             </div>
 
-            <nav class="mt-6">
-
-                <a href="{{ url_for('admin_dashboard') }}" class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+            <nav>
+                <a href="{{ url_for('admin_dashboard') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h6v6H3zM3 15h6v4H3zM13 3h8v8h-8zM13 15h8v6h-8z"/>
+                    </svg>
                     Dashboard
                 </a>
-
-                <a href="{{ url_for('admin_data_manager') }}" class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                <a href="{{ url_for('admin_data_manager') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7a2 2 0 012-2h12a2 2 0 012 2v0a2 2 0 01-2 2H6a2 2 0 01-2-2zm0 6a2 2 0 012-2h12a2 2 0 012 2v0a2 2 0 01-2 2H6a2 2 0 01-2-2zm0 6a2 2 0 012-2h12a2 2 0 012 2v0a2 2 0 01-2 2H6a2 2 0 01-2-2z"/>
+                    </svg>
                     Data Manager
                 </a>
-
-                <a href="{{ url_for('admin_users') }}" class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                <a href="{{ url_for('admin_users') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
                     Users
                 </a>
-
-                <a href="{{ url_for('admin_credentials') }}" class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                <a href="{{ url_for('admin_credentials') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                    </svg>
                     Credentials
                 </a>
-
-                <a href="{{ url_for('admin_food_items') }}" class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                <a href="{{ url_for('admin_food_items') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
                     Food Items
                 </a>
-
-                <a href="{{ url_for('admin_songs') }}" class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                <a href="{{ url_for('admin_songs') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                    </svg>
                     Songs
                 </a>
-
-                <a href="{{ url_for('admin_exercise') }}" class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                <a href="{{ url_for('admin_exercise') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
                     Exercises
                 </a>
-
-                <a href="{{ url_for('admin_myplan') }}" class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                <a href="{{ url_for('admin_myplan') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
                     My Plans
                 </a>
-
             </nav>
+
+            <div class="sidebar-footer">
+                <div style="font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; letter-spacing:0.05em;">v1.0 · INTERNAL USE</div>
+            </div>
+
         </aside>
 
-        <!-- MAIN -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- MAIN AREA -->
+        <div class="main-area">
 
             <!-- TOPBAR -->
-            <header class="bg-white dark:bg-gray-800 shadow-sm">
-                <div class="flex items-center justify-between px-6 py-4">
+            <header>
+                <div class="topbar-left">
+                    <button class="hamburger-btn" @click="sidebarOpen = !sidebarOpen">☰</button>
+                    <h2 class="topbar-title">{% block page_title %}Dashboard{% endblock %}</h2>
+                </div>
 
-                    <div class="flex items-center space-x-4">
-                        <button @click="sidebarOpen = !sidebarOpen" class="md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
-                            ☰
-                        </button>
-
-                        <h2 class="text-xl font-semibold">
-                            {% block page_title %}Dashboard{% endblock %}
-                        </h2>
-                    </div>
-
-                    <div class="flex items-center space-x-4">
-
-                        <!-- Dark toggle -->
-                        <button @click="dark = !dark" class="px-3 py-1 text-sm rounded bg-gray-200 dark:bg-gray-700">
-                            Toggle Theme
-                        </button>
-
-                        <!-- User -->
-                        <div class="text-sm text-gray-500">
-                            Admin
-                        </div>
-
-                    </div>
+                <div class="topbar-right">
+                    <button @click="dark = !dark" class="btn-theme">⬡ Theme</button>
+                    <span class="admin-badge">ADMIN</span>
                 </div>
             </header>
 
             <!-- CONTENT -->
-            <main class="flex-1 overflow-y-auto p-6">
-
-                <!-- Flash messages -->
+            <main>
                 {% if request.query_params.get("msg") %}
-                <div class="mb-4 p-4 rounded bg-green-100 text-green-800">
-                    {{ request.query_params.get("msg") }}
+                <div class="flash-msg">
+                    ✓ {{ request.query_params.get("msg") }}
                 </div>
                 {% endif %}
 
-                {% block content %}
-                <!-- page content -->
-                {% endblock %}
-
+                {% block content %}{% endblock %}
             </main>
 
         </div>
@@ -128,5 +397,4 @@
     {% block scripts %}{% endblock %}
 
 </body>
-
 </html>

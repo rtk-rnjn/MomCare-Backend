@@ -3,440 +3,1342 @@
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
+{% block head %}
+<style>
+    /* ── STAT CARDS ── */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 28px;
+    }
+
+    .stat-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+        animation: fadeInUp 0.4s ease both;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .stat-card:hover {
+        border-color: var(--border-accent);
+        transform: translateY(-1px);
+    }
+
+    .stat-card:hover::before {
+        opacity: 1;
+    }
+
+    .stat-label {
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .stat-value {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+    }
+
+    .stat-card.online .stat-value {
+        color: var(--success);
+    }
+
+    .stat-card.danger .stat-value {
+        color: var(--danger);
+    }
+
+    .stat-card.warning .stat-value {
+        color: var(--warning);
+    }
+
+    /* ── GRID LAYOUTS ── */
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) {
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ── PANELS ── */
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeInUp 0.5s ease both;
+    }
+
+    .panel-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .panel-title {
+        font-family: 'Syne', sans-serif;
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+    }
+
+    .panel-body {
+        padding: 20px;
+    }
+
+    .chart-wrap {
+        height: 220px;
+        padding: 16px 20px;
+    }
+
+    /* ── TABLES ── */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
+
+    .data-table th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+    }
+
+    .data-table tbody tr {
+        border-top: 1px solid var(--border);
+        transition: background 0.12s ease;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .data-table td {
+        padding: 11px 16px;
+        color: var(--text-secondary);
+    }
+
+    .data-table .mono {
+        font-family: 'DM Mono', monospace;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .empty-row td {
+        padding: 32px;
+        text-align: center;
+        color: var(--text-muted);
+        font-style: italic;
+        font-size: 13px;
+    }
+
+    /* ── BADGES / PILLS ── */
+    .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        letter-spacing: 0.05em;
+    }
+
+    .pill-green {
+        background: rgba(34, 211, 160, 0.12);
+        color: var(--success);
+        border: 1px solid rgba(34, 211, 160, 0.2);
+    }
+
+    .pill-red {
+        background: rgba(244, 63, 94, 0.12);
+        color: var(--danger);
+        border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .pill-yellow {
+        background: rgba(245, 158, 11, 0.12);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    /* ── META GRIDS ── */
+    .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        padding: 20px;
+    }
+
+    @media (max-width: 640px) {
+        .meta-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .meta-item p:first-child {
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .meta-item p:last-child {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-primary);
+    }
+
+    /* ── FILTER BAR ── */
+    .filter-select,
+    .filter-input {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        padding: 5px 10px;
+        font-size: 12px;
+        font-family: 'DM Mono', monospace;
+        outline: none;
+        transition: border-color 0.15s ease;
+    }
+
+    .filter-select:focus,
+    .filter-input:focus {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+    }
+
+    .filter-label {
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    /* ── LOGS CONTAINER ── */
+    #logsContainer {
+        height: 280px;
+        overflow-y: auto;
+        background: #07070e;
+        padding: 16px;
+        font-family: 'DM Mono', monospace;
+        font-size: 11px;
+        line-height: 1.7;
+        color: var(--text-secondary);
+    }
+
+    #logsContainer::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    #logsContainer::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
+
+    /* ── PRE BLOCKS ── */
+    pre {
+        background: #07070e !important;
+        color: var(--text-secondary);
+        font-family: 'DM Mono', monospace;
+        font-size: 11px;
+        line-height: 1.7;
+        padding: 16px !important;
+    }
+
+    pre::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    pre::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-family: 'DM Mono', monospace;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border: 1px solid var(--border);
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        letter-spacing: 0.02em;
+    }
+
+    .btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+        border-color: var(--border-accent);
+    }
+
+    /* ── VIEW ALL LINK ── */
+    .view-all-link {
+        display: inline-block;
+        font-size: 12px;
+        font-family: 'DM Mono', monospace;
+        color: var(--accent);
+        text-decoration: none;
+        letter-spacing: 0.03em;
+        transition: opacity 0.15s;
+    }
+
+    .view-all-link:hover {
+        opacity: 0.7;
+    }
+
+    /* ── TRACEBACK ── */
+    details summary {
+        font-size: 11px;
+        color: var(--accent);
+        cursor: pointer;
+        font-family: 'DM Mono', monospace;
+    }
+
+    details pre {
+        margin-top: 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        color: var(--danger) !important;
+    }
+
+    /* ── SECTION SPACER ── */
+    .section-spacer {
+        margin-bottom: 20px;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ── STAGGERED ANIMATION DELAYS ── */
+    .stat-card:nth-child(1) {
+        animation-delay: 0.02s;
+    }
+
+    .stat-card:nth-child(2) {
+        animation-delay: 0.04s;
+    }
+
+    .stat-card:nth-child(3) {
+        animation-delay: 0.06s;
+    }
+
+    .stat-card:nth-child(4) {
+        animation-delay: 0.08s;
+    }
+
+    .stat-card:nth-child(5) {
+        animation-delay: 0.10s;
+    }
+
+    .stat-card:nth-child(6) {
+        animation-delay: 0.12s;
+    }
+
+    .stat-card:nth-child(7) {
+        animation-delay: 0.14s;
+    }
+
+    .stat-card:nth-child(8) {
+        animation-delay: 0.16s;
+    }
+
+    .stat-card:nth-child(9) {
+        animation-delay: 0.18s;
+    }
+
+    .stat-card:nth-child(10) {
+        animation-delay: 0.20s;
+    }
+
+    .stat-card:nth-child(11) {
+        animation-delay: 0.22s;
+    }
+
+    .stat-card:nth-child(12) {
+        animation-delay: 0.24s;
+    }
+
+    /* ── STATUS DOT IN TABLE ── */
+    .status-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 6px var(--success);
+        margin-right: 6px;
+    }
+</style>
+<style>
+    /* ── META PANELS ── */
+    .meta-full-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) { .meta-full-grid { grid-template-columns: 1fr; } }
+
+    .meta-section {
+        margin-bottom: 18px;
+    }
+
+    .meta-section:last-child { margin-bottom: 0; }
+
+    .meta-section-title {
+        font-size: 9px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .meta-section-title::before {
+        content: '';
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: var(--accent);
+        flex-shrink: 0;
+    }
+
+    .meta-kv-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 16px;
+        align-items: baseline;
+    }
+
+    .meta-key {
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        white-space: nowrap;
+        letter-spacing: 0.03em;
+    }
+
+    .meta-val {
+        font-size: 12px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        word-break: break-all;
+    }
+
+    .meta-val.highlight { color: var(--text-primary); font-weight: 600; }
+    .meta-val.success   { color: #22d3a0; }
+    .meta-val.warning   { color: #f59e0b; }
+    .meta-val.danger    { color: #f43f5e; }
+
+    /* Replication members */
+    .replica-members {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .replica-member {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        position: relative;
+    }
+
+    .replica-member.is-primary {
+        border-color: rgba(34,211,160,0.3);
+        background: rgba(34,211,160,0.04);
+    }
+
+    .replica-member-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .replica-host {
+        font-size: 11px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        word-break: break-all;
+    }
+
+    .state-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 1px 8px;
+        border-radius: 20px;
+        font-size: 9px;
+        font-family: 'DM Mono', monospace;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        flex-shrink: 0;
+    }
+
+    .state-badge::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .state-primary {
+        background: rgba(34,211,160,0.12);
+        color: #22d3a0;
+        border: 1px solid rgba(34,211,160,0.25);
+    }
+    .state-primary::before { background: #22d3a0; box-shadow: 0 0 4px #22d3a0; }
+
+    .state-secondary {
+        background: rgba(245,158,11,0.10);
+        color: #f59e0b;
+        border: 1px solid rgba(245,158,11,0.2);
+    }
+    .state-secondary::before { background: #f59e0b; }
+
+    .replica-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .replica-chip {
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        display: flex;
+        gap: 4px;
+    }
+
+    .replica-chip span { color: var(--text-secondary); }
+
+    /* Progress bar for memory */
+    .mem-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 2px;
+    }
+
+    .mem-bar {
+        flex: 1;
+        height: 4px;
+        background: var(--bg-elevated);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .mem-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--accent), #22d3a0);
+        transition: width 0.6s ease;
+    }
+
+    .mem-bar-label {
+        font-size: 10px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    /* Stat mini-cards for Redis */
+    .stat-mini-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .stat-mini {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 8px 10px;
+    }
+
+    .stat-mini-label {
+        font-size: 9px;
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .stat-mini-val {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
+    }
+
+    /* scrollable inner panel body */
+    .panel-body-scroll {
+        padding: 16px 20px;
+        max-height: 520px;
+        overflow-y: auto;
+    }
+
+    .panel-body-scroll::-webkit-scrollbar { width: 4px; }
+    .panel-body-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .divider {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 14px 0;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
-<div class="space-y-6">
+<!-- ── STATS ── -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <p class="stat-label">Collections</p>
+        <p class="stat-value">{{ total_collections }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">Documents</p>
+        <p class="stat-value">{{ total_documents }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">Users</p>
+        <p class="stat-value">{{ total_users }}</p>
+    </div>
+    <div class="stat-card {% if redis_info.available %}online{% endif %}">
+        <p class="stat-label">Redis</p>
+        <p class="stat-value">{{ "Online" if redis_info.available else "Offline" }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">Redis Keys</p>
+        <p class="stat-value">{{ redis_info.dbsize }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">Redis Clients</p>
+        <p class="stat-value">{{ redis_info.connected_clients }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">Req/sec (60s)</p>
+        <p class="stat-value" id="requestsPerSecondValue">{{ requests_per_second }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">Req Current Sec</p>
+        <p class="stat-value" id="currentSecondRpsValue">{{ current_second_rps }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">Cache Hit</p>
+        <p class="stat-value">{{ (cache_hit_ratio ~ "%") if cache_hit_ratio is not none else "—" }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">CPU</p>
+        <p class="stat-value">{{ system_metrics.cpu_percent }}%</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">RAM</p>
+        <p class="stat-value">{{ system_metrics.ram_percent }}%</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-label">Disk</p>
+        <p class="stat-value">{{ system_metrics.disk_percent }}%</p>
+    </div>
+    <div class="stat-card danger">
+        <p class="stat-label">404 Count</p>
+        <p class="stat-value" id="total404Value">{{ total_404 }}</p>
+    </div>
+    <div class="stat-card danger">
+        <p class="stat-label">500 Count</p>
+        <p class="stat-value" id="total500Value">{{ total_500 }}</p>
+    </div>
+    <div class="stat-card danger">
+        <p class="stat-label">5xx Total</p>
+        <p class="stat-value" id="total5xxValue">{{ total_5xx }}</p>
+    </div>
+</div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Total Collections</p>
-            <p class="text-2xl font-semibold">{{ total_collections }}</p>
+<!-- ── CHARTS ── -->
+<div class="grid-2 section-spacer">
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Collection Distribution (Top 8)</span>
         </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Total Documents</p>
-            <p class="text-2xl font-semibold">{{ total_documents }}</p>
+        <div class="chart-wrap">
+            <canvas id="collectionsBarChart"></canvas>
         </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Total Users</p>
-            <p class="text-2xl font-semibold">{{ total_users }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Redis Status</p>
-            <p class="text-2xl font-semibold">{{ "Online" if redis_info.available else "Offline" }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Redis Keys</p>
-            <p class="text-2xl font-semibold">{{ redis_info.dbsize }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Redis Clients</p>
-            <p class="text-2xl font-semibold">{{ redis_info.connected_clients }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Req/sec (60s avg)</p>
-            <p id="requestsPerSecondValue" class="text-2xl font-semibold">{{ requests_per_second }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Req current sec</p>
-            <p id="currentSecondRpsValue" class="text-2xl font-semibold">{{ current_second_rps }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Cache Hit Ratio</p>
-            <p class="text-2xl font-semibold">{{ (cache_hit_ratio ~ "%") if cache_hit_ratio is not none else "-" }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">CPU Usage</p>
-            <p class="text-2xl font-semibold">{{ system_metrics.cpu_percent }}%</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">RAM Usage</p>
-            <p class="text-2xl font-semibold">{{ system_metrics.ram_percent }}%</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">Disk Usage</p>
-            <p class="text-2xl font-semibold">{{ system_metrics.disk_percent }}%</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">404 Count</p>
-            <p id="total404Value" class="text-2xl font-semibold">{{ total_404 }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">500 Count</p>
-            <p id="total500Value" class="text-2xl font-semibold">{{ total_500 }}</p>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-            <p class="text-xs text-gray-500 mb-1">5xx Total</p>
-            <p id="total5xxValue" class="text-2xl font-semibold">{{ total_5xx }}</p>
-        </div>
-
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Collection Distribution (Top 8)</h3>
-            </div>
-            <div class="p-5 h-72">
-                <canvas id="collectionsBarChart"></canvas>
-            </div>
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Users vs Other Documents</span>
         </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Users vs Other Documents</h3>
-            </div>
-            <div class="p-5 h-72">
-                <canvas id="usersSplitChart"></canvas>
-            </div>
+        <div class="chart-wrap">
+            <canvas id="usersSplitChart"></canvas>
         </div>
+    </div>
+</div>
 
+<!-- ── COLLECTIONS TABLE + RECENT USERS ── -->
+<div class="grid-2 section-spacer">
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Database Collections</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Collection</th>
+                    <th>Documents</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in collections %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.count }}</td>
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td colspan="2">No collections found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Recent Users</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Joined</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in recent_users %}
+                <tr>
+                    <td>{{ user.first_name or "" }} {{ user.last_name or "" }}</td>
+                    <td class="mono">{{ user.phone_number or "—" }}</td>
+                    <td class="mono">{{ user.created_at_timestamp | humanize_timestamp or "—" }}</td>
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td colspan="3">No users found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="padding: 12px 16px; border-top: 1px solid var(--border);">
+            <a href="{{ url_for('admin_users') }}" class="view-all-link">→ View all users</a>
+        </div>
+    </div>
+</div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Database Collections</h3>
+<!-- ── META ── -->
+<div class="grid-2 section-spacer">
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Meta Overview</span>
+        </div>
+        <div class="meta-grid">
+            <div class="meta-item">
+                <p>API Version</p>
+                <p>{{ meta_info.version }}</p>
             </div>
-
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr class="text-left">
-                            <th class="px-4 py-3">Collection</th>
-                            <th class="px-4 py-3">Documents</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        {% for item in collections %}
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="px-4 py-3">{{ item.name }}</td>
-                            <td class="px-4 py-3">{{ item.count }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="2" class="px-4 py-8 text-center text-gray-500">No collections found</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="meta-item">
+                <p>API Status</p>
+                <p><span class="status-dot"></span>{{ meta_info.status }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Uptime (sec)</p>
+                <p>{{ meta_info.uptime_seconds }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Mongo Version</p>
+                <p>{{ meta_info.mongo.server.version if meta_info.mongo and meta_info.mongo.server else "—" }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Mongo Uptime (s)</p>
+                <p>{{ meta_info.mongo.status.uptime_seconds if meta_info.mongo and meta_info.mongo.status else "—" }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Redis Ops/sec</p>
+                <p>{{ meta_info.redis.stats.instantaneous_ops_per_sec if meta_info.redis and meta_info.redis.stats else "—" }}</p>
             </div>
         </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Recent Users</h3>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr class="text-left">
-                            <th class="px-4 py-3">Name</th>
-                            <th class="px-4 py-3">Phone</th>
-                            <th class="px-4 py-3">Joined</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        {% for user in recent_users %}
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="px-4 py-3">{{ user.first_name or "" }} {{ user.last_name or "" }}</td>
-                            <td class="px-4 py-3">{{ user.phone_number or "-" }}</td>
-                            <td class="px-4 py-3">{{ user.created_at_timestamp | humanize_timestamp or "-" }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="3" class="px-4 py-8 text-center text-gray-500">No users found</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="px-5 py-4 border-t dark:border-gray-700">
-                <a href="{{ url_for('admin_users') }}" class="text-sm text-blue-600 hover:underline">View all users</a>
-            </div>
-        </div>
-
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Meta Overview</h3>
-            </div>
-            <div class="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                <div>
-                    <p class="text-xs text-gray-500">API Version</p>
-                    <p class="font-semibold">{{ meta_info.version }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">API Status</p>
-                    <p class="font-semibold">{{ meta_info.status }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Uptime (sec)</p>
-                    <p class="font-semibold">{{ meta_info.uptime_seconds }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Mongo Version</p>
-                    <p class="font-semibold">{{ meta_info.mongo.server.version if meta_info.mongo and meta_info.mongo.server else "-" }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Mongo Uptime (sec)</p>
-                    <p class="font-semibold">{{ meta_info.mongo.status.uptime_seconds if meta_info.mongo and meta_info.mongo.status else "-" }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Redis Ops/sec</p>
-                    <p class="font-semibold">{{ meta_info.redis.stats.instantaneous_ops_per_sec if meta_info.redis and meta_info.redis.stats else "-" }}</p>
-                </div>
-            </div>
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Meta Health</span>
         </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Meta Health</h3>
-            </div>
-            <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div>
-                    <p class="text-xs text-gray-500">Mongo Meta</p>
-                    <p class="font-semibold">{{ "OK" if meta_info.mongo and meta_info.mongo.ok else "Unavailable" }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Redis Meta</p>
-                    <p class="font-semibold">{{ "OK" if meta_info.redis and meta_info.redis.ok else "Unavailable" }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Redis Version</p>
-                    <p class="font-semibold">{{ meta_info.redis.server.redis_version if meta_info.redis and meta_info.redis.server else "-" }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Redis Memory</p>
-                    <p class="font-semibold">{{ meta_info.redis.memory.used_memory_human if meta_info.redis and meta_info.redis.memory else "-" }}</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Network Metrics</h3>
-            </div>
-            <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div>
-                    <p class="text-xs text-gray-500">Bytes Sent</p>
-                    <p class="font-semibold">{{ system_metrics.network_bytes_sent }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Bytes Received</p>
-                    <p class="font-semibold">{{ system_metrics.network_bytes_recv }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Packets Sent</p>
-                    <p class="font-semibold">{{ system_metrics.network_packets_sent }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Packets Received</p>
-                    <p class="font-semibold">{{ system_metrics.network_packets_recv }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Cache Metrics</h3>
-            </div>
-            <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div>
-                    <p class="text-xs text-gray-500">Hits</p>
-                    <p class="font-semibold">{{ cache_hits }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Misses</p>
-                    <p class="font-semibold">{{ cache_misses }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Total Requests</p>
-                    <p id="totalRequestsValue" class="font-semibold">{{ total_requests }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Hit Ratio</p>
-                    <p class="font-semibold">{{ (cache_hit_ratio ~ "%") if cache_hit_ratio is not none else "-" }}</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div class="px-5 py-4 border-b dark:border-gray-700 flex items-center justify-between gap-4">
-            <h3 class="text-sm font-semibold">Endpoint Traffic (All HTTP Requests)</h3>
-            <div class="flex items-center gap-2">
-                <label for="trafficDurationFilter" class="text-xs text-gray-500">Window</label>
-                <select id="trafficDurationFilter" class="px-2 py-1 border rounded-md text-sm dark:bg-gray-900">
-                    <option value="60" {% if traffic_duration_sec==60 %}selected{% endif %}>Last 1m</option>
-                    <option value="300" {% if traffic_duration_sec==300 %}selected{% endif %}>Last 5m</option>
-                    <option value="900" {% if traffic_duration_sec==900 %}selected{% endif %}>Last 15m</option>
-                    <option value="3600" {% if traffic_duration_sec==3600 %}selected{% endif %}>Last 1h</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-700">
-                    <tr class="text-left">
-                        <th class="px-4 py-3">Endpoint</th>
-                        <th class="px-4 py-3">Total</th>
-                        <th class="px-4 py-3">2xx</th>
-                        <th class="px-4 py-3">3xx</th>
-                        <th class="px-4 py-3">4xx</th>
-                        <th class="px-4 py-3">5xx</th>
-                        <th class="px-4 py-3">Last Error</th>
-                    </tr>
-                </thead>
-                <tbody id="endpointTrafficBody" class="divide-y divide-gray-200 dark:divide-gray-700">
-                    {% for item in endpoint_traffic %}
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 align-top">
-                        <td class="px-4 py-3 font-mono text-xs">{{ item.endpoint }}</td>
-                        <td class="px-4 py-3">{{ item.count }}</td>
-                        <td class="px-4 py-3">{{ item["2xx"] }}</td>
-                        <td class="px-4 py-3">{{ item["3xx"] }}</td>
-                        <td class="px-4 py-3">{{ item["4xx"] }}</td>
-                        <td class="px-4 py-3">{{ item["5xx"] }}</td>
-                        <td class="px-4 py-3 text-xs">{{ item.last_error.message if item.last_error else "-" }}</td>
-                    </tr>
+        <div class="meta-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="meta-item">
+                <p>Mongo Meta</p>
+                <p>
+                    {% if meta_info.mongo and meta_info.mongo.ok %}
+                    <span class="pill pill-green">OK</span>
                     {% else %}
-                    <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">No endpoint traffic recorded yet</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    <span class="pill pill-red">Unavailable</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="meta-item">
+                <p>Redis Meta</p>
+                <p>
+                    {% if meta_info.redis and meta_info.redis.ok %}
+                    <span class="pill pill-green">OK</span>
+                    {% else %}
+                    <span class="pill pill-red">Unavailable</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="meta-item">
+                <p>Redis Version</p>
+                <p>{{ meta_info.redis.server.redis_version if meta_info.redis and meta_info.redis.server else "—" }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Redis Memory</p>
+                <p>{{ meta_info.redis.memory.used_memory_human if meta_info.redis and meta_info.redis.memory else "—" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── NETWORK + CACHE ── -->
+<div class="grid-2 section-spacer">
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Network Metrics</span>
+        </div>
+        <div class="meta-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="meta-item">
+                <p>Bytes Sent</p>
+                <p>{{ system_metrics.network_bytes_sent }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Bytes Received</p>
+                <p>{{ system_metrics.network_bytes_recv }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Packets Sent</p>
+                <p>{{ system_metrics.network_packets_sent }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Packets Received</p>
+                <p>{{ system_metrics.network_packets_recv }}</p>
+            </div>
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div class="px-5 py-4 border-b dark:border-gray-700">
-            <h3 class="text-sm font-semibold">Failing Endpoints (4xx/5xx)</h3>
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Cache Metrics</span>
         </div>
+        <div class="meta-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="meta-item">
+                <p>Hits</p>
+                <p>{{ cache_hits }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Misses</p>
+                <p>{{ cache_misses }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Total Requests</p>
+                <p id="totalRequestsValue">{{ total_requests }}</p>
+            </div>
+            <div class="meta-item">
+                <p>Hit Ratio</p>
+                <p>{{ (cache_hit_ratio ~ "%") if cache_hit_ratio is not none else "—" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-700">
-                    <tr class="text-left">
-                        <th class="px-4 py-3">Endpoint</th>
-                        <th class="px-4 py-3">Count</th>
-                        <th class="px-4 py-3">Last Error</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                    {% for item in endpoint_failures %}
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 align-top">
-                        <td class="px-4 py-3 font-mono text-xs">{{ item.endpoint }}</td>
-                        <td class="px-4 py-3">{{ item.count }}</td>
-                        <td class="px-4 py-3">
-                            {% if item.last_error %}
-                            <div class="text-xs mb-2">{{ item.last_error.timestamp or "-" }} | {{ item.last_error.status_code or "-" }}</div>
-                            <div class="text-xs">{{ item.last_error.message or "-" }}</div>
-                            {% if item.last_error.traceback %}
-                            <details class="mt-2">
-                                <summary class="cursor-pointer text-xs text-blue-600">Traceback</summary>
-                                <pre class="mt-2 whitespace-pre-wrap text-xs bg-gray-50 dark:bg-gray-900 p-2 rounded">{{ item.last_error.traceback }}</pre>
-                            </details>
-                            {% endif %}
+<!-- ── ENDPOINT TRAFFIC ── -->
+<div class="panel section-spacer">
+    <div class="panel-header">
+        <span class="panel-title">Endpoint Traffic</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span class="filter-label">Window</span>
+            <select id="trafficDurationFilter" class="filter-select">
+                <option value="60" {% if traffic_duration_sec==60 %}selected{% endif %}>Last 1m</option>
+                <option value="300" {% if traffic_duration_sec==300 %}selected{% endif %}>Last 5m</option>
+                <option value="900" {% if traffic_duration_sec==900 %}selected{% endif %}>Last 15m</option>
+                <option value="3600" {% if traffic_duration_sec==3600 %}selected{% endif %}>Last 1h</option>
+            </select>
+        </div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Total</th>
+                    <th>2xx</th>
+                    <th>3xx</th>
+                    <th>4xx</th>
+                    <th>5xx</th>
+                    <th>Last Error</th>
+                </tr>
+            </thead>
+            <tbody id="endpointTrafficBody">
+                {% for item in endpoint_traffic %}
+                <tr>
+                    <td class="mono">{{ item.endpoint }}</td>
+                    <td>{{ item.count }}</td>
+                    <td>{{ item["2xx"] }}</td>
+                    <td>{{ item["3xx"] }}</td>
+                    <td>{% if item["4xx"] %}<span class="pill pill-yellow">{{ item["4xx"] }}</span>{% else %}0{% endif %}</td>
+                    <td>{% if item["5xx"] %}<span class="pill pill-red">{{ item["5xx"] }}</span>{% else %}0{% endif %}</td>
+                    <td class="mono">{{ item.last_error.message if item.last_error else "—" }}</td>
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td colspan="7">No endpoint traffic recorded yet</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── FAILING ENDPOINTS ── -->
+<div class="panel section-spacer">
+    <div class="panel-header">
+        <span class="panel-title">Failing Endpoints (4xx / 5xx)</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Count</th>
+                    <th>Last Error</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in endpoint_failures %}
+                <tr style="vertical-align:top;">
+                    <td class="mono">{{ item.endpoint }}</td>
+                    <td><span class="pill pill-red">{{ item.count }}</span></td>
+                    <td>
+                        {% if item.last_error %}
+                        <div class="mono" style="color:var(--text-muted); margin-bottom:4px;">
+                            {{ item.last_error.timestamp or "—" }} &nbsp;·&nbsp;
+                            <span class="pill pill-red">{{ item.last_error.status_code or "—" }}</span>
+                        </div>
+                        <div style="font-size:12px; color:var(--text-secondary);">{{ item.last_error.message or "—" }}</div>
+                        {% if item.last_error.traceback %}
+                        <details style="margin-top:8px;">
+                            <summary>Traceback</summary>
+                            <pre style="color:var(--danger) !important;">{{ item.last_error.traceback }}</pre>
+                        </details>
+                        {% endif %}
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td colspan="3">No failing endpoints recorded yet</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── MONGO + REDIS META RAW ── -->
+<div class="meta-full-grid section-spacer">
+
+    <!-- ── MONGO META ── -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Mongo Meta (Full)</span>
+            <span class="pill pill-green" style="font-size:10px; padding:1px 8px;">
+                {% if meta_info.mongo and meta_info.mongo.ok %}● Live{% else %}● Unavailable{% endif %}
+            </span>
+        </div>
+        <div class="panel-body-scroll">
+
+            {% set mg = meta_info.mongo if meta_info.mongo else {} %}
+
+            <!-- Server -->
+            <div class="meta-section">
+                <div class="meta-section-title">Server</div>
+                <div class="meta-kv-grid">
+                    <span class="meta-key">version</span>
+                    <span class="meta-val highlight">{{ mg.server.version if mg.server else "—" }}</span>
+                    <span class="meta-key">git_version</span>
+                    <span class="meta-val" style="font-size:10px;">{{ mg.server.git_version[:16] ~ "…" if mg.server and mg.server.git_version else "—" }}</span>
+                    <span class="meta-key">allocator</span>
+                    <span class="meta-val">{{ mg.server.allocator if mg.server else "—" }}</span>
+                    <span class="meta-key">js_engine</span>
+                    <span class="meta-val">{{ mg.server.javascript_engine if mg.server else "—" }}</span>
+                </div>
+            </div>
+
+            <!-- Build -->
+            <div class="meta-section">
+                <div class="meta-section-title">Build</div>
+                <div class="meta-kv-grid">
+                    <span class="meta-key">version</span>
+                    <span class="meta-val">{{ mg.build.version if mg.build else "—" }}</span>
+                    <span class="meta-key">bits</span>
+                    <span class="meta-val">{{ mg.build.bits if mg.build else "—" }}-bit</span>
+                    <span class="meta-key">modules</span>
+                    <span class="meta-val">{{ mg.build.modules | join(", ") if mg.build and mg.build.modules else "—" }}</span>
+                    <span class="meta-key">max_bson</span>
+                    <span class="meta-val">{{ "%.1f MB" | format(mg.build.max_bson_object_size / 1048576) if mg.build and mg.build.max_bson_object_size else "—" }}</span>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="meta-section">
+                <div class="meta-section-title">Status</div>
+                <div class="meta-kv-grid" style="margin-bottom:10px;">
+                    <span class="meta-key">uptime</span>
+                    <span class="meta-val highlight">{{ mg.status.uptime_seconds | int if mg.status else "—" }}s</span>
+                </div>
+
+                {% if mg.status %}
+                <!-- Connections mini-cards -->
+                <div class="stat-mini-row" style="margin-bottom:10px;">
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Current</div>
+                        <div class="stat-mini-val">{{ mg.status.connections.current }}</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Available</div>
+                        <div class="stat-mini-val">{{ mg.status.connections.available }}</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Total Created</div>
+                        <div class="stat-mini-val">{{ mg.status.connections.total_created }}</div>
+                    </div>
+                </div>
+
+                <!-- Network -->
+                <div class="meta-section-title">Network</div>
+                <div class="meta-kv-grid" style="margin-bottom:10px;">
+                    <span class="meta-key">bytes_in</span>
+                    <span class="meta-val">{{ mg.status.network.bytes_in | int }}</span>
+                    <span class="meta-key">bytes_out</span>
+                    <span class="meta-val">{{ mg.status.network.bytes_out | int }}</span>
+                    <span class="meta-key">num_requests</span>
+                    <span class="meta-val">{{ mg.status.network.num_requests | int }}</span>
+                </div>
+
+                <!-- Op Counters -->
+                <div class="meta-section-title">Op Counters</div>
+                <div class="stat-mini-row" style="grid-template-columns: repeat(3,1fr);">
+                    {% for op in ["insert","query","update","delete","getmore","command"] %}
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">{{ op }}</div>
+                        <div class="stat-mini-val" style="font-size:14px;">{{ mg.status.opcounters[op] if mg.status.opcounters else "—" }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Replication -->
+            {% if mg.replication %}
+            <div class="meta-section">
+                <div class="meta-section-title">Replication · {{ mg.replication.set }}</div>
+                <div class="replica-members">
+                    {% for member in mg.replication.members %}
+                    <div class="replica-member {% if member.state_str == 'PRIMARY' %}is-primary{% endif %}">
+                        <div class="replica-member-header">
+                            <span class="replica-host">{{ member.name }}</span>
+                            {% if member.state_str == "PRIMARY" %}
+                            <span class="state-badge state-primary">PRIMARY</span>
                             {% else %}
-                            -
+                            <span class="state-badge state-secondary">{{ member.state_str }}</span>
                             {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" class="px-4 py-8 text-center text-gray-500">No failing endpoints recorded yet</td>
-                    </tr>
+                        </div>
+                        <div class="replica-meta-row">
+                            <div class="replica-chip">uptime <span>{{ member.uptime }}s</span></div>
+                            <div class="replica-chip">ping <span>{{ member.ping_ms if member.ping_ms is defined else "—" }}ms</span></div>
+                            <div class="replica-chip">optime <span>{{ member.optime_date }}</span></div>
+                            <div class="replica-chip">health <span>{{ member.health }}</span></div>
+                            {% if member.sync_source_host %}
+                            <div class="replica-chip">sync_src <span>{{ member.sync_source_host.split(".")[0] }}</span></div>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Databases -->
+            {% if mg.databases %}
+            <div class="meta-section">
+                <div class="meta-section-title">Databases ({{ mg.databases.count }})</div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                    {% for db in mg.databases.names %}
+                    <span style="padding:2px 10px; border-radius:5px; font-size:11px; font-family:'DM Mono',monospace;
+                        background:rgba(99,102,241,0.08); color:#a5b4fc; border:1px solid rgba(99,102,241,0.15);">
+                        {{ db }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Mongo Meta (Full)</h3>
-            </div>
-            <pre class="p-4 h-72 overflow-auto text-xs bg-gray-50 dark:bg-gray-900">{{ meta_mongo_json }}</pre>
+    <!-- ── REDIS META ── -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Redis Meta (Full)</span>
+            <span class="pill pill-green" style="font-size:10px; padding:1px 8px;">
+                {% if meta_info.redis and meta_info.redis.ok %}● Live{% else %}● Unavailable{% endif %}
+            </span>
         </div>
+        <div class="panel-body-scroll">
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-5 py-4 border-b dark:border-gray-700">
-                <h3 class="text-sm font-semibold">Redis Meta (Full)</h3>
+            {% set rd = meta_info.redis if meta_info.redis else {} %}
+
+            <!-- Server -->
+            <div class="meta-section">
+                <div class="meta-section-title">Server</div>
+                <div class="meta-kv-grid">
+                    <span class="meta-key">version</span>
+                    <span class="meta-val highlight">{{ rd.server.redis_version if rd.server else "—" }}</span>
+                    <span class="meta-key">mode</span>
+                    <span class="meta-val">{{ rd.server.redis_mode if rd.server else "—" }}</span>
+                    <span class="meta-key">os</span>
+                    <span class="meta-val" style="font-size:10px;">{{ rd.server.os if rd.server else "—" }}</span>
+                    <span class="meta-key">arch</span>
+                    <span class="meta-val">{{ rd.server.arch_bits if rd.server else "—" }}-bit</span>
+                    <span class="meta-key">pid</span>
+                    <span class="meta-val">{{ rd.server.process_id if rd.server else "—" }}</span>
+                    <span class="meta-key">uptime</span>
+                    <span class="meta-val highlight">{{ rd.server.uptime_in_seconds if rd.server else "—" }}s</span>
+                </div>
             </div>
-            <pre class="p-4 h-72 overflow-auto text-xs bg-gray-50 dark:bg-gray-900">{{ meta_redis_json }}</pre>
+
+            <!-- Clients -->
+            <div class="meta-section">
+                <div class="meta-section-title">Clients</div>
+                <div class="stat-mini-row">
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Connected</div>
+                        <div class="stat-mini-val">{{ rd.clients.connected_clients if rd.clients else "—" }}</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Blocked</div>
+                        <div class="stat-mini-val" style="color:{% if rd.clients and rd.clients.blocked_clients > 0 %}#f59e0b{% else %}var(--text-primary){% endif %};">
+                            {{ rd.clients.blocked_clients if rd.clients else "—" }}
+                        </div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Max Clients</div>
+                        <div class="stat-mini-val">{{ rd.clients.maxclients if rd.clients else "—" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Memory -->
+            <div class="meta-section">
+                <div class="meta-section-title">Memory</div>
+                <div class="meta-kv-grid" style="margin-bottom:8px;">
+                    <span class="meta-key">used</span>
+                    <span class="meta-val highlight">{{ rd.memory.used_memory_human if rd.memory else "—" }}</span>
+                    <span class="meta-key">peak</span>
+                    <span class="meta-val">{{ rd.memory.used_memory_peak_human if rd.memory else "—" }}</span>
+                    <span class="meta-key">fragmentation</span>
+                    <span class="meta-val {% if rd.memory and rd.memory.mem_fragmentation_ratio > 5 %}warning{% endif %}">
+                        {{ rd.memory.mem_fragmentation_ratio if rd.memory else "—" }}x
+                    </span>
+                    <span class="meta-key">maxmemory</span>
+                    <span class="meta-val">{{ rd.memory.maxmemory if rd.memory and rd.memory.maxmemory else "unlimited" }}</span>
+                </div>
+                {% if rd.memory and rd.memory.used_memory_peak and rd.memory.used_memory %}
+                {% set pct = ((rd.memory.used_memory / rd.memory.used_memory_peak) * 100) | round(1) %}
+                <div class="mem-bar-wrap">
+                    <div class="mem-bar">
+                        <div class="mem-bar-fill" style="width: {{ pct }}%;"></div>
+                    </div>
+                    <span class="mem-bar-label">{{ pct }}% of peak</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Stats -->
+            <div class="meta-section">
+                <div class="meta-section-title">Stats</div>
+                <div class="stat-mini-row" style="grid-template-columns: repeat(2,1fr); margin-bottom:8px;">
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Total Connections</div>
+                        <div class="stat-mini-val" style="font-size:14px;">{{ rd.stats.total_connections_received if rd.stats else "—" }}</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Cmds Processed</div>
+                        <div class="stat-mini-val" style="font-size:14px;">{{ rd.stats.total_commands_processed if rd.stats else "—" }}</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Ops/sec</div>
+                        <div class="stat-mini-val" style="font-size:14px; color:#22d3a0;">{{ rd.stats.instantaneous_ops_per_sec if rd.stats else "—" }}</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-label">Evicted Keys</div>
+                        <div class="stat-mini-val"
+                            style="font-size:14px; color:{% if rd.stats and rd.stats.evicted_keys > 0 %}#f43f5e{% else %}var(--text-primary){% endif %};">
+                            {{ rd.stats.evicted_keys if rd.stats else "—" }}
+                        </div>
+                    </div>
+                </div>
+                <!-- Hit/Miss ratio -->
+                {% if rd.stats and rd.stats.keyspace_hits is defined and rd.stats.keyspace_misses is defined %}
+                {% set total_ks = rd.stats.keyspace_hits + rd.stats.keyspace_misses %}
+                {% set hit_pct = ((rd.stats.keyspace_hits / total_ks) * 100) | round(1) if total_ks > 0 else 0 %}
+                <div class="meta-kv-grid" style="margin-bottom:6px;">
+                    <span class="meta-key">keyspace_hits</span>
+                    <span class="meta-val success">{{ rd.stats.keyspace_hits }}</span>
+                    <span class="meta-key">keyspace_misses</span>
+                    <span class="meta-val danger">{{ rd.stats.keyspace_misses }}</span>
+                </div>
+                <div class="mem-bar-wrap">
+                    <div class="mem-bar">
+                        <div class="mem-bar-fill" style="width: {{ hit_pct }}%; background: linear-gradient(90deg, #22d3a0, #6366f1);"></div>
+                    </div>
+                    <span class="mem-bar-label">{{ hit_pct }}% hit rate</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Persistence -->
+            <div class="meta-section">
+                <div class="meta-section-title">Persistence</div>
+                <div class="meta-kv-grid">
+                    <span class="meta-key">rdb_last_save</span>
+                    <span class="meta-val">{{ rd.persistence.rdb_last_save_time if rd.persistence else "—" }}</span>
+                    <span class="meta-key">aof_enabled</span>
+                    <span class="meta-val {% if rd.persistence and rd.persistence.aof_enabled %}success{% else %}warning{% endif %}">
+                        {{ "Yes" if rd.persistence and rd.persistence.aof_enabled else "No" }}
+                    </span>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div class="px-5 py-4 border-b dark:border-gray-700 flex items-center justify-between gap-4">
-            <h3 class="text-sm font-semibold">Live Request Logs</h3>
+</div>
 
-            <div class="flex items-center gap-2 flex-wrap justify-end">
-                <label for="logLevelFilter" class="text-xs text-gray-500">Level</label>
-                <select id="logLevelFilter" class="px-2 py-1 border rounded-md text-sm dark:bg-gray-900">
-                    <option value="ALL">All</option>
-                    <option value="DEBUG">DEBUG</option>
-                    <option value="INFO">INFO</option>
-                    <option value="WARNING">WARNING</option>
-                    <option value="ERROR">ERROR</option>
-                    <option value="CRITICAL">CRITICAL</option>
-                </select>
-
-                <label for="loggerFilter" class="text-xs text-gray-500">Logger</label>
-                <select id="loggerFilter" class="px-2 py-1 border rounded-md text-sm dark:bg-gray-900">
-                    <option value="ALL">All</option>
-                </select>
-
-                <label for="logSearchFilter" class="text-xs text-gray-500">Search</label>
-                <input id="logSearchFilter" type="text" placeholder="message/path/traceback" class="px-2 py-1 border rounded-md text-sm dark:bg-gray-900" />
-
-                <label for="logDurationFilter" class="text-xs text-gray-500">Logs Window</label>
-                <select id="logDurationFilter" class="px-2 py-1 border rounded-md text-sm dark:bg-gray-900">
-                    <option value="all">All</option>
-                    <option value="60">Last 1m</option>
-                    <option value="300">Last 5m</option>
-                    <option value="900">Last 15m</option>
-                    <option value="3600">Last 1h</option>
-                </select>
-
-                <button id="pauseMonitorBtn" type="button" class="px-3 py-1 border rounded-md text-sm">Pause</button>
-                <button id="resumeMonitorBtn" type="button" class="px-3 py-1 border rounded-md text-sm">Resume</button>
-                <button id="clearLogsBtn" type="button" class="px-3 py-1 border rounded-md text-sm">Clear</button>
-            </div>
+<!-- ── LIVE LOGS ── -->
+<div class="panel section-spacer">
+    <div class="panel-header" style="flex-wrap:wrap; gap:8px;">
+        <span class="panel-title">Live Request Logs</span>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto;">
+            <span class="filter-label">Level</span>
+            <select id="logLevelFilter" class="filter-select">
+                <option value="ALL">All</option>
+                <option value="DEBUG">DEBUG</option>
+                <option value="INFO">INFO</option>
+                <option value="WARNING">WARNING</option>
+                <option value="ERROR">ERROR</option>
+                <option value="CRITICAL">CRITICAL</option>
+            </select>
+            <span class="filter-label">Logger</span>
+            <select id="loggerFilter" class="filter-select">
+                <option value="ALL">All</option>
+            </select>
+            <span class="filter-label">Search</span>
+            <input id="logSearchFilter" type="text" placeholder="message / path..." class="filter-input" />
+            <span class="filter-label">Window</span>
+            <select id="logDurationFilter" class="filter-select">
+                <option value="all">All</option>
+                <option value="60">Last 1m</option>
+                <option value="300">Last 5m</option>
+                <option value="900">Last 15m</option>
+                <option value="3600">Last 1h</option>
+            </select>
+            <button id="pauseMonitorBtn" class="btn">⏸ Pause</button>
+            <button id="resumeMonitorBtn" class="btn">▶ Resume</button>
+            <button id="clearLogsBtn" class="btn">✕ Clear</button>
         </div>
-
-        <div id="logsContainer" class="p-4 h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 font-mono text-xs space-y-2"></div>
     </div>
-
+    <div id="logsContainer"></div>
 </div>
 
 {% endblock %}
@@ -444,6 +1346,15 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // ── CHART DEFAULTS ──
+    Chart.defaults.color = '#8b8ba7';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+    Chart.defaults.font.family = "'DM Mono', monospace";
+    Chart.defaults.font.size = 11;
+
+    const accent = '#6366f1';
+    const accentAlt = '#22d3a0';
+
     const collectionLabels = {{ collection_chart_labels | tojson }};
     const collectionValues = {{ collection_chart_values | tojson }};
     const totalUsers = {{ total_users }};
@@ -459,13 +1370,20 @@
                 datasets: [{
                     label: 'Documents',
                     data: collectionValues,
-                    borderWidth: 1
+                    backgroundColor: 'rgba(99,102,241,0.25)',
+                    borderColor: accent,
+                    borderWidth: 1,
+                    borderRadius: 4,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
+                    x: { grid: { display: false } }
+                }
             }
         });
     }
@@ -478,16 +1396,27 @@
                 labels: ['Users', 'Other Docs'],
                 datasets: [{
                     data: [totalUsers, otherDocuments],
-                    borderWidth: 1
+                    backgroundColor: ['rgba(99,102,241,0.7)', 'rgba(34,211,160,0.5)'],
+                    borderColor: ['#6366f1', '#22d3a0'],
+                    borderWidth: 1,
+                    hoverOffset: 4,
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 16, boxWidth: 12, usePointStyle: true }
+                    }
+                },
+                cutout: '68%',
             }
         });
     }
 
+    // ── LOG ENGINE ──
     const logsContainer = document.getElementById('logsContainer');
     const levelFilter = document.getElementById('logLevelFilter');
     const loggerFilter = document.getElementById('loggerFilter');
@@ -511,17 +1440,23 @@
     const total5xxValue = document.getElementById('total5xxValue');
     const totalRequestsValue = document.getElementById('totalRequestsValue');
 
+    const LEVEL_COLORS = {
+        DEBUG: '#8b8ba7',
+        INFO: '#6366f1',
+        WARNING: '#f59e0b',
+        ERROR: '#f43f5e',
+        CRITICAL: '#f43f5e',
+    };
+
     function refreshLoggerOptions() {
         const current = loggerFilter.value;
         loggerFilter.innerHTML = '';
-
         Array.from(knownLoggers).sort().forEach((name) => {
             const option = document.createElement('option');
             option.value = name;
             option.textContent = name;
             loggerFilter.appendChild(option);
         });
-
         loggerFilter.value = knownLoggers.has(current) ? current : 'ALL';
     }
 
@@ -539,38 +1474,38 @@
             const loggerOk = activeLogger === 'ALL' || (entry.logger_name || '-') === activeLogger;
             const blob = `${entry.message || ''} ${entry.path || ''} ${entry.method || ''} ${entry.logger_name || ''} ${entry.exception || ''}`.toLowerCase();
             const searchOk = searchTerm.length === 0 || blob.includes(searchTerm);
-
             let durationOk = true;
             if (durationSec !== null) {
                 const tsMs = Date.parse(entry.timestamp || '');
                 durationOk = !Number.isNaN(tsMs) && (nowMs - tsMs) <= (durationSec * 1000);
             }
-
             return levelOk && loggerOk && searchOk && durationOk;
         });
+
         filtered.forEach((entry) => {
             const row = document.createElement('div');
-            row.className = 'flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 pb-1';
+            row.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04);';
 
+            const lvlColor = LEVEL_COLORS[entry.level] || '#8b8ba7';
             const message = entry.message || `${entry.method || '-'} ${entry.path || '-'}`;
             const loggerName = entry.logger_name || '-';
             const location = entry.module ? `${entry.module}:${entry.line ?? '-'}` : '-';
 
             row.innerHTML = `
-                <span class="text-gray-500">${entry.timestamp || '-'}</span>
-                <span class="font-semibold">${entry.level || 'INFO'}</span>
-                <span>${message}</span>
-                <span>Logger: ${loggerName}</span>
-                <span>At: ${location}</span>
-                <span>Status: ${entry.status_code ?? '-'}</span>
-                <span>IP: ${entry.client_ip || '-'}</span>
-                <span>${(entry.process_time ?? 0).toFixed(3)}s</span>
+                <span style="color:#4a4a65;">${entry.timestamp || '-'}</span>
+                <span style="color:${lvlColor}; font-weight:600;">${entry.level || 'INFO'}</span>
+                <span style="color:#d0d0e8;">${message}</span>
+                <span style="color:#6b6b8a;">logger:${loggerName}</span>
+                <span style="color:#6b6b8a;">at:${location}</span>
+                <span style="color:${(entry.status_code >= 400) ? '#f43f5e' : '#8b8ba7'};">status:${entry.status_code ?? '-'}</span>
+                <span style="color:#6b6b8a;">ip:${entry.client_ip || '-'}</span>
+                <span style="color:#6b6b8a;">${(entry.process_time ?? 0).toFixed(3)}s</span>
             `;
             logsContainer.appendChild(row);
 
             if (entry.exception) {
                 const exceptionRow = document.createElement('pre');
-                exceptionRow.className = 'text-red-500 whitespace-pre-wrap pl-2 border-l-2 border-red-500';
+                exceptionRow.style.cssText = 'color:#f43f5e; margin:0; border-left:2px solid #f43f5e; padding-left:8px; font-size:10px; background:transparent;';
                 exceptionRow.textContent = entry.exception;
                 logsContainer.appendChild(exceptionRow);
             }
@@ -580,63 +1515,45 @@
     }
 
     function pushLog(entry) {
-        if (isMonitoringPaused) {
-            return;
-        }
-
+        if (isMonitoringPaused) return;
         knownLoggers.add(entry.logger_name || '-');
         refreshLoggerOptions();
-
         logBuffer.push(entry);
-        if (logBuffer.length > maxLogs) {
-            logBuffer.shift();
-        }
+        if (logBuffer.length > maxLogs) logBuffer.shift();
         renderLogs();
     }
 
     function escapeHtml(text) {
-        return String(text)
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#039;');
+        return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
     }
 
     function renderEndpointTraffic(rows) {
         if (!Array.isArray(rows) || rows.length === 0) {
-            endpointTrafficBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No endpoint traffic recorded yet</td></tr>';
+            endpointTrafficBody.innerHTML = '<tr class="empty-row"><td colspan="7">No endpoint traffic recorded yet</td></tr>';
             return;
         }
-
         endpointTrafficBody.innerHTML = rows.map((item) => {
-            const message = item.last_error && item.last_error.message ? item.last_error.message : '-';
-            return `
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 align-top">
-                    <td class="px-4 py-3 font-mono text-xs">${escapeHtml(item.endpoint || '-')}</td>
-                    <td class="px-4 py-3">${item.count ?? 0}</td>
-                    <td class="px-4 py-3">${item['2xx'] ?? 0}</td>
-                    <td class="px-4 py-3">${item['3xx'] ?? 0}</td>
-                    <td class="px-4 py-3">${item['4xx'] ?? 0}</td>
-                    <td class="px-4 py-3">${item['5xx'] ?? 0}</td>
-                    <td class="px-4 py-3 text-xs">${escapeHtml(message)}</td>
-                </tr>
-            `;
+            const message = item.last_error?.message ?? '—';
+            const c4 = item['4xx'] || 0;
+            const c5 = item['5xx'] || 0;
+            return `<tr>
+                <td class="mono">${escapeHtml(item.endpoint || '-')}</td>
+                <td>${item.count ?? 0}</td>
+                <td>${item['2xx'] ?? 0}</td>
+                <td>${item['3xx'] ?? 0}</td>
+                <td>${c4 ? `<span class="pill pill-yellow">${c4}</span>` : '0'}</td>
+                <td>${c5 ? `<span class="pill pill-red">${c5}</span>` : '0'}</td>
+                <td class="mono">${escapeHtml(message)}</td>
+            </tr>`;
         }).join('');
     }
 
     async function refreshDashboardMetrics() {
-        if (isMonitoringPaused) {
-            return;
-        }
-
+        if (isMonitoringPaused) return;
         const durationSec = Number(trafficDurationFilter.value || '300');
         try {
             const response = await fetch(`/admin/dashboard/metrics?duration_sec=${durationSec}`, { headers: { 'Accept': 'application/json' } });
-            if (!response.ok) {
-                return;
-            }
-
+            if (!response.ok) return;
             const payload = await response.json();
             requestsPerSecondValue.textContent = String(payload.requests_per_second ?? 0);
             currentSecondRpsValue.textContent = String(payload.current_second_rps ?? 0);
@@ -645,69 +1562,36 @@
             total5xxValue.textContent = String(payload.total_5xx ?? 0);
             totalRequestsValue.textContent = String(payload.total_requests ?? 0);
             renderEndpointTraffic(payload.endpoint_traffic || []);
-        } catch (_) {
-        }
+        } catch (_) { }
     }
 
     const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const logsSocket = new WebSocket(`${socketProtocol}//${window.location.host}/ws/logs`);
 
     logsSocket.onmessage = (event) => {
-        try {
-            const entry = JSON.parse(event.data);
-            pushLog(entry);
-        } catch (_) {
-        }
+        try { pushLog(JSON.parse(event.data)); } catch (_) { }
     };
 
-    logsSocket.onopen = () => {
-        pushLog({
-            timestamp: new Date().toISOString(),
-            level: 'INFO',
-            logger_name: 'ws.client',
-            method: 'WS',
-            path: '/ws/logs',
-            status_code: 101,
-            client_ip: 'local',
-            process_time: 0,
-            message: 'WebSocket connected',
-        });
-    };
+    logsSocket.onopen = () => pushLog({
+        timestamp: new Date().toISOString(), level: 'INFO', logger_name: 'ws.client',
+        method: 'WS', path: '/ws/logs', status_code: 101, client_ip: 'local',
+        process_time: 0, message: 'WebSocket connected',
+    });
 
-    logsSocket.onclose = () => {
-        pushLog({
-            timestamp: new Date().toISOString(),
-            level: 'WARNING',
-            logger_name: 'ws.client',
-            method: 'WS',
-            path: '/ws/logs',
-            status_code: '-',
-            client_ip: 'local',
-            process_time: 0,
-            message: 'WebSocket disconnected',
-        });
-    };
+    logsSocket.onclose = () => pushLog({
+        timestamp: new Date().toISOString(), level: 'WARNING', logger_name: 'ws.client',
+        method: 'WS', path: '/ws/logs', status_code: '-', client_ip: 'local',
+        process_time: 0, message: 'WebSocket disconnected',
+    });
 
     levelFilter.addEventListener('change', renderLogs);
     loggerFilter.addEventListener('change', renderLogs);
     searchFilter.addEventListener('input', renderLogs);
     logDurationFilter.addEventListener('change', renderLogs);
     trafficDurationFilter.addEventListener('change', refreshDashboardMetrics);
-
-    pauseMonitorBtn.addEventListener('click', () => {
-        isMonitoringPaused = true;
-    });
-
-    resumeMonitorBtn.addEventListener('click', () => {
-        isMonitoringPaused = false;
-        refreshDashboardMetrics();
-        renderLogs();
-    });
-
-    clearLogsBtn.addEventListener('click', () => {
-        logBuffer.length = 0;
-        logsContainer.innerHTML = '';
-    });
+    pauseMonitorBtn.addEventListener('click', () => { isMonitoringPaused = true; });
+    resumeMonitorBtn.addEventListener('click', () => { isMonitoringPaused = false; refreshDashboardMetrics(); renderLogs(); });
+    clearLogsBtn.addEventListener('click', () => { logBuffer.length = 0; logsContainer.innerHTML = ''; });
 
     metricsRefreshTimer = setInterval(refreshDashboardMetrics, 5000);
 </script>
