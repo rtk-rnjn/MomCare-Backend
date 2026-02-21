@@ -1,0 +1,89 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}My Plans{% endblock %}
+{% block page_title %}My Plans{% endblock %}
+
+{% block content %}
+
+<!-- Search -->
+<form method="get" class="flex flex-wrap gap-3 items-end mb-6">
+    <div>
+        <label class="text-xs text-gray-500">Search User</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="First / Last / Phone" class="px-4 py-2 border rounded w-64 dark:bg-gray-800">
+    </div>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded">Apply</button>
+    <div class="ml-auto text-sm text-gray-500">Total: {{ total }}</div>
+</form>
+
+<!-- Table -->
+<div class="bg-white dark:bg-gray-800 rounded shadow overflow-x-auto">
+    <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr class="text-left">
+                <th class="px-4 py-3">Plan ID</th>
+                <th class="px-4 py-3">User</th>
+                <th class="px-4 py-3">User Config</th>
+                <th class="px-4 py-3">Breakfast</th>
+                <th class="px-4 py-3">Lunch</th>
+                <th class="px-4 py-3">Dinner</th>
+                <th class="px-4 py-3">Snacks</th>
+                <th class="px-4 py-3">Created At</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for plan in plans %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-4 py-3 font-mono text-xs">{{ plan._id }}</td>
+                <td class="px-4 py-3">
+                    <span class="text-sm text-gray-500">{{ plan.user._id }}</span><br>
+                    {{ plan.user.first_name }} {{ plan.user.last_name or "" }}<br>{{ plan.user.phone_number or "" }}
+                </td>
+
+                <td class="px-4 py-3 text-xs">
+                    <ul class="list-disc list-inside">
+                        <li>Height: {{ plan.user.height }} cm</li>
+                        <li>Weight: {{ plan.user.current_weight }} kg</li>
+                        <li>Dietary Preferences: {{ plan.user.dietary_preferences | join(", ") }}</li>
+                    </ul>
+                </td>
+
+                {% for meal in ["breakfast_food","lunch_food","dinner_food","snacks_food"] %}
+                <td class="px-4 py-3 text-xs">
+                    <ul class="list-disc list-inside">
+                        {% for food in plan[meal] %}
+                        {% if food %}
+                        <li class="text-sm">
+                            {{ food.name }}
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </td>
+                {% endfor %}
+
+                <td class="px-4 py-3">
+                    {{ plan.created_at_timestamp | humanize_timestamp }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="px-4 py-8 text-center text-gray-500">No plans found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+<div class="flex items-center justify-between mt-6">
+    <div class="text-sm text-gray-500">Page {{ page }} of {{ total_pages }}</div>
+    <div class="flex gap-2">
+        {% if page > 1 %}
+        <a href="?page={{ page -1 }}&q={{ q }}" class="px-3 py-1 border rounded">Prev</a>
+        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page +1 }}&q={{ q }}" class="px-3 py-1 border rounded">Next</a>
+            {% endif %}
+    </div>
+</div>
+
+{% endblock %}

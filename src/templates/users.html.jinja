@@ -1,0 +1,151 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+
+{% block content %}
+
+<div class="space-y-6">
+
+    <!-- Header -->
+    <form method="get" class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+            <!-- Search -->
+            <div class="md:col-span-3">
+                <label class="block text-xs font-medium text-gray-500 mb-1">
+                    Search
+                </label>
+                <input type="text" name="q" value="{{ q }}" placeholder="Search users..."
+                    class="w-full px-4 py-2 border rounded-md dark:bg-gray-900 focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Action -->
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-5 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
+                    Apply Filters
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between mt-5 pt-4 border-t dark:border-gray-700">
+
+            <div class="text-sm text-gray-500">
+                Total records: <span class="font-medium">{{ total }}</span>
+            </div>
+
+            <a href="{{ url_for('admin_users') }}" class="px-4 py-2 border rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-700">
+                Reset
+            </a>
+
+        </div>
+
+    </form>
+
+    <!-- Table -->
+    <div class="bg-white dark:bg-gray-800 rounded shadow overflow-x-auto">
+
+        <table class="min-w-full text-sm">
+
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr class="text-left">
+                    <th class="px-4 py-3">ID</th>
+                    <th class="px-4 py-3">First Name</th>
+                    <th class="px-4 py-3">Last Name</th>
+                    <th class="px-4 py-3">Phone</th>
+                    <th class="px-4 py-3">Timezone</th>
+                    <th class="px-4 py-3">Date of Birth</th>
+                    <th class="px-4 py-3">Height</th>
+                    <th class="px-4 py-3">Pre Pregnancy Weight</th>
+                    <th class="px-4 py-3">Current Weight</th>
+                    <th class="px-4 py-3">Due Date</th>
+                </tr>
+            </thead>
+
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                {% for user in users %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+
+                    <td class="px-4 py-3 font-mono text-xs">
+                        {{ user._id }}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.first_name or "-" }}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.last_name or "-" }}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.phone_number or "-" }}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.timezone or "-" }}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.date_of_birth_timestamp | humanize_timestamp or "-" }}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.height or "-" }} cm
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.pre_pregnancy_weight or "-" }} kg
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.current_weight or "-" }} kg
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {{ user.due_date_timestamp | humanize_timestamp or "-" }}
+                    </td>
+
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                        No users found
+                    </td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between">
+
+        <div class="text-sm text-gray-500">
+            Page {{ page }} of {{ total_pages }}
+        </div>
+
+        <div class="flex gap-2">
+
+            {% if page > 1 %}
+            <a href="?page={{ page - 1 }}&q={{ q }}" class="px-3 py-1 border rounded">
+                Prev
+            </a>
+            {% endif %}
+
+            {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}" class="px-3 py-1 border rounded">
+                Next
+                </a>
+                {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

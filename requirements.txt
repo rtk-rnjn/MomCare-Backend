@@ -22,3 +22,5 @@ aiosmtplib
 orjson
 aiodns
 colorama
+itsdangerous
+python-multipart

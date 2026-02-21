@@ -9,10 +9,12 @@ from .api import (
     v2_auth_router,
     v2_devices_router,
 )
-from .web import *  # noqa: F401, F403
+from .web import admin_router, read_root  # noqa: F401, F403
 
 api_router = APIRouter(prefix="/api")
+
 web_router = APIRouter(include_in_schema=False)
+web_router.include_router(admin_router)
 
 v1_router = APIRouter(prefix="/v1")
 v2_router = APIRouter(prefix="/v2")

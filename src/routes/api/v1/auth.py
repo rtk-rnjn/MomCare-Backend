@@ -26,6 +26,7 @@ from starlette.status import (
 from src.app import app
 from src.models import (
     AccountStatus,
+    AuthenticationProvider,
     CredentialsDict,
     CredentialsModel,
     PasswordAlgorithm,
@@ -146,6 +147,7 @@ async def register(data: CredentialsModel = Body(...)):
         password_algo=PasswordAlgorithm.BCRYPT,
         created_at_timestamp=now,
         updated_at_timestamp=now,
+        authentication_providers=[AuthenticationProvider.INTERNAL],
         account_status=AccountStatus.ACTIVE,
         verified_email=False,
     )

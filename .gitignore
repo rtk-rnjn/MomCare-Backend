@@ -20,3 +20,5 @@ logs.*
 bucket/
 config.json
 app.log
+node_modules/
+dist/

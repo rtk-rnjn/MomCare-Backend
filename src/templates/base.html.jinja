@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" x-data="{ sidebarOpen: false, dark: false }" :class="{ 'dark': dark }">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Admin Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='output.css') }}">
+
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+
+<div class="flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside
+        class="bg-white dark:bg-gray-800 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform
+               md:relative md:translate-x-0 transition duration-200 ease-in-out z-30"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    >
+
+        <div class="px-4">
+            <h1 class="text-2xl font-bold tracking-tight">
+                Admin Panel
+            </h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                FastAPI Internal
+            </p>
+        </div>
+
+        <nav class="mt-6">
+
+            <a href="{{ url_for('admin_dashboard') }}"
+               class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                Dashboard
+            </a>
+
+            <a href="{{ url_for('admin_users') }}"
+               class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                Users
+            </a>
+
+            <a href="{{ url_for('admin_credentials') }}"
+               class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                Credentials
+            </a>
+
+            <a href="{{ url_for('admin_food_items') }}"
+               class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                Food Items
+            </a>
+
+            <a href="{{ url_for('admin_songs') }}"
+               class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                Songs
+            </a>
+
+            <a href="{{ url_for('admin_exercise') }}"
+               class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                Exercises
+            </a>
+
+            <a href="{{ url_for('admin_myplan') }}"
+               class="block py-2.5 px-4 rounded transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                My Plans
+            </a>
+
+        </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+        <!-- TOPBAR -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm">
+            <div class="flex items-center justify-between px-6 py-4">
+
+                <div class="flex items-center space-x-4">
+                    <button
+                        @click="sidebarOpen = !sidebarOpen"
+                        class="md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                    >
+                        ☰
+                    </button>
+
+                    <h2 class="text-xl font-semibold">
+                        {% block page_title %}Dashboard{% endblock %}
+                    </h2>
+                </div>
+
+                <div class="flex items-center space-x-4">
+
+                    <!-- Dark toggle -->
+                    <button
+                        @click="dark = !dark"
+                        class="px-3 py-1 text-sm rounded bg-gray-200 dark:bg-gray-700"
+                    >
+                        Toggle Theme
+                    </button>
+
+                    <!-- User -->
+                    <div class="text-sm text-gray-500">
+                        Admin
+                    </div>
+
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENT -->
+        <main class="flex-1 overflow-y-auto p-6">
+
+            <!-- Flash messages -->
+            {% if request.query_params.get("msg") %}
+            <div class="mb-4 p-4 rounded bg-green-100 text-green-800">
+                {{ request.query_params.get("msg") }}
+            </div>
+            {% endif %}
+
+            {% block content %}
+            <!-- page content -->
+            {% endblock %}
+
+        </main>
+
+    </div>
+</div>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

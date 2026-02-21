@@ -1,0 +1,27 @@
+{
+    "name": "momcare-backend",
+    "version": "1.0.0",
+    "description": "Backend for [MomCare](https://github.com/rtk-rnjn/MomCare) iOS application. This backend is responsible for handling the requests from the iOS application and interacting with the database to fetch the required data.",
+    "main": "index.js",
+    "scripts": {
+        "build-css": "tailwindcss -i ./src/static/input.css -o ./src/static/output.css",
+        "watch-css": "tailwindcss -i ./src/static/input.css -o ./src/static/output.css --watch"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rtk-rnjn/MomCare-Backend.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "bugs": {
+        "url": "https://github.com/rtk-rnjn/MomCare-Backend/issues"
+    },
+    "homepage": "https://github.com/rtk-rnjn/MomCare-Backend#readme",
+    "devDependencies": {
+        "autoprefixer": "^10.4.24",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^3.4.17"
+    }
+}
