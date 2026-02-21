@@ -17,7 +17,7 @@ uvloop ; platform_system != "Windows"
 arrow
 jinja2
 aiobotocore
-types-aiobotocore
+types-aiobotocore-s3
 aiosmtplib
 orjson
 aiodns

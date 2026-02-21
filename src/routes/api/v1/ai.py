@@ -13,8 +13,6 @@ from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.cursor import AsyncCursor
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from starlette.status import (
-    HTTP_200_OK,
-    HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
     HTTP_410_GONE,
@@ -81,22 +79,32 @@ def _today_window(tz: str = "Asia/Kolkata", /) -> tuple[float, float]:
 async def _get_verified_user(user_id: str) -> UserDict:
     cred = await credentials_collection.find_one({"_id": user_id})
     if not cred:
-        raise HTTPException(HTTP_404_NOT_FOUND, detail="User credentials not found.")
+        raise HTTPException(
+            HTTP_404_NOT_FOUND,
+        )
 
     if cred.get("account_status") == AccountStatus.DELETED:
-        raise HTTPException(HTTP_410_GONE, detail="User account has been deleted.")
+        raise HTTPException(
+            HTTP_410_GONE,
+        )
 
     if cred.get("account_status") == AccountStatus.LOCKED:
-        raise HTTPException(HTTP_403_FORBIDDEN, detail="User account is locked.")
+        raise HTTPException(
+            HTTP_403_FORBIDDEN,
+        )
 
     user = await users_collection.find_one({"_id": user_id})
     if not user:
-        raise HTTPException(HTTP_423_LOCKED, detail="User not found.")
+        raise HTTPException(
+            HTTP_423_LOCKED,
+        )
 
     if cred.get("verified_email", False):
         return user
 
-    raise HTTPException(HTTP_403_FORBIDDEN, detail="User email not verified.")
+    raise HTTPException(
+        HTTP_403_FORBIDDEN,
+    )
 
 
 def _exercise_pipeline(user_id: str, start: float, end: float) -> list[dict]:
@@ -137,12 +145,6 @@ async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: t
     response_description="The generated daily insight containing today's focus and a helpful tip.",
     summary="Generate daily tips",
     description="Generate daily tips including today's focus and a helpful tip for the user.",
-    responses={
-        HTTP_200_OK: {"description": "Daily tips generated successfully."},
-        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
-        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
-        HTTP_404_NOT_FOUND: {"description": "User not found."},
-    },
 )
 async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await _get_verified_user(user_id)
@@ -178,12 +180,6 @@ async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
     response_description="A list of daily insights matching the search criteria.",
     summary="Search daily tips",
     description="Search for daily tips within a specified timestamp range.",
-    responses={
-        HTTP_200_OK: {"description": "Daily tips retrieved successfully."},
-        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
-        HTTP_404_NOT_FOUND: {"description": "User not found."},
-        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
-    },
 )
 async def fetch_all_tips(
     timestamp_range: TimestampRange = Body(...),
@@ -214,12 +210,6 @@ async def fetch_all_tips(
     response_description="A list of meal plans matching the search criteria.",
     summary="Search meal plans",
     description="Search for meal plans within a specified timestamp range.",
-    responses={
-        HTTP_200_OK: {"description": "Meal plans retrieved successfully."},
-        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
-        HTTP_404_NOT_FOUND: {"description": "User not found."},
-        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
-    },
 )
 async def fetch_all_plans(
     timestamp_range: TimestampRange = Body(...),
@@ -250,12 +240,6 @@ async def fetch_all_plans(
     response_description="The generated meal plan for the user.",
     summary="Generate meal plan",
     description="Generate a meal plan for the user based on their dietary preferences and food intolerances.",
-    responses={
-        HTTP_200_OK: {"description": "Meal plan generated successfully."},
-        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
-        HTTP_404_NOT_FOUND: {"description": "User not found."},
-        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
-    },
 )
 async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     user: UserDict = await _get_verified_user(user_id)
@@ -315,12 +299,6 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     response_description="A list of exercises generated for the user.",
     summary="Generate exercises",
     description="Generate a list of exercises for the user based on their profile and past exercise history.",
-    responses={
-        HTTP_200_OK: {"description": "Exercises generated successfully."},
-        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
-        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
-        HTTP_404_NOT_FOUND: {"description": "User not found."},
-    },
 )
 async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await _get_verified_user(user_id)
@@ -377,12 +355,6 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
     response_description="A list of exercises matching the search criteria.",
     summary="Search exercises",
     description="Search for exercises within a specified timestamp range.",
-    responses={
-        HTTP_200_OK: {"description": "Exercises retrieved successfully."},
-        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing access token."},
-        HTTP_403_FORBIDDEN: {"description": "Forbidden. User email not verified."},
-        HTTP_404_NOT_FOUND: {"description": "User not found."},
-    },
 )
 async def fetch_all_exercises(
     timestamp_range: TimestampRange = Body(...),

@@ -18,6 +18,7 @@ from redis import RedisError
 from redis.asyncio import Redis
 
 from src.app import app
+from src.routes.api.utils import rate_limiter
 
 load_dotenv()
 
@@ -30,10 +31,12 @@ security = HTTPBearer()
 async def admin_required(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     if token != os.environ["ADMIN_TOKEN"]:
-        raise HTTPException(status_code=403, detail="Admin privileges required")
+        raise HTTPException(
+            status_code=403,
+        )
 
 
-router = APIRouter(prefix="/meta", tags=["System & Meta"], dependencies=[Depends(admin_required)])
+router = APIRouter(prefix="/meta", tags=["System & Meta"], dependencies=[Depends(admin_required), Depends(rate_limiter)])
 
 
 class ORJSONResponse(_ORJSONResponse):
@@ -248,8 +251,10 @@ async def extract_mongo_metadata(mongo_client: AsyncMongoClient) -> MongoMetadat
 
         metadata["ok"] = True
 
-    except PyMongoError as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving MongoDB metadata: {str(e)}")
+    except PyMongoError:
+        raise HTTPException(
+            status_code=500,
+        )
 
     return parse_mongo_metadata(metadata)
 
@@ -318,8 +323,10 @@ async def extract_redis_metadata(redis_client: Redis) -> RedisMetadata:
 
         metadata["ok"] = True
 
-    except RedisError as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving Redis info: {str(e)}")
+    except RedisError:
+        raise HTTPException(
+            status_code=500,
+        )
 
     return metadata
 

@@ -28,6 +28,7 @@ class DailyInsightModel(BaseModel):
     class Config:
         extra = "ignore"
 
+
 class Data(TypedDict):
     system: str
     user: list[str]

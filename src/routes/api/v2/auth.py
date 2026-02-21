@@ -66,14 +66,12 @@ async def verify_google_id_token(id_token: str) -> dict[str, Any]:
     except GoogleAuthError:
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
-            detail="Invalid Google token.",
         )
 
     google_id: str | None = id_info.get("sub")
     if not google_id:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
-            detail="Invalid Google token.",
         )
 
     return id_info
@@ -127,7 +125,6 @@ async def link_google_to_existing_account(
     if not result:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
-            detail=("No matching account found for the provided existing email address or account is already linked to a Google ID."),
         )
 
     return result["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
@@ -158,11 +155,6 @@ async def create_new_google_account(google_id: str) -> str:
     response_model=TokenPairDict,
     description="Authenticate a user using a Google ID token and return access and refresh tokens.",
     response_description="A pair of access and refresh tokens for the authenticated user.",
-    responses={
-        HTTP_200_OK: {"description": "User authenticated successfully."},
-        HTTP_400_BAD_REQUEST: {"description": "Invalid Google token."},
-        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing Google token."},
-    },
 )
 async def google_login(
     id_token: str = Body(
@@ -290,7 +282,6 @@ async def link_apple_to_existing_account(
     if not result:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
-            detail=("No matching account found for the provided existing email address or account is already linked to an Apple ID."),
         )
 
     return result["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
@@ -321,11 +312,6 @@ async def create_new_apple_account(apple_id: str) -> str:
     response_model=TokenPairDict,
     description="Authenticate a user using an Apple ID token and return access and refresh tokens.",
     response_description="A pair of access and refresh tokens for the authenticated user.",
-    responses={
-        HTTP_200_OK: {"description": "User authenticated successfully."},
-        HTTP_400_BAD_REQUEST: {"description": "Invalid Apple token."},
-        HTTP_401_UNAUTHORIZED: {"description": "Unauthorized. Invalid or missing Apple token."},
-    },
 )
 async def apple_login(
     id_token: str = Body(
@@ -348,7 +334,6 @@ async def apple_login(
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
-            detail="Invalid Apple token.",
         )
 
     apple_id: str = id_info["sub"]

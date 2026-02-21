@@ -39,7 +39,9 @@ def _stream(generator):
 async def _get_or_404(collection: Collection, _id: str, label: str):
     doc = await collection.find_one({"_id": _id})
     if doc is None:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=f"{label} not found.")
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+        )
     return doc
 
 
@@ -116,9 +118,6 @@ async def _search_song(text: str):
     status_code=HTTP_200_OK,
     summary="Search for food items",
     description="Search for food items by name. Returns a list of matching food items.",
-    responses={
-        HTTP_200_OK: {"description": "Food items retrieved successfully."},
-    },
 )
 async def search_food(
     food_name: str = Query(..., description="Name of the food to search for", examples=["Apple"], title="Food Name"),
@@ -135,9 +134,6 @@ async def search_food(
     status_code=HTTP_200_OK,
     summary="Search for songs",
     description="Search for songs by text. Returns a list of matching songs.",
-    responses={
-        HTTP_200_OK: {"description": "Songs retrieved successfully."},
-    },
 )
 async def search_song(text: str = Query(..., description="Text to search for in songs", title="Search Text")):
     return _stream(_search_song(text))
@@ -151,9 +147,6 @@ async def search_song(text: str = Query(..., description="Text to search for in 
     status_code=HTTP_200_OK,
     summary="Search for exercises",
     description="Search for exercises by name. Returns a list of matching exercises.",
-    responses={
-        HTTP_200_OK: {"description": "Exercises retrieved successfully."},
-    },
 )
 async def search_exercise(
     exercise_name: str = Query(..., description="Name of the exercise to search for", examples=["Yoga"], title="Exercise Name"),
@@ -170,9 +163,6 @@ async def search_exercise(
     response_description="A list of songs matching the search criteria.",
     summary="Search for songs",
     description="Search for songs based on mood, playlist, author, or title.",
-    responses={
-        HTTP_200_OK: {"description": "Songs retrieved successfully."},
-    },
 )
 async def get_songs(
     mood: Literal["happy", "sad", "stressed", "angry"] | None = Query(
@@ -201,10 +191,6 @@ async def get_songs(
     status_code=HTTP_200_OK,
     summary="Get song by ID",
     description="Retrieve a song's details by its unique ID.",
-    responses={
-        HTTP_200_OK: {"description": "Song retrieved successfully."},
-        HTTP_404_NOT_FOUND: {"description": "Song not found."},
-    },
 )
 async def get_song(
     song_id: str = Path(
@@ -223,10 +209,6 @@ async def get_song(
     status_code=HTTP_200_OK,
     summary="Stream song",
     description="Get a presigned URL to stream the song.",
-    responses={
-        HTTP_200_OK: {"description": "Presigned URL generated successfully."},
-        HTTP_404_NOT_FOUND: {"description": "Song not found."},
-    },
 )
 async def stream_song(
     song_id: str = Path(
@@ -246,10 +228,6 @@ async def stream_song(
     status_code=HTTP_200_OK,
     summary="Get exercise by ID",
     description="Retrieve an exercise's details by its unique ID.",
-    responses={
-        HTTP_200_OK: {"description": "Exercise retrieved successfully."},
-        HTTP_404_NOT_FOUND: {"description": "Exercise not found."},
-    },
 )
 async def get_exercise(
     exercise_id: str = Path(
@@ -271,10 +249,6 @@ async def get_exercise(
     status_code=HTTP_200_OK,
     summary="Stream exercise video",
     description="Get a presigned URL to stream the exercise video.",
-    responses={
-        HTTP_200_OK: {"description": "Presigned URL generated successfully."},
-        HTTP_404_NOT_FOUND: {"description": "Exercise not found."},
-    },
 )
 async def stream_exercise(
     exercise_id: str = Path(
@@ -297,10 +271,6 @@ async def stream_exercise(
     status_code=HTTP_200_OK,
     summary="Get food by ID",
     description="Retrieve a food item's details by its unique ID.",
-    responses={
-        HTTP_200_OK: {"description": "Food item retrieved successfully."},
-        HTTP_404_NOT_FOUND: {"description": "Food item not found."},
-    },
 )
 async def get_food(
     food_id: str = Path(
@@ -323,10 +293,6 @@ async def get_food(
     status_code=HTTP_200_OK,
     summary="Get food image",
     description="Retrieve a presigned URL to the food item's image by its unique ID.",
-    responses={
-        HTTP_200_OK: {"description": "Presigned URL generated successfully."},
-        HTTP_404_NOT_FOUND: {"description": "Food item not found."},
-    },
 )
 async def get_food_image(
     food_id: str = Path(
