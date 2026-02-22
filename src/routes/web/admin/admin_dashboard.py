@@ -52,7 +52,6 @@ async def _collect_runtime_metrics(duration_sec: int) -> dict:
     endpoint_failures = []
     endpoint_traffic = []
 
-
     now_second = int(time.time())
     rps_keys = [f"metrics:requests:sec:{ts}" for ts in range(now_second - duration_sec + 1, now_second + 1)]
     rps_values = await redis_client.mget(rps_keys)

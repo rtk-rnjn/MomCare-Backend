@@ -783,6 +783,8 @@
             </div>
         </div>
         <div class="panel-body">
+            <div class="hint" style="margin-top:0">Detected runtime: <code
+                    style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px;color:#a5b4fc">{{ runtime_mode }}</code> · {{ runtime_reason }}</div>
             {% if restart_enabled %}
             <div class="field-group">
                 <label class="input-label" for="restartMode">
@@ -791,6 +793,8 @@
                 <select id="restartMode" class="input-box">
                     <option value="execv" {% if restart_mode=='execv' %}selected{% endif %}>execv — replace process in-place</option>
                     <option value="exit" {% if restart_mode=='exit' %}selected{% endif %}>exit — let supervisor restart</option>
+                    <option value="docker" {% if restart_mode=='docker' %}selected{% endif %}>docker — run configured Docker restart command</option>
+                    <option value="pm2" {% if restart_mode=='pm2' %}selected{% endif %}>pm2 — run configured PM2 restart command</option>
                 </select>
             </div>
             <div class="actions">
@@ -803,6 +807,10 @@
                 </button>
             </div>
             <div class="danger-note">This drops current requests and admin session while restarting.</div>
+            <div class="hint">Docker command: <code
+                    style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px;color:#a5b4fc">{{ restart_docker_command or '(not configured)' }}</code></div>
+            <div class="hint">PM2 command: <code
+                    style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px;color:#a5b4fc">{{ restart_pm2_command or '(not configured)' }}</code></div>
             {% else %}
             <div class="hint" style="margin-top:0">Restart is disabled. Set <code
                     style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px;color:#a5b4fc">ADMIN_ENABLE_RESTART=true</code> to enable.</div>

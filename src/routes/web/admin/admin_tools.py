@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import datetime
 import os
+import shlex
+import subprocess
 import sys
 import uuid
 from typing import Any
@@ -35,6 +37,48 @@ terminal_executor = TerminalExecutor()
 
 RESTART_ENABLED = os.getenv("ADMIN_ENABLE_RESTART", "false").strip().lower() in {"1", "true", "yes", "on"}
 RESTART_MODE = os.getenv("ADMIN_RESTART_MODE", "execv").strip().lower()
+RESTART_DOCKER_COMMAND = os.getenv("ADMIN_RESTART_DOCKER_COMMAND", "docker restart momcare-backend").strip()
+RESTART_PM2_COMMAND = os.getenv("ADMIN_RESTART_PM2_COMMAND", "pm2 restart all").strip()
+
+
+def _is_docker_runtime() -> bool:
+    if os.path.exists("/.dockerenv"):
+        return True
+
+    cgroup_path = "/proc/1/cgroup"
+    if os.path.exists(cgroup_path):
+        try:
+            with open(cgroup_path, "r", encoding="utf-8") as file:
+                cgroup_text = file.read().lower()
+            if any(marker in cgroup_text for marker in ("docker", "containerd", "kubepods")):
+                return True
+        except OSError:
+            pass
+
+    return False
+
+
+def _is_pm2_runtime() -> bool:
+    return any(
+        os.getenv(key)
+        for key in (
+            "pm_id",
+            "PM2_HOME",
+            "pm_exec_path",
+            "NODE_APP_INSTANCE",
+            "name",
+        )
+    )
+
+
+def _detect_runtime_mode() -> tuple[str, str]:
+    if _is_docker_runtime():
+        return "docker", "Detected container runtime markers"
+
+    if _is_pm2_runtime():
+        return "pm2", "Detected PM2 environment variables"
+
+    return "normal", "No Docker/PM2 markers detected"
 
 
 def _require_input(payload: dict[str, Any], key: str) -> str:
@@ -63,6 +107,8 @@ def _build_repl_scope() -> Scope:
 
 @router.get("/tools", include_in_schema=False)
 async def admin_tools(request: Request):
+    runtime_mode, runtime_reason = _detect_runtime_mode()
+
     return templates.TemplateResponse(
         "admin_tools.html.jinja",
         {
@@ -70,6 +116,10 @@ async def admin_tools(request: Request):
             "allowed_redis_commands": redis_cli_executor.get_allowed_commands(),
             "restart_enabled": RESTART_ENABLED,
             "restart_mode": RESTART_MODE,
+            "restart_docker_command": RESTART_DOCKER_COMMAND,
+            "restart_pm2_command": RESTART_PM2_COMMAND,
+            "runtime_mode": runtime_mode,
+            "runtime_reason": runtime_reason,
         },
     )
 
@@ -79,6 +129,26 @@ async def _delayed_restart(mode: str):
 
     if mode == "exit":
         os._exit(0)
+
+    if mode == "docker":
+        if not RESTART_DOCKER_COMMAND:
+            return
+
+        try:
+            subprocess.Popen(shlex.split(RESTART_DOCKER_COMMAND), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            return
+        return
+
+    if mode == "pm2":
+        if not RESTART_PM2_COMMAND:
+            return
+
+        try:
+            subprocess.Popen(shlex.split(RESTART_PM2_COMMAND), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            return
+        return
 
     try:
         os.execv(sys.executable, [sys.executable, *sys.argv])
@@ -150,8 +220,14 @@ async def admin_tools_restart(payload: dict[str, Any] = Body(...)):
         mode = RESTART_MODE
 
     mode = mode.strip().lower()
-    if mode not in {"execv", "exit"}:
-        raise HTTPException(status_code=400, detail="mode must be one of: execv, exit")
+    if mode not in {"execv", "exit", "docker", "pm2"}:
+        raise HTTPException(status_code=400, detail="mode must be one of: execv, exit, docker, pm2")
+
+    if mode == "docker" and not RESTART_DOCKER_COMMAND:
+        raise HTTPException(status_code=400, detail="Docker restart is not configured. Set ADMIN_RESTART_DOCKER_COMMAND.")
+
+    if mode == "pm2" and not RESTART_PM2_COMMAND:
+        raise HTTPException(status_code=400, detail="PM2 restart is not configured. Set ADMIN_RESTART_PM2_COMMAND.")
 
     asyncio.create_task(_delayed_restart(mode))
     return JSONResponse({"success": True, "message": f"Restart scheduled (mode={mode})"})
