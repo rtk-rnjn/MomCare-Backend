@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
+import os
 import sys
 import time
 import traceback
@@ -15,6 +17,7 @@ from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from redis.asyncio import Redis
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response
 
 from src.app import app
@@ -128,15 +131,26 @@ async def _record_request_metrics(request: Request, status_code: int, payload: d
     await redis_client.expire(per_second_key, 180)
 
     await redis_client.incr(f"{METRICS_STATUS_KEY_PREFIX}:{status_code}")
-    await redis_client.hincrby(METRICS_ENDPOINT_REQUESTS_KEY, endpoint, 1)
-    await redis_client.hincrby(METRICS_ENDPOINT_STATUS_KEY, f"{endpoint}|{status_code}", 1)
+    maybe_awaitable = redis_client.hincrby(METRICS_ENDPOINT_REQUESTS_KEY, endpoint, 1)
+    if inspect.isawaitable(maybe_awaitable):
+        await maybe_awaitable
+
+    maybe_awaitable = redis_client.hincrby(METRICS_ENDPOINT_STATUS_KEY, f"{endpoint}|{status_code}", 1)
+    if inspect.isawaitable(maybe_awaitable):
+        await maybe_awaitable
+
     endpoint_sec_key = f"{METRICS_ENDPOINT_STATUS_PER_SEC_PREFIX}:{current_second}"
-    await redis_client.hincrby(endpoint_sec_key, f"{endpoint}|{status_code}", 1)
+    maybe_awaitable = redis_client.hincrby(endpoint_sec_key, f"{endpoint}|{status_code}", 1)
+    if inspect.isawaitable(maybe_awaitable):
+        await maybe_awaitable
+
     await redis_client.expire(endpoint_sec_key, 7200)
 
     if status_code >= 400:
         await redis_client.incr(f"{METRICS_STATUS_KEY_PREFIX}:4xx")
-        await redis_client.hincrby(METRICS_ENDPOINT_FAILURES_KEY, endpoint, 1)
+        maybe_awaitable = redis_client.hincrby(METRICS_ENDPOINT_FAILURES_KEY, endpoint, 1)
+        if inspect.isawaitable(maybe_awaitable):
+            await maybe_awaitable
 
     if status_code >= 500:
         await redis_client.incr(f"{METRICS_STATUS_KEY_PREFIX}:5xx")
@@ -150,7 +164,11 @@ async def _record_request_metrics(request: Request, status_code: int, payload: d
         "traceback": payload.get("exception"),
     }
     if status_code >= 400:
-        await redis_client.hset(METRICS_ENDPOINT_LAST_ERROR_KEY, endpoint, orjson.dumps(last_error_payload).decode("utf-8"))
+        maybe_awaitable = redis_client.hset(
+            METRICS_ENDPOINT_LAST_ERROR_KEY, endpoint, orjson.dumps(last_error_payload).decode("utf-8")
+        )
+        if inspect.isawaitable(maybe_awaitable):
+            await maybe_awaitable
 
 
 @app.middleware("http")
@@ -241,6 +259,7 @@ async def websocket_logs(websocket: WebSocket):
 
 
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
+app.add_middleware(SessionMiddleware, secret_key=os.environ["SESSION_SECRET_KEY"], max_age=60 * 30)
 
 app.add_middleware(
     CORSMiddleware,

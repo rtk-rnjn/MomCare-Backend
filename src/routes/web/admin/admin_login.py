@@ -8,8 +8,8 @@ from fastapi.templating import Jinja2Templates
 
 from src.app import app
 
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
+ADMIN_USERNAME = os.environ["ADMIN_USERNAME"]
+ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 templates: Jinja2Templates = app.state.templates
 router = APIRouter()

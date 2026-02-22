@@ -254,6 +254,7 @@ async def extract_mongo_metadata(mongo_client: AsyncMongoClient) -> MongoMetadat
     summary="Get Database Stats",
     description="Retrieve statistics about the MongoDB database, including collection counts and storage size.",
     response_model=dict,
+    include_in_schema=False,
 )
 async def get_database_stats() -> ORJSONResponse:
     mongo_client = app.state.mongo_client
@@ -326,6 +327,7 @@ async def extract_redis_metadata(redis_client: Redis) -> RedisMetadata:
     summary="Get Redis Stats",
     description="Retrieve statistics about the Redis instance, including memory usage and uptime.",
     response_model=RedisMetadata,
+    include_in_schema=False,
 )
 async def get_redis_stats() -> ORJSONResponse:
     redis_client = app.state.redis_client

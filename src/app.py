@@ -8,7 +8,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from redis.asyncio import Redis
-from starlette.middleware.sessions import SessionMiddleware
 
 from src.utils import (
     S3,
@@ -95,8 +94,6 @@ app.mount("/static", StaticFiles(directory="src/static"), name="static")
 templates = Jinja2Templates(directory="src/templates")
 templates.env.filters["humanize_timestamp"] = humanize_timestamp
 app.state.templates = templates
-
-app.add_middleware(SessionMiddleware, secret_key=os.environ["SESSION_SECRET_KEY"], max_age=3600 * 24 * 7)  # 7 days
 
 from .middleware import *  # noqa: E402, F403
 from .routes import api_router, web_router  # noqa: E402
