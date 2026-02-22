@@ -12,13 +12,14 @@ from pymongo.asynchronous.database import AsyncDatabase as Database
 
 from src.app import app
 from src.models import AccountStatus, CredentialsDict, UserDict
+from src.utils import GoogleAPIHandler, EmailNormalizer
 
 router = APIRouter()
 
 database: Database = app.state.mongo_database
 templates: Jinja2Templates = app.state.templates
-email_normalizer = app.state.email_normalizer
-google_api_handler = app.state.google_api_handler
+email_normalizer: EmailNormalizer = app.state.email_normalizer
+google_api_handler: GoogleAPIHandler = app.state.google_api_handler
 
 
 ALLOWED_COLLECTIONS = {

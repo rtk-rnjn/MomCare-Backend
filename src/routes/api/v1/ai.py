@@ -13,6 +13,7 @@ from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.cursor import AsyncCursor
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from starlette.status import (
+    HTTP_200_OK,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
     HTTP_410_GONE,
@@ -54,16 +55,12 @@ user_exercises_collection: Collection[UserExerciseDict] = database["user_exercis
 router = APIRouter(prefix="/ai", tags=["AI Content"])
 
 
-DailyInsightDict = TypedDict(
-    "DailyInsightDict",
-    {
-        "_id": str,
-        "user_id": str,
-        "todays_focus": str,
-        "daily_tip": str,
-        "created_at_timestamp": float,
-    },
-)
+class DailyInsightDict(TypedDict):
+    _id: str
+    user_id: str
+    todays_focus: str
+    daily_tip: str
+    created_at_timestamp: float
 
 
 def _today_window(tz: str = "Asia/Kolkata", /) -> tuple[float, float]:
@@ -142,6 +139,7 @@ async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: t
 @router.get(
     "/generate/tips",
     response_model=DailyInsightModel,
+    status_code=HTTP_200_OK,
     response_description="The generated daily insight containing today's focus and a helpful tip.",
     summary="Generate daily tips",
     description="Generate daily tips including today's focus and a helpful tip for the user.",

@@ -31,7 +31,6 @@ async def admin_credentials(
 
     filter_query: dict = {}
 
-    # 🔍 Search
     if q:
         filter_query["$or"] = [
             {"_id": q},
@@ -41,18 +40,14 @@ async def admin_credentials(
             {"apple_id": {"$regex": q, "$options": "i"}},
         ]
 
-    # 🔐 Provider filter
     if provider:
         filter_query["authentication_providers"] = provider
 
-    # 🚦 Status filter
     if status:
         filter_query["account_status"] = status
 
     total = await collection.count_documents(filter_query)
-
     cursor = collection.find(filter_query).sort("created_at_timestamp", -1).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE)
-
     credentials = await cursor.to_list(length=PAGE_SIZE)
 
     total_pages = max(1, ceil(total / PAGE_SIZE))

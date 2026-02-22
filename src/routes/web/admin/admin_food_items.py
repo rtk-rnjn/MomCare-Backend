@@ -31,15 +31,12 @@ async def admin_food_items(
 ):
     filter_query: dict = {}
 
-    # 🔍 Search
     if q:
         filter_query["name"] = {"$regex": q, "$options": "i"}
 
-    # 📍 State filter
     if state:
         filter_query["state"] = state
 
-    # 🥗 Type filter
     if food_type:
         filter_query["type"] = food_type
 

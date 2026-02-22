@@ -29,15 +29,11 @@ async def admin_myplan(
 ):
     plans_collection = collection
 
-    # 🔹 Aggregation pipeline
     pipeline = []
 
-    # Lookup user info
     pipeline.append({"$lookup": {"from": "users", "localField": "user_id", "foreignField": "_id", "as": "user"}})
-
     pipeline.append({"$unwind": "$user"})
 
-    # Optional search filter
     if q:
         pipeline.append(
             {

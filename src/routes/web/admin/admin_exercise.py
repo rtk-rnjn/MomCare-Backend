@@ -32,15 +32,12 @@ async def admin_exercise(
 
     filter_query: dict = {}
 
-    # 🔍 Search by name or tags
     if q:
         filter_query["$or"] = [{"name": {"$regex": q, "$options": "i"}}, {"tags": {"$regex": q, "$options": "i"}}]
 
-    # 🏋️ Level filter
     if level:
         filter_query["level"] = level
 
-    # 📆 Week filter
     if week:
         filter_query["week"] = {"$regex": week, "$options": "i"}
 

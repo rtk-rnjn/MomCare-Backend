@@ -38,11 +38,9 @@ async def admin_songs(
             {"metadata.title": {"$regex": q, "$options": "i"}},
         ]
 
-    # 🎵 Mood filter
     if mood:
         filter_query["mood"] = mood
 
-    # 📂 Playlist filter
     if playlist:
         filter_query["playlist"] = {"$regex": playlist, "$options": "i"}
 
