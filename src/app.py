@@ -17,6 +17,8 @@ from src.utils import (
     humanize_timestamp,
 )
 
+from .lifespan import lifespan
+
 with open("version.txt", "r") as f:
     __version__ = f.read().strip()
 
@@ -56,6 +58,7 @@ app = FastAPI(
             "description": "System health checks, API metadata, versioning information, and service status endpoints for monitoring and integration.",  # noqa: E501
         },
     ],
+    lifespan=lifespan,
 )
 
 MONGODB_URI = os.environ["MONGODB_URI"]
@@ -95,8 +98,9 @@ templates = Jinja2Templates(directory="src/templates")
 templates.env.filters["humanize_timestamp"] = humanize_timestamp
 app.state.templates = templates
 
-from .middleware import *  # noqa: E402, F403
+from .middleware import websocket_logs, add_process_time_header  # noqa: E402, F401
 from .routes import api_router, web_router  # noqa: E402
 
 app.include_router(api_router)
 app.include_router(web_router)
+app.add_websocket_route("/ws/logs", websocket_logs)

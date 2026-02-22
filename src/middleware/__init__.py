@@ -9,11 +9,11 @@ import time
 import traceback
 import uuid
 from time import perf_counter
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, NotRequired, TypedDict
 
 import arrow
 import orjson
-from fastapi import Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from redis.asyncio import Redis
@@ -38,13 +38,44 @@ METRICS_ENDPOINT_LAST_ERROR_KEY = "metrics:endpoint_last_error"
 __all__ = ["ConsoleLoggingMiddleware"]
 
 
+class RedisStreamLogPayload(TypedDict):
+    request_id: str
+    timestamp: str
+    kind: str
+    level: str
+    logger_name: str
+    message: str
+    module: str
+    function: str
+    line: int
+    pathname: str
+    thread: str | None
+    process: str
+    exception: NotRequired[str]
+
+
+class HTTPLogPayload(TypedDict):
+    request_id: str
+    timestamp: str
+    kind: str
+    level: str
+    logger_name: str
+    message: str
+    method: str
+    path: str
+    status_code: int
+    process_time: float
+    client_ip: str
+    exception: NotRequired[str]
+
+
 class RedisStreamLogHandler(logging.Handler):
     def __init__(self, redis: Redis, loop: asyncio.AbstractEventLoop):
         super().__init__(level=logging.NOTSET)
         self.redis = redis
         self.loop = loop
 
-    async def _publish(self, payload: dict) -> None:
+    async def _publish(self, payload: RedisStreamLogPayload) -> None:
         await self.redis.publish(LOGS_CHANNEL_NAME, orjson.dumps(payload))
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -52,20 +83,20 @@ class RedisStreamLogHandler(logging.Handler):
             return
 
         try:
-            payload = {
-                "request_id": str(uuid.uuid4()),
-                "timestamp": arrow.utcnow().isoformat(),
-                "kind": "python_log",
-                "level": record.levelname,
-                "logger_name": record.name,
-                "message": record.getMessage(),
-                "module": record.module,
-                "function": record.funcName,
-                "line": record.lineno,
-                "pathname": record.pathname,
-                "thread": record.threadName,
-                "process": record.processName,
-            }
+            payload = RedisStreamLogPayload(
+                request_id=str(uuid.uuid4()),
+                timestamp=arrow.utcnow().isoformat(),
+                kind="log",
+                level=record.levelname,
+                logger_name=record.name,
+                message=record.getMessage(),
+                module=record.module,
+                function=record.funcName,
+                line=record.lineno,
+                pathname=record.pathname,
+                thread=record.threadName,
+                process=str(record.process),
+            )
 
             if record.exc_info:
                 formatter = logging.Formatter()
@@ -84,7 +115,7 @@ class RedisStreamLogHandler(logging.Handler):
             pass
 
 
-def setup_stream_logging() -> None:
+def setup_stream_logging(app: FastAPI) -> None:
     if getattr(app.state, "stream_logging_configured", False):
         return
 
@@ -97,11 +128,6 @@ def setup_stream_logging() -> None:
 
     logging.captureWarnings(True)
     app.state.stream_logging_configured = True
-
-
-@app.on_event("startup")
-async def on_startup_setup_stream_logging() -> None:
-    setup_stream_logging()
 
 
 def _unhandled_exception_hook(exc_type, exc_value, exc_traceback) -> None:
@@ -121,7 +147,7 @@ def get_log_level(status_code: int) -> str:
     return "INFO"
 
 
-async def _record_request_metrics(request: Request, status_code: int, payload: dict) -> None:
+async def _record_request_metrics(request: Request, status_code: int, payload: HTTPLogPayload) -> None:
     endpoint = f"{request.method} {request.url.path}"
     current_second = int(time.time())
     per_second_key = f"{METRICS_REQUESTS_PER_SEC_KEY_PREFIX}:{current_second}"
@@ -176,25 +202,31 @@ async def add_process_time_header(request: Request, call_next: Callable[[Request
     start_time = perf_counter()
     ip_addr = request.client.host if request.client else "unknown"
 
+    payload: HTTPLogPayload = {
+        "request_id": str(uuid.uuid4()),
+        "timestamp": arrow.utcnow().isoformat(),
+        "kind": "request",
+        "level": "",
+        "logger_name": "http.request",
+        "message": "",
+        "method": request.method,
+        "path": request.url.path,
+        "status_code": 0,
+        "process_time": 0.0,
+        "client_ip": ip_addr,
+    }
     try:
         response = await call_next(request)
         process_time = perf_counter() - start_time
         response.headers["X-Process-Time"] = str(process_time)
+        response.headers["X-Request-ID"] = payload["request_id"]
 
         status_code = response.status_code
-        payload = {
-            "request_id": str(uuid.uuid4()),
-            "timestamp": arrow.utcnow().isoformat(),
-            "kind": "request",
-            "level": get_log_level(status_code),
-            "logger_name": "http.request",
-            "message": f"{request.method} {request.url.path} -> {status_code}",
-            "method": request.method,
-            "path": request.url.path,
-            "status_code": status_code,
-            "process_time": process_time,
-            "client_ip": ip_addr,
-        }
+
+        payload["level"] = get_log_level(status_code)
+        payload["message"] = f"{request.method} {request.url.path} -> {status_code}"
+        payload["status_code"] = status_code
+        payload["process_time"] = process_time
 
         try:
             await _record_request_metrics(request, status_code, payload)
@@ -204,36 +236,26 @@ async def add_process_time_header(request: Request, call_next: Callable[[Request
 
         return response
 
-    except Exception:
+    except Exception as http_error:
         process_time = perf_counter() - start_time
         status_code = 500
         tb = traceback.format_exc()
 
-        payload = {
-            "request_id": str(uuid.uuid4()),
-            "timestamp": arrow.utcnow().isoformat(),
-            "kind": "request",
-            "level": "ERROR",
-            "logger_name": "http.request",
-            "message": f"{request.method} {request.url.path} -> {status_code} (Unhandled Exception)",
-            "method": request.method,
-            "path": request.url.path,
-            "status_code": status_code,
-            "process_time": process_time,
-            "client_ip": ip_addr,
-            "exception": tb,
-        }
+        payload["level"] = "ERROR"
+        payload["message"] = f"{request.method} {request.url.path} -> {status_code} (Unhandled Exception)"
+        payload["status_code"] = status_code
+        payload["process_time"] = process_time
+        payload["exception"] = tb
 
         try:
             await _record_request_metrics(request, status_code, payload)
             await redis_client.publish(LOGS_CHANNEL_NAME, orjson.dumps(payload))
-        except Exception:
-            pass
+        except Exception as logging_error:
+            raise logging_error from http_error
 
-        raise
+        raise http_error
 
 
-@app.websocket("/ws/logs")
 async def websocket_logs(websocket: WebSocket):
     await websocket.accept()
 
