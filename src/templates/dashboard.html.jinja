@@ -319,6 +319,12 @@
         border-color: var(--border-accent);
     }
 
+    .quick-tools-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
     /* ── VIEW ALL LINK ── */
     .view-all-link {
         display: inline-block;
@@ -436,13 +442,19 @@
         margin-bottom: 20px;
     }
 
-    @media (max-width: 900px) { .meta-full-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+        .meta-full-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 
     .meta-section {
         margin-bottom: 18px;
     }
 
-    .meta-section:last-child { margin-bottom: 0; }
+    .meta-section:last-child {
+        margin-bottom: 0;
+    }
 
     .meta-section-title {
         font-size: 9px;
@@ -489,10 +501,22 @@
         word-break: break-all;
     }
 
-    .meta-val.highlight { color: var(--text-primary); font-weight: 600; }
-    .meta-val.success   { color: #22d3a0; }
-    .meta-val.warning   { color: #f59e0b; }
-    .meta-val.danger    { color: #f43f5e; }
+    .meta-val.highlight {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .meta-val.success {
+        color: #22d3a0;
+    }
+
+    .meta-val.warning {
+        color: #f59e0b;
+    }
+
+    .meta-val.danger {
+        color: #f43f5e;
+    }
 
     /* Replication members */
     .replica-members {
@@ -510,8 +534,8 @@
     }
 
     .replica-member.is-primary {
-        border-color: rgba(34,211,160,0.3);
-        background: rgba(34,211,160,0.04);
+        border-color: rgba(34, 211, 160, 0.3);
+        background: rgba(34, 211, 160, 0.04);
     }
 
     .replica-member-header {
@@ -552,18 +576,25 @@
     }
 
     .state-primary {
-        background: rgba(34,211,160,0.12);
+        background: rgba(34, 211, 160, 0.12);
         color: #22d3a0;
-        border: 1px solid rgba(34,211,160,0.25);
+        border: 1px solid rgba(34, 211, 160, 0.25);
     }
-    .state-primary::before { background: #22d3a0; box-shadow: 0 0 4px #22d3a0; }
+
+    .state-primary::before {
+        background: #22d3a0;
+        box-shadow: 0 0 4px #22d3a0;
+    }
 
     .state-secondary {
-        background: rgba(245,158,11,0.10);
+        background: rgba(245, 158, 11, 0.10);
         color: #f59e0b;
-        border: 1px solid rgba(245,158,11,0.2);
+        border: 1px solid rgba(245, 158, 11, 0.2);
     }
-    .state-secondary::before { background: #f59e0b; }
+
+    .state-secondary::before {
+        background: #f59e0b;
+    }
 
     .replica-meta-row {
         display: flex;
@@ -579,7 +610,9 @@
         gap: 4px;
     }
 
-    .replica-chip span { color: var(--text-secondary); }
+    .replica-chip span {
+        color: var(--text-secondary);
+    }
 
     /* Progress bar for memory */
     .mem-bar-wrap {
@@ -649,8 +682,14 @@
         overflow-y: auto;
     }
 
-    .panel-body-scroll::-webkit-scrollbar { width: 4px; }
-    .panel-body-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .panel-body-scroll::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .panel-body-scroll::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
 
     .divider {
         border: none;
@@ -723,6 +762,20 @@
     <div class="stat-card danger">
         <p class="stat-label">5xx Total</p>
         <p class="stat-value" id="total5xxValue">{{ total_5xx }}</p>
+    </div>
+</div>
+
+<div class="panel section-spacer">
+    <div class="panel-header">
+        <span class="panel-title">Quick Tools</span>
+    </div>
+    <div class="panel-body">
+        <div class="quick-tools-row">
+            <a href="{{ url_for('admin_tools') }}" class="btn">Open Admin Tools</a>
+            <a href="{{ url_for('admin_tools') }}#restartPanel" class="btn">Restart Controls</a>
+            <a href="{{ url_for('admin_data_manager') }}" class="btn">Data Manager</a>
+            <a href="{{ url_for('admin_users') }}" class="btn">Users</a>
+        </div>
     </div>
 </div>
 

@@ -25,3 +25,4 @@ colorama
 itsdangerous
 python-multipart
 psutil
+import_expression
