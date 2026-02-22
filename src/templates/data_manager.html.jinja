@@ -29,38 +29,42 @@
     }
 
     .field-label {
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
 
-    .field-select, .field-input {
+    .field-select,
+    .field-input {
         background: var(--bg-elevated);
         border: 1px solid var(--border);
         border-radius: 8px;
         color: var(--text-secondary);
         padding: 8px 12px;
-        font-size: 13px;
+
         font-family: 'Instrument Sans', sans-serif;
         outline: none;
         transition: border-color 0.15s ease, color 0.15s ease;
         min-width: 160px;
     }
 
-    .field-select:focus, .field-input:focus {
+    .field-select:focus,
+    .field-input:focus {
         border-color: var(--border-accent);
         color: var(--text-primary);
     }
 
-    .field-input::placeholder { color: var(--text-muted); }
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
 
     /* ── BUTTONS ── */
     .btn {
         padding: 8px 16px;
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         cursor: pointer;
         transition: all 0.15s ease;
@@ -89,32 +93,39 @@
         background: var(--accent);
     }
 
-    .btn-primary:hover { background: #5254e7; border-color: #5254e7; }
+    .btn-primary:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
 
     .btn-success {
         border: 1px solid #22d3a0;
         color: #fff;
-        background: rgba(34,211,160,0.85);
+        background: rgba(34, 211, 160, 0.85);
     }
 
-    .btn-success:hover { background: rgba(34,211,160,1); }
+    .btn-success:hover {
+        background: rgba(34, 211, 160, 1);
+    }
 
     .btn-danger {
-        border: 1px solid rgba(244,63,94,0.4);
+        border: 1px solid rgba(244, 63, 94, 0.4);
         color: #f43f5e;
-        background: rgba(244,63,94,0.1);
+        background: rgba(244, 63, 94, 0.1);
     }
 
-    .btn-danger:hover { background: rgba(244,63,94,0.2); }
+    .btn-danger:hover {
+        background: rgba(244, 63, 94, 0.2);
+    }
 
-    .btn-sm { 
-        padding: 5px 12px; 
-        font-size: 11px;
+    .btn-sm {
+        padding: 5px 12px;
+
     }
 
     /* ── STATUS TEXT ── */
     #statusText {
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         margin-top: 12px;
@@ -127,11 +138,13 @@
 
     #statusText::before {
         content: '●';
-        font-size: 8px;
+
         color: var(--success);
     }
 
-    #statusText.error::before { color: var(--danger); }
+    #statusText.error::before {
+        color: var(--danger);
+    }
 
     /* ── TABLE PANEL ── */
     .panel {
@@ -146,15 +159,17 @@
     .data-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+
     }
 
-    .data-table thead tr { background: var(--bg-elevated); }
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
 
     .data-table th {
         padding: 11px 14px;
         text-align: left;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -168,7 +183,9 @@
         transition: background 0.12s ease;
     }
 
-    .data-table tbody tr:hover { background: var(--bg-hover); }
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
 
     .data-table td {
         padding: 12px 14px;
@@ -178,13 +195,13 @@
 
     .mono {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
     }
 
     .record-pre {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
         white-space: pre-wrap;
         word-break: break-all;
@@ -193,15 +210,21 @@
         line-height: 1.6;
     }
 
-    .record-pre::-webkit-scrollbar { width: 3px; }
-    .record-pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .record-pre::-webkit-scrollbar {
+        width: 3px;
+    }
+
+    .record-pre::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 3px;
+    }
 
     .empty-row td {
         padding: 40px;
         text-align: center;
         color: var(--text-muted);
         font-style: italic;
-        font-size: 13px;
+
     }
 
     /* ── SHORTCUTS PANEL ── */
@@ -217,13 +240,13 @@
     .shortcuts-title {
         font-family: 'Syne', sans-serif;
         font-weight: 600;
-        font-size: 13px;
+
         color: var(--text-primary);
         margin-bottom: 4px;
     }
 
     #shortcutHint {
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         margin-bottom: 16px;
@@ -236,7 +259,11 @@
         margin-bottom: 16px;
     }
 
-    @media (max-width: 640px) { .shortcuts-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) {
+        .shortcuts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 
     .shortcut-inputs {
         display: flex;
@@ -247,7 +274,10 @@
         border-bottom: 1px solid var(--border);
     }
 
-    .shortcut-inputs .field-input { min-width: 200px; flex: 1; }
+    .shortcut-inputs .field-input {
+        min-width: 200px;
+        flex: 1;
+    }
 
     .shortcuts-btns {
         display: flex;
@@ -267,12 +297,15 @@
     }
 
     #paginationInfo {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .page-btns { display: flex; gap: 6px; }
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
 
     /* ── MODAL ── */
     #editorModal {
@@ -287,7 +320,9 @@
         padding: 20px;
     }
 
-    #editorModal.flex { display: flex; }
+    #editorModal.flex {
+        display: flex;
+    }
 
     .modal-box {
         background: var(--bg-surface);
@@ -299,13 +334,20 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        animation: modalIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        animation: modalIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
     }
 
     @keyframes modalIn {
-        from { opacity: 0; transform: scale(0.95) translateY(8px); }
-        to   { opacity: 1; transform: scale(1) translateY(0); }
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
     }
 
     .modal-header {
@@ -321,7 +363,7 @@
     #modalTitle {
         font-family: 'Syne', sans-serif;
         font-weight: 700;
-        font-size: 15px;
+
         color: var(--text-primary);
     }
 
@@ -333,7 +375,7 @@
 
     .modal-hint {
         padding: 10px 20px;
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         background: var(--bg-elevated);
@@ -347,8 +389,14 @@
         padding: 20px;
     }
 
-    .modal-body::-webkit-scrollbar { width: 4px; }
-    .modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .modal-body::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
 
     /* Field mode inputs */
     #fieldModePanel .field-group-row {
@@ -359,7 +407,7 @@
     }
 
     #fieldModePanel label.field-label-main {
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -376,7 +424,7 @@
         border-radius: 7px;
         color: var(--text-secondary);
         padding: 8px 12px;
-        font-size: 13px;
+
         font-family: 'Instrument Sans', sans-serif;
         outline: none;
         width: 100%;
@@ -401,7 +449,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        font-size: 13px;
+
         color: var(--text-secondary);
         cursor: pointer;
         padding: 6px 0;
@@ -416,7 +464,7 @@
 
     #fieldModePanel textarea {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         resize: vertical;
     }
 
@@ -428,14 +476,16 @@
         border: 1px solid var(--border);
         border-radius: 8px;
         font-family: 'DM Mono', monospace;
-        font-size: 12px;
+
         color: var(--text-secondary);
         outline: none;
         resize: vertical;
         line-height: 1.6;
     }
 
-    #modalJson:focus { border-color: var(--border-accent); }
+    #modalJson:focus {
+        border-color: var(--border-accent);
+    }
 
     .modal-footer {
         padding: 14px 20px;
@@ -448,8 +498,15 @@
 
     /* ── ANIMATIONS ── */
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 {% endblock %}
@@ -493,7 +550,9 @@
                 </tr>
             </thead>
             <tbody id="recordsBody">
-                <tr class="empty-row"><td colspan="3">No records loaded</td></tr>
+                <tr class="empty-row">
+                    <td colspan="3">No records loaded</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -515,17 +574,17 @@
 
     <div class="shortcut-inputs">
         <input id="quickUserId" type="text" placeholder="Credential / User ID" class="field-input" />
-        <input id="quickEmail"  type="email" placeholder="New email address" class="field-input" />
+        <input id="quickEmail" type="email" placeholder="New email address" class="field-input" />
     </div>
 
     <div class="shortcuts-btns">
-        <button id="lockUserBtn"        class="btn btn-ghost btn-sm hidden">🔒 Lock User</button>
-        <button id="unlockUserBtn"      class="btn btn-ghost btn-sm hidden">🔓 Unlock User</button>
-        <button id="verifyEmailBtn"     class="btn btn-ghost btn-sm hidden">✓ Verify Email</button>
-        <button id="unverifyEmailBtn"   class="btn btn-ghost btn-sm hidden">✗ Unverify Email</button>
-        <button id="changeEmailBtn"     class="btn btn-ghost btn-sm hidden">✉ Change Email</button>
-        <button id="resetAttemptsBtn"   class="btn btn-ghost btn-sm hidden">↺ Reset Login Attempts</button>
-        <button id="regenPlanBtn"       class="btn btn-success btn-sm hidden">⚡ Regenerate Plan</button>
+        <button id="lockUserBtn" class="btn btn-ghost btn-sm hidden">🔒 Lock User</button>
+        <button id="unlockUserBtn" class="btn btn-ghost btn-sm hidden">🔓 Unlock User</button>
+        <button id="verifyEmailBtn" class="btn btn-ghost btn-sm hidden">✓ Verify Email</button>
+        <button id="unverifyEmailBtn" class="btn btn-ghost btn-sm hidden">✗ Unverify Email</button>
+        <button id="changeEmailBtn" class="btn btn-ghost btn-sm hidden">✉ Change Email</button>
+        <button id="resetAttemptsBtn" class="btn btn-ghost btn-sm hidden">↺ Reset Login Attempts</button>
+        <button id="regenPlanBtn" class="btn btn-success btn-sm hidden">⚡ Regenerate Plan</button>
         <button id="deleteTodayPlanBtn" class="btn btn-danger btn-sm hidden">✕ Delete Today's Plan</button>
     </div>
 </div>
@@ -538,8 +597,8 @@
             <h3 id="modalTitle">Edit Document</h3>
             <div class="modal-mode-btns">
                 <button id="switchFieldModeBtn" class="btn btn-ghost btn-sm">⊞ Fields</button>
-                <button id="switchJsonModeBtn"  class="btn btn-ghost btn-sm">{ } JSON</button>
-                <button id="closeModalBtn"      class="btn btn-ghost btn-sm">✕</button>
+                <button id="switchJsonModeBtn" class="btn btn-ghost btn-sm">{ } JSON</button>
+                <button id="closeModalBtn" class="btn btn-ghost btn-sm">✕</button>
             </div>
         </div>
 
@@ -563,36 +622,36 @@
 
 {% block scripts %}
 <script>
-    const collectionSelect  = document.getElementById('collectionSelect');
-    const pageSizeSelect    = document.getElementById('pageSizeSelect');
-    const refreshBtn        = document.getElementById('refreshBtn');
-    const createBtn         = document.getElementById('createBtn');
-    const recordsBody       = document.getElementById('recordsBody');
-    const statusText        = document.getElementById('statusText');
-    const prevBtn           = document.getElementById('prevBtn');
-    const nextBtn           = document.getElementById('nextBtn');
-    const paginationInfo    = document.getElementById('paginationInfo');
+    const collectionSelect = document.getElementById('collectionSelect');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const createBtn = document.getElementById('createBtn');
+    const recordsBody = document.getElementById('recordsBody');
+    const statusText = document.getElementById('statusText');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const paginationInfo = document.getElementById('paginationInfo');
 
-    const editorModal       = document.getElementById('editorModal');
-    const modalTitle        = document.getElementById('modalTitle');
-    const modalJson         = document.getElementById('modalJson');
-    const closeModalBtn     = document.getElementById('closeModalBtn');
-    const saveModalBtn      = document.getElementById('saveModalBtn');
-    const fieldModePanel    = document.getElementById('fieldModePanel');
+    const editorModal = document.getElementById('editorModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalJson = document.getElementById('modalJson');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const saveModalBtn = document.getElementById('saveModalBtn');
+    const fieldModePanel = document.getElementById('fieldModePanel');
     const switchFieldModeBtn = document.getElementById('switchFieldModeBtn');
     const switchJsonModeBtn = document.getElementById('switchJsonModeBtn');
 
-    const quickUserId       = document.getElementById('quickUserId');
-    const quickEmail        = document.getElementById('quickEmail');
-    const lockUserBtn       = document.getElementById('lockUserBtn');
-    const unlockUserBtn     = document.getElementById('unlockUserBtn');
-    const changeEmailBtn    = document.getElementById('changeEmailBtn');
-    const regenPlanBtn      = document.getElementById('regenPlanBtn');
+    const quickUserId = document.getElementById('quickUserId');
+    const quickEmail = document.getElementById('quickEmail');
+    const lockUserBtn = document.getElementById('lockUserBtn');
+    const unlockUserBtn = document.getElementById('unlockUserBtn');
+    const changeEmailBtn = document.getElementById('changeEmailBtn');
+    const regenPlanBtn = document.getElementById('regenPlanBtn');
     const deleteTodayPlanBtn = document.getElementById('deleteTodayPlanBtn');
-    const verifyEmailBtn    = document.getElementById('verifyEmailBtn');
-    const unverifyEmailBtn  = document.getElementById('unverifyEmailBtn');
-    const resetAttemptsBtn  = document.getElementById('resetAttemptsBtn');
-    const shortcutHint      = document.getElementById('shortcutHint');
+    const verifyEmailBtn = document.getElementById('verifyEmailBtn');
+    const unverifyEmailBtn = document.getElementById('unverifyEmailBtn');
+    const resetAttemptsBtn = document.getElementById('resetAttemptsBtn');
+    const shortcutHint = document.getElementById('shortcutHint');
 
     const state = {
         page: 1, totalPages: 1, pageSize: 20,
@@ -618,7 +677,7 @@
             ...options,
         });
         let payload = {};
-        try { payload = await response.json(); } catch (_) {}
+        try { payload = await response.json(); } catch (_) { }
         if (!response.ok) throw new Error(payload.detail || `Request failed (${response.status})`);
         return payload;
     }

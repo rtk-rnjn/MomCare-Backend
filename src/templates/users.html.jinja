@@ -20,10 +20,15 @@
         align-items: flex-end;
     }
 
-    .field-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
+    }
 
     .field-label {
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -36,21 +41,27 @@
         border-radius: 8px;
         color: var(--text-secondary);
         padding: 8px 12px;
-        font-size: 13px;
+
         font-family: 'Instrument Sans', sans-serif;
         outline: none;
         transition: border-color 0.15s ease, color 0.15s ease;
         width: 100%;
     }
 
-    .field-input::placeholder { color: var(--text-muted); }
-    .field-input:focus { border-color: var(--border-accent); color: var(--text-primary); }
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+    }
 
     .btn-apply {
         padding: 8px 20px;
         border: 1px solid var(--accent);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: #fff;
         background: var(--accent);
@@ -60,7 +71,10 @@
         flex-shrink: 0;
     }
 
-    .btn-apply:hover { background: #5254e7; border-color: #5254e7; }
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
 
     .filter-footer {
         display: flex;
@@ -74,18 +88,21 @@
     }
 
     .record-count {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .record-count strong { color: var(--text-primary); font-weight: 600; }
+    .record-count strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
 
     .btn-reset {
         padding: 7px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-elevated);
@@ -115,15 +132,17 @@
     .data-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+
     }
 
-    .data-table thead tr { background: var(--bg-elevated); }
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
 
     .data-table th {
         padding: 11px 14px;
         text-align: left;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -137,7 +156,9 @@
         transition: background 0.12s ease;
     }
 
-    .data-table tbody tr:hover { background: var(--bg-hover); }
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
 
     .data-table td {
         padding: 12px 14px;
@@ -147,7 +168,7 @@
 
     .mono {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
     }
 
@@ -162,19 +183,19 @@
     .user-name {
         font-weight: 600;
         color: var(--text-primary);
-        font-size: 13px;
+
     }
 
     /* ── NUMERIC CELLS ── */
     .num-val {
         font-family: 'DM Mono', monospace;
-        font-size: 12px;
+
         color: var(--text-secondary);
         white-space: nowrap;
     }
 
     .num-unit {
-        font-size: 9px;
+
         color: var(--text-muted);
         margin-left: 2px;
     }
@@ -182,7 +203,7 @@
     /* ── DATE CELL ── */
     .date-val {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
         white-space: nowrap;
     }
@@ -195,10 +216,10 @@
         padding: 2px 9px;
         border-radius: 6px;
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
-        background: rgba(99,102,241,0.08);
+
+        background: rgba(99, 102, 241, 0.08);
         color: #a5b4fc;
-        border: 1px solid rgba(99,102,241,0.15);
+        border: 1px solid rgba(99, 102, 241, 0.15);
         white-space: nowrap;
     }
 
@@ -207,9 +228,9 @@
         display: inline-block;
         padding: 1px 7px;
         border-radius: 4px;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
-        background: rgba(255,255,255,0.04);
+        background: rgba(255, 255, 255, 0.04);
         color: var(--text-muted);
         border: 1px solid var(--border);
         white-space: nowrap;
@@ -233,17 +254,21 @@
         justify-content: center;
         font-family: 'Syne', sans-serif;
         font-weight: 700;
-        font-size: 12px;
+
         color: #a5b4fc;
         flex-shrink: 0;
         text-transform: uppercase;
     }
 
-    .user-info { display: flex; flex-direction: column; gap: 1px; }
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
 
     .user-phone {
         font-family: 'DM Mono', monospace;
-        font-size: 10px;
+
         color: var(--text-muted);
     }
 
@@ -258,19 +283,25 @@
     }
 
     .page-info {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .page-info strong { color: var(--text-secondary); }
-    .page-btns { display: flex; gap: 6px; }
+    .page-info strong {
+        color: var(--text-secondary);
+    }
+
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
 
     .page-btn {
         padding: 6px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-surface);
@@ -285,8 +316,15 @@
     }
 
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 {% endblock %}
@@ -298,9 +336,7 @@
     <div class="filter-row">
         <div class="field-group">
             <label class="field-label">Search</label>
-            <input type="text" name="q" value="{{ q }}"
-                placeholder="Search users…"
-                class="field-input" />
+            <input type="text" name="q" value="{{ q }}" placeholder="Search users…" class="field-input" />
         </div>
         <button type="submit" class="btn-apply">⌕ Apply Filters</button>
     </div>
@@ -414,9 +450,8 @@
         {% if page > 1 %}
         <a href="?page={{ page - 1 }}&q={{ q }}" class="page-btn">← Prev</a>
         {% endif %}
-        {% if page < total_pages %}
-        <a href="?page={{ page + 1 }}&q={{ q }}" class="page-btn">Next →</a>
-        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}" class="page-btn">Next →</a>
+            {% endif %}
     </div>
 </div>
 

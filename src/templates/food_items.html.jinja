@@ -21,34 +21,52 @@
         align-items: end;
     }
 
-    @media (max-width: 900px) { .filter-grid { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 560px) { .filter-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+        .filter-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
 
-    .field-group { display: flex; flex-direction: column; gap: 6px; }
+    @media (max-width: 560px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
 
     .field-label {
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
 
-    .field-input, .field-select {
+    .field-input,
+    .field-select {
         background: var(--bg-elevated);
         border: 1px solid var(--border);
         border-radius: 8px;
         color: var(--text-secondary);
         padding: 8px 12px;
-        font-size: 13px;
+
         font-family: 'Instrument Sans', sans-serif;
         outline: none;
         transition: border-color 0.15s ease, color 0.15s ease;
         width: 100%;
     }
 
-    .field-input::placeholder { color: var(--text-muted); }
-    .field-input:focus, .field-select:focus {
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus,
+    .field-select:focus {
         border-color: var(--border-accent);
         color: var(--text-primary);
     }
@@ -65,20 +83,26 @@
     }
 
     .record-count {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .record-count strong { color: var(--text-primary); font-weight: 600; }
+    .record-count strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
 
-    .filter-actions { display: flex; gap: 8px; }
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+    }
 
     .btn-reset {
         padding: 7px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-elevated);
@@ -100,7 +124,7 @@
         padding: 7px 20px;
         border: 1px solid var(--accent);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: #fff;
         background: var(--accent);
@@ -111,7 +135,10 @@
         gap: 6px;
     }
 
-    .btn-apply:hover { background: #5254e7; border-color: #5254e7; }
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
 
     /* ── TABLE ── */
     .panel {
@@ -126,15 +153,17 @@
     .data-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+
     }
 
-    .data-table thead tr { background: var(--bg-elevated); }
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
 
     .data-table th {
         padding: 11px 14px;
         text-align: left;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -148,7 +177,9 @@
         transition: background 0.12s ease;
     }
 
-    .data-table tbody tr:hover { background: var(--bg-hover); }
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
 
     .data-table td {
         padding: 12px 14px;
@@ -158,7 +189,7 @@
 
     .mono {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
     }
 
@@ -173,7 +204,7 @@
     .food-name {
         font-weight: 600;
         color: var(--text-primary);
-        font-size: 13px;
+
         white-space: nowrap;
     }
 
@@ -182,28 +213,47 @@
         display: inline-block;
         padding: 2px 9px;
         border-radius: 20px;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         letter-spacing: 0.04em;
         font-weight: 500;
         white-space: nowrap;
     }
 
-    .pill-veg     { background: rgba(34,211,160,0.12); color: #22d3a0; border: 1px solid rgba(34,211,160,0.2); }
-    .pill-vegan   { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2); }
-    .pill-nonveg  { background: rgba(244,63,94,0.12);  color: #f43f5e; border: 1px solid rgba(244,63,94,0.2); }
-    .pill-default { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+    .pill-veg {
+        background: rgba(34, 211, 160, 0.12);
+        color: #22d3a0;
+        border: 1px solid rgba(34, 211, 160, 0.2);
+    }
+
+    .pill-vegan {
+        background: rgba(99, 102, 241, 0.12);
+        color: #a5b4fc;
+        border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .pill-nonveg {
+        background: rgba(244, 63, 94, 0.12);
+        color: #f43f5e;
+        border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .pill-default {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+    }
 
     /* ── NUTRITION CELL ── */
     .nutrient-val {
         font-family: 'DM Mono', monospace;
-        font-size: 12px;
+
         color: var(--text-secondary);
         white-space: nowrap;
     }
 
     .nutrient-unit {
-        font-size: 9px;
+
         color: var(--text-muted);
         margin-left: 2px;
     }
@@ -220,36 +270,38 @@
         display: inline-block;
         padding: 1px 6px;
         border-radius: 4px;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
-        background: rgba(255,255,255,0.05);
+        background: rgba(255, 255, 255, 0.05);
         color: var(--text-muted);
         border: 1px solid var(--border);
         white-space: nowrap;
     }
 
     .tag-allergen {
-        background: rgba(245,158,11,0.08);
+        background: rgba(245, 158, 11, 0.08);
         color: #f59e0b;
-        border: 1px solid rgba(245,158,11,0.2);
+        border: 1px solid rgba(245, 158, 11, 0.2);
     }
 
     .tag-vitamin {
-        background: rgba(99,102,241,0.08);
+        background: rgba(99, 102, 241, 0.08);
         color: #818cf8;
-        border: 1px solid rgba(99,102,241,0.15);
+        border: 1px solid rgba(99, 102, 241, 0.15);
     }
 
     /* ── VIEW LINK ── */
     .view-link {
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         color: var(--accent);
         text-decoration: none;
         transition: opacity 0.15s;
     }
 
-    .view-link:hover { opacity: 0.7; }
+    .view-link:hover {
+        opacity: 0.7;
+    }
 
     /* ── PAGINATION ── */
     .pagination {
@@ -262,19 +314,25 @@
     }
 
     .page-info {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .page-info strong { color: var(--text-secondary); }
-    .page-btns { display: flex; gap: 6px; }
+    .page-info strong {
+        color: var(--text-secondary);
+    }
+
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
 
     .page-btn {
         padding: 6px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-surface);
@@ -289,8 +347,15 @@
     }
 
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 {% endblock %}
@@ -303,24 +368,20 @@
 
         <div class="field-group" style="grid-column: span 2;">
             <label class="field-label">Search</label>
-            <input type="text" name="q" value="{{ q }}"
-                placeholder="Search food items…"
-                class="field-input" />
+            <input type="text" name="q" value="{{ q }}" placeholder="Search food items…" class="field-input" />
         </div>
 
         <div class="field-group">
             <label class="field-label">State</label>
-            <input type="text" name="state" value="{{ state }}"
-                placeholder="e.g. Delhi"
-                class="field-input" />
+            <input type="text" name="state" value="{{ state }}" placeholder="e.g. Delhi" class="field-input" />
         </div>
 
         <div class="field-group">
             <label class="field-label">Type</label>
             <select name="food_type" class="field-select">
                 <option value="">All Types</option>
-                <option value="veg"     {% if food_type=="veg"     %}selected{% endif %}>Veg</option>
-                <option value="vegan"   {% if food_type=="vegan"   %}selected{% endif %}>Vegan</option>
+                <option value="veg" {% if food_type=="veg" %}selected{% endif %}>Veg</option>
+                <option value="vegan" {% if food_type=="vegan" %}selected{% endif %}>Vegan</option>
                 <option value="non-veg" {% if food_type=="non-veg" %}selected{% endif %}>Non-Veg</option>
             </select>
         </div>
@@ -378,15 +439,15 @@
                     <td>
                         {% set t = item.type | lower if item.type else "" %}
                         {% if t == "veg" %}
-                            <span class="pill pill-veg">Veg</span>
+                        <span class="pill pill-veg">Veg</span>
                         {% elif t == "vegan" %}
-                            <span class="pill pill-vegan">Vegan</span>
+                        <span class="pill pill-vegan">Vegan</span>
                         {% elif t in ["non-veg", "nonveg"] %}
-                            <span class="pill pill-nonveg">Non-Veg</span>
+                        <span class="pill pill-nonveg">Non-Veg</span>
                         {% elif item.type %}
-                            <span class="pill pill-default">{{ item.type }}</span>
+                        <span class="pill pill-default">{{ item.type }}</span>
                         {% else %}
-                            <span style="color:var(--text-muted);">—</span>
+                        <span style="color:var(--text-muted);">—</span>
                         {% endif %}
                     </td>
 
@@ -478,9 +539,8 @@
         {% if page > 1 %}
         <a href="?page={{ page - 1 }}&q={{ q }}&state={{ state }}&food_type={{ food_type }}" class="page-btn">← Prev</a>
         {% endif %}
-        {% if page < total_pages %}
-        <a href="?page={{ page + 1 }}&q={{ q }}&state={{ state }}&food_type={{ food_type }}" class="page-btn">Next →</a>
-        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}&state={{ state }}&food_type={{ food_type }}" class="page-btn">Next →</a>
+            {% endif %}
     </div>
 </div>
 

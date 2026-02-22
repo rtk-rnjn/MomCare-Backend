@@ -20,34 +20,52 @@
         align-items: end;
     }
 
-    @media (max-width: 900px) { .filter-grid { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 560px) { .filter-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+        .filter-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
 
-    .field-group { display: flex; flex-direction: column; gap: 6px; }
+    @media (max-width: 560px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
 
     .field-label {
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
 
-    .field-input, .field-select {
+    .field-input,
+    .field-select {
         background: var(--bg-elevated);
         border: 1px solid var(--border);
         border-radius: 8px;
         color: var(--text-secondary);
         padding: 8px 12px;
-        font-size: 13px;
+
         font-family: 'Instrument Sans', sans-serif;
         outline: none;
         transition: border-color 0.15s ease, color 0.15s ease;
         width: 100%;
     }
 
-    .field-input::placeholder { color: var(--text-muted); }
-    .field-input:focus, .field-select:focus {
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus,
+    .field-select:focus {
         border-color: var(--border-accent);
         color: var(--text-primary);
     }
@@ -64,19 +82,26 @@
     }
 
     .record-count {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .record-count strong { color: var(--text-primary); font-weight: 600; }
-    .filter-actions { display: flex; gap: 8px; }
+    .record-count strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+    }
 
     .btn-reset {
         padding: 7px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-elevated);
@@ -97,7 +122,7 @@
         padding: 7px 20px;
         border: 1px solid var(--accent);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: #fff;
         background: var(--accent);
@@ -105,7 +130,10 @@
         transition: all 0.15s ease;
     }
 
-    .btn-apply:hover { background: #5254e7; border-color: #5254e7; }
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
 
     /* ── TABLE ── */
     .panel {
@@ -120,15 +148,17 @@
     .data-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+
     }
 
-    .data-table thead tr { background: var(--bg-elevated); }
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
 
     .data-table th {
         padding: 11px 14px;
         text-align: left;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -142,7 +172,9 @@
         transition: background 0.12s ease;
     }
 
-    .data-table tbody tr:hover { background: var(--bg-hover); }
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
 
     .data-table td {
         padding: 12px 14px;
@@ -152,7 +184,7 @@
 
     .mono {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
     }
 
@@ -167,14 +199,14 @@
     .song-name {
         font-weight: 600;
         color: var(--text-primary);
-        font-size: 13px;
+
         display: flex;
         align-items: center;
         gap: 7px;
     }
 
     .song-icon {
-        font-size: 11px;
+
         opacity: 0.4;
         flex-shrink: 0;
     }
@@ -186,45 +218,67 @@
         gap: 5px;
         padding: 2px 9px;
         border-radius: 20px;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         letter-spacing: 0.04em;
         font-weight: 500;
         white-space: nowrap;
     }
 
-    .pill-happy    { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
-    .pill-sad      { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
-    .pill-stressed { background: rgba(244,63,94,0.12);  color: #fb7185; border: 1px solid rgba(244,63,94,0.25); }
-    .pill-angry    { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-    .pill-default  { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+    .pill-happy {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .pill-sad {
+        background: rgba(99, 102, 241, 0.12);
+        color: #a5b4fc;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .pill-stressed {
+        background: rgba(244, 63, 94, 0.12);
+        color: #fb7185;
+        border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+
+    .pill-angry {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .pill-default {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+    }
 
     /* mood emoji */
-    .mood-emoji { 
-        font-size: 11px;
-     }
+    .mood-emoji {}
 
     /* ── PLAYLIST BADGE ── */
     .playlist-badge {
         display: inline-block;
         padding: 2px 9px;
         border-radius: 6px;
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
-        background: rgba(34,211,160,0.08);
+        background: rgba(34, 211, 160, 0.08);
         color: #6ee7b7;
-        border: 1px solid rgba(34,211,160,0.15);
+        border: 1px solid rgba(34, 211, 160, 0.15);
         white-space: nowrap;
     }
 
     /* ── METADATA ── */
     .meta-author {
-        font-size: 12px;
+
         color: var(--text-secondary);
     }
 
     .meta-title {
-        font-size: 11px;
+
         color: var(--text-muted);
         font-style: italic;
         margin-top: 2px;
@@ -233,20 +287,20 @@
     /* ── DURATION ── */
     .duration-val {
         font-family: 'DM Mono', monospace;
-        font-size: 12px;
+
         color: var(--text-secondary);
         white-space: nowrap;
     }
 
     .duration-unit {
-        font-size: 9px;
+
         color: var(--text-muted);
         margin-left: 2px;
     }
 
     /* ── VIEW LINK ── */
     .view-link {
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         color: var(--accent);
         text-decoration: none;
@@ -256,7 +310,9 @@
         gap: 3px;
     }
 
-    .view-link:hover { opacity: 0.7; }
+    .view-link:hover {
+        opacity: 0.7;
+    }
 
     /* ── PAGINATION ── */
     .pagination {
@@ -269,19 +325,25 @@
     }
 
     .page-info {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .page-info strong { color: var(--text-secondary); }
-    .page-btns { display: flex; gap: 6px; }
+    .page-info strong {
+        color: var(--text-secondary);
+    }
+
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
 
     .page-btn {
         padding: 6px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-surface);
@@ -296,8 +358,15 @@
     }
 
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 {% endblock %}
@@ -310,27 +379,23 @@
 
         <div class="field-group" style="grid-column: span 2;">
             <label class="field-label">Search</label>
-            <input type="text" name="q" value="{{ q }}"
-                placeholder="Song name / Author / Title"
-                class="field-input" />
+            <input type="text" name="q" value="{{ q }}" placeholder="Song name / Author / Title" class="field-input" />
         </div>
 
         <div class="field-group">
             <label class="field-label">Mood</label>
             <select name="mood" class="field-select">
                 <option value="">All Moods</option>
-                <option value="Happy"    {% if mood=="Happy"    %}selected{% endif %}>😊 Happy</option>
-                <option value="Sad"      {% if mood=="Sad"      %}selected{% endif %}>😔 Sad</option>
+                <option value="Happy" {% if mood=="Happy" %}selected{% endif %}>😊 Happy</option>
+                <option value="Sad" {% if mood=="Sad" %}selected{% endif %}>😔 Sad</option>
                 <option value="Stressed" {% if mood=="Stressed" %}selected{% endif %}>😤 Stressed</option>
-                <option value="Angry"    {% if mood=="Angry"    %}selected{% endif %}>😠 Angry</option>
+                <option value="Angry" {% if mood=="Angry" %}selected{% endif %}>😠 Angry</option>
             </select>
         </div>
 
         <div class="field-group">
             <label class="field-label">Playlist</label>
-            <input type="text" name="playlist" value="{{ playlist }}"
-                placeholder="Playlist name"
-                class="field-input" />
+            <input type="text" name="playlist" value="{{ playlist }}" placeholder="Playlist name" class="field-input" />
         </div>
 
     </div>
@@ -376,17 +441,17 @@
                     <td>
                         {% set m = s.mood | lower if s.mood else "" %}
                         {% if m == "happy" %}
-                            <span class="pill pill-happy"><span class="mood-emoji">😊</span>Happy</span>
+                        <span class="pill pill-happy"><span class="mood-emoji">😊</span>Happy</span>
                         {% elif m == "sad" %}
-                            <span class="pill pill-sad"><span class="mood-emoji">😔</span>Sad</span>
+                        <span class="pill pill-sad"><span class="mood-emoji">😔</span>Sad</span>
                         {% elif m == "stressed" %}
-                            <span class="pill pill-stressed"><span class="mood-emoji">😤</span>Stressed</span>
+                        <span class="pill pill-stressed"><span class="mood-emoji">😤</span>Stressed</span>
                         {% elif m == "angry" %}
-                            <span class="pill pill-angry"><span class="mood-emoji">😠</span>Angry</span>
+                        <span class="pill pill-angry"><span class="mood-emoji">😠</span>Angry</span>
                         {% elif s.mood %}
-                            <span class="pill pill-default">{{ s.mood }}</span>
+                        <span class="pill pill-default">{{ s.mood }}</span>
                         {% else %}
-                            <span style="color:var(--text-muted);">—</span>
+                        <span style="color:var(--text-muted);">—</span>
                         {% endif %}
                     </td>
 
@@ -453,9 +518,8 @@
         {% if page > 1 %}
         <a href="?page={{ page - 1 }}&q={{ q }}&mood={{ mood }}&playlist={{ playlist }}" class="page-btn">← Prev</a>
         {% endif %}
-        {% if page < total_pages %}
-        <a href="?page={{ page + 1 }}&q={{ q }}&mood={{ mood }}&playlist={{ playlist }}" class="page-btn">Next →</a>
-        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}&mood={{ mood }}&playlist={{ playlist }}" class="page-btn">Next →</a>
+            {% endif %}
     </div>
 </div>
 

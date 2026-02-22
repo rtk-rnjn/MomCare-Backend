@@ -18,10 +18,14 @@
         gap: 12px;
     }
 
-    .field-group { display: flex; flex-direction: column; gap: 6px; }
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
 
     .field-label {
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -34,21 +38,27 @@
         border-radius: 8px;
         color: var(--text-secondary);
         padding: 8px 12px;
-        font-size: 13px;
+
         font-family: 'Instrument Sans', sans-serif;
         outline: none;
         transition: border-color 0.15s ease, color 0.15s ease;
         width: 260px;
     }
 
-    .field-input::placeholder { color: var(--text-muted); }
-    .field-input:focus { border-color: var(--border-accent); color: var(--text-primary); }
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+    }
 
     .btn-apply {
         padding: 8px 20px;
         border: 1px solid var(--accent);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: #fff;
         background: var(--accent);
@@ -57,17 +67,22 @@
         align-self: flex-end;
     }
 
-    .btn-apply:hover { background: #5254e7; border-color: #5254e7; }
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
 
     .total-count {
         margin-left: auto;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         align-self: center;
     }
 
-    .total-count strong { color: var(--text-primary); }
+    .total-count strong {
+        color: var(--text-primary);
+    }
 
     /* ── TABLE PANEL ── */
     .panel {
@@ -82,15 +97,17 @@
     .data-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+
     }
 
-    .data-table thead tr { background: var(--bg-elevated); }
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
 
     .data-table th {
         padding: 11px 14px;
         text-align: left;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -104,7 +121,9 @@
         transition: background 0.12s ease;
     }
 
-    .data-table tbody tr:hover { background: var(--bg-hover); }
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
 
     .data-table td {
         padding: 12px 14px;
@@ -114,7 +133,7 @@
 
     .mono {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
     }
 
@@ -128,7 +147,7 @@
     /* ── USER CELL ── */
     .user-id {
         font-family: 'DM Mono', monospace;
-        font-size: 10px;
+
         color: var(--text-muted);
         margin-bottom: 4px;
     }
@@ -136,12 +155,12 @@
     .user-name {
         font-weight: 600;
         color: var(--text-primary);
-        font-size: 13px;
+
     }
 
     .user-phone {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
         margin-top: 2px;
     }
@@ -157,7 +176,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
@@ -176,11 +195,11 @@
         display: inline-block;
         padding: 1px 6px;
         border-radius: 4px;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
-        background: rgba(99,102,241,0.08);
+        background: rgba(99, 102, 241, 0.08);
         color: #818cf8;
-        border: 1px solid rgba(99,102,241,0.15);
+        border: 1px solid rgba(99, 102, 241, 0.15);
         margin: 1px;
     }
 
@@ -191,7 +210,7 @@
     }
 
     .meal-header {
-        font-size: 9px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -205,13 +224,15 @@
         align-items: flex-start;
         gap: 6px;
         padding: 4px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.03);
-        font-size: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+
         color: var(--text-secondary);
         line-height: 1.4;
     }
 
-    .food-item:last-child { border-bottom: none; }
+    .food-item:last-child {
+        border-bottom: none;
+    }
 
     .food-dot {
         width: 4px;
@@ -224,13 +245,24 @@
     }
 
     /* meal column accent dots */
-    .meal-breakfast .food-dot { background: #f59e0b; }
-    .meal-lunch     .food-dot { background: #22d3a0; }
-    .meal-dinner    .food-dot { background: #6366f1; }
-    .meal-snacks    .food-dot { background: #f43f5e; }
+    .meal-breakfast .food-dot {
+        background: #f59e0b;
+    }
+
+    .meal-lunch .food-dot {
+        background: #22d3a0;
+    }
+
+    .meal-dinner .food-dot {
+        background: #6366f1;
+    }
+
+    .meal-snacks .food-dot {
+        background: #f43f5e;
+    }
 
     .no-items {
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         opacity: 0.5;
@@ -247,19 +279,25 @@
     }
 
     .page-info {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .page-info strong { color: var(--text-secondary); }
-    .page-btns { display: flex; gap: 6px; }
+    .page-info strong {
+        color: var(--text-secondary);
+    }
+
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
 
     .page-btn {
         padding: 6px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-surface);
@@ -274,8 +312,15 @@
     }
 
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 {% endblock %}
@@ -286,9 +331,7 @@
 <form method="get" class="filter-form">
     <div class="field-group">
         <label class="field-label">Search User</label>
-        <input type="text" name="q" value="{{ q }}"
-            placeholder="First / Last / Phone"
-            class="field-input" />
+        <input type="text" name="q" value="{{ q }}" placeholder="First / Last / Phone" class="field-input" />
     </div>
     <button type="submit" class="btn-apply">⌕ Apply</button>
     <div class="total-count">Total: <strong>{{ total }}</strong></div>
@@ -345,25 +388,25 @@
                     </td>
 
                     {% for meal, css_class in [
-                        ("breakfast_food", "meal-breakfast"),
-                        ("lunch_food",     "meal-lunch"),
-                        ("dinner_food",    "meal-dinner"),
-                        ("snacks_food",    "meal-snacks")
+                    ("breakfast_food", "meal-breakfast"),
+                    ("lunch_food", "meal-lunch"),
+                    ("dinner_food", "meal-dinner"),
+                    ("snacks_food", "meal-snacks")
                     ] %}
                     <td>
                         <div class="meal-cell {{ css_class }}">
                             {% set foods = plan[meal] | selectattr("name", "defined") | list if plan[meal] else [] %}
                             {% if foods %}
-                                {% for food in foods %}
-                                {% if food %}
-                                <div class="food-item">
-                                    <span class="food-dot"></span>
-                                    <span>{{ food.name }}</span>
-                                </div>
-                                {% endif %}
-                                {% endfor %}
+                            {% for food in foods %}
+                            {% if food %}
+                            <div class="food-item">
+                                <span class="food-dot"></span>
+                                <span>{{ food.name }}</span>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
                             {% else %}
-                                <span class="no-items">—</span>
+                            <span class="no-items">—</span>
                             {% endif %}
                         </div>
                     </td>
@@ -391,9 +434,8 @@
         {% if page > 1 %}
         <a href="?page={{ page - 1 }}&q={{ q }}" class="page-btn">← Prev</a>
         {% endif %}
-        {% if page < total_pages %}
-        <a href="?page={{ page + 1 }}&q={{ q }}" class="page-btn">Next →</a>
-        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}" class="page-btn">Next →</a>
+            {% endif %}
     </div>
 </div>
 

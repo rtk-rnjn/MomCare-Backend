@@ -22,8 +22,17 @@
         align-items: end;
     }
 
-    @media (max-width: 900px) { .filter-grid { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 560px) { .filter-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+        .filter-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 
     .field-group {
         display: flex;
@@ -32,28 +41,33 @@
     }
 
     .field-label {
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
 
-    .field-input, .field-select {
+    .field-input,
+    .field-select {
         background: var(--bg-elevated);
         border: 1px solid var(--border);
         border-radius: 8px;
         color: var(--text-secondary);
         padding: 8px 12px;
-        font-size: 13px;
+
         font-family: 'Instrument Sans', sans-serif;
         outline: none;
         transition: border-color 0.15s ease, color 0.15s ease;
         width: 100%;
     }
 
-    .field-input::placeholder { color: var(--text-muted); }
-    .field-input:focus, .field-select:focus {
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus,
+    .field-select:focus {
         border-color: var(--border-accent);
         color: var(--text-primary);
     }
@@ -70,20 +84,26 @@
     }
 
     .record-count {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .record-count strong { color: var(--text-primary); font-weight: 600; }
+    .record-count strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
 
-    .filter-actions { display: flex; gap: 8px; }
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+    }
 
     .btn-reset {
         padding: 7px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-elevated);
@@ -105,7 +125,7 @@
         padding: 7px 20px;
         border: 1px solid var(--accent);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: #fff;
         background: var(--accent);
@@ -116,7 +136,10 @@
         gap: 6px;
     }
 
-    .btn-apply:hover { background: #5254e7; border-color: #5254e7; }
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
 
     /* ── TABLE PANEL ── */
     .panel {
@@ -131,15 +154,17 @@
     .data-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+
     }
 
-    .data-table thead tr { background: var(--bg-elevated); }
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
 
     .data-table th {
         padding: 11px 14px;
         text-align: left;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
         letter-spacing: 0.08em;
@@ -153,7 +178,9 @@
         transition: background 0.12s ease;
     }
 
-    .data-table tbody tr:hover { background: var(--bg-hover); }
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
 
     .data-table td {
         padding: 12px 14px;
@@ -163,7 +190,7 @@
 
     .mono {
         font-family: 'DM Mono', monospace;
-        font-size: 11px;
+
         color: var(--text-muted);
     }
 
@@ -178,7 +205,7 @@
     .ex-name {
         font-weight: 600;
         color: var(--text-primary);
-        font-size: 13px;
+
     }
 
     /* Level pills */
@@ -186,23 +213,42 @@
         display: inline-block;
         padding: 2px 9px;
         border-radius: 20px;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
         letter-spacing: 0.04em;
         font-weight: 500;
     }
 
-    .pill-beginner     { background: rgba(34,211,160,0.12); color: #22d3a0; border: 1px solid rgba(34,211,160,0.2); }
-    .pill-intermediate { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
-    .pill-advanced     { background: rgba(244,63,94,0.12);  color: #f43f5e; border: 1px solid rgba(244,63,94,0.2);  }
-    .pill-default      { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+    .pill-beginner {
+        background: rgba(34, 211, 160, 0.12);
+        color: #22d3a0;
+        border: 1px solid rgba(34, 211, 160, 0.2);
+    }
+
+    .pill-intermediate {
+        background: rgba(245, 158, 11, 0.12);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .pill-advanced {
+        background: rgba(244, 63, 94, 0.12);
+        color: #f43f5e;
+        border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .pill-default {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+    }
 
     /* Week badge */
     .week-badge {
         display: inline-block;
         padding: 2px 9px;
         border-radius: 6px;
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         background: var(--accent-subtle);
         color: #a5b4fc;
@@ -220,9 +266,9 @@
         display: inline-block;
         padding: 1px 7px;
         border-radius: 4px;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
-        background: rgba(255,255,255,0.05);
+        background: rgba(255, 255, 255, 0.05);
         color: var(--text-muted);
         border: 1px solid var(--border);
     }
@@ -232,18 +278,18 @@
         display: inline-block;
         padding: 1px 7px;
         border-radius: 4px;
-        font-size: 10px;
+
         font-family: 'DM Mono', monospace;
-        background: rgba(99,102,241,0.08);
+        background: rgba(99, 102, 241, 0.08);
         color: #818cf8;
-        border: 1px solid rgba(99,102,241,0.15);
+        border: 1px solid rgba(99, 102, 241, 0.15);
         margin: 1px;
     }
 
     /* Description truncation */
     .description-cell {
         max-width: 220px;
-        font-size: 12px;
+
         color: var(--text-muted);
         line-height: 1.5;
         overflow: hidden;
@@ -255,13 +301,13 @@
     /* Video duration */
     .duration-val {
         font-family: 'DM Mono', monospace;
-        font-size: 12px;
+
         color: var(--text-secondary);
     }
 
     /* View link */
     .view-link {
-        font-size: 11px;
+
         font-family: 'DM Mono', monospace;
         color: var(--accent);
         text-decoration: none;
@@ -271,7 +317,9 @@
         transition: opacity 0.15s;
     }
 
-    .view-link:hover { opacity: 0.7; }
+    .view-link:hover {
+        opacity: 0.7;
+    }
 
     /* ── PAGINATION ── */
     .pagination {
@@ -284,20 +332,25 @@
     }
 
     .page-info {
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-muted);
     }
 
-    .page-info strong { color: var(--text-secondary); }
+    .page-info strong {
+        color: var(--text-secondary);
+    }
 
-    .page-btns { display: flex; gap: 6px; }
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
 
     .page-btn {
         padding: 6px 16px;
         border: 1px solid var(--border);
         border-radius: 7px;
-        font-size: 12px;
+
         font-family: 'DM Mono', monospace;
         color: var(--text-secondary);
         background: var(--bg-surface);
@@ -312,8 +365,15 @@
     }
 
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 {% endblock %}
@@ -326,26 +386,22 @@
 
         <div class="field-group" style="grid-column: span 2;">
             <label class="field-label">Search</label>
-            <input type="text" name="q" value="{{ q }}"
-                placeholder="Exercise name / Tags"
-                class="field-input" />
+            <input type="text" name="q" value="{{ q }}" placeholder="Exercise name / Tags" class="field-input" />
         </div>
 
         <div class="field-group">
             <label class="field-label">Level</label>
             <select name="level" class="field-select">
                 <option value="">All Levels</option>
-                <option value="Beginner"     {% if level=="Beginner"     %}selected{% endif %}>Beginner</option>
+                <option value="Beginner" {% if level=="Beginner" %}selected{% endif %}>Beginner</option>
                 <option value="Intermediate" {% if level=="Intermediate" %}selected{% endif %}>Intermediate</option>
-                <option value="Advanced"     {% if level=="Advanced"     %}selected{% endif %}>Advanced</option>
+                <option value="Advanced" {% if level=="Advanced" %}selected{% endif %}>Advanced</option>
             </select>
         </div>
 
         <div class="field-group">
             <label class="field-label">Week</label>
-            <input type="text" name="week" value="{{ week }}"
-                placeholder="e.g. Week 12"
-                class="field-input" />
+            <input type="text" name="week" value="{{ week }}" placeholder="e.g. Week 12" class="field-input" />
         </div>
 
     </div>
@@ -391,15 +447,15 @@
                     <td>
                         {% set lvl = ex.level | lower if ex.level else "" %}
                         {% if lvl == "beginner" %}
-                            <span class="pill pill-beginner">Beginner</span>
+                        <span class="pill pill-beginner">Beginner</span>
                         {% elif lvl == "intermediate" %}
-                            <span class="pill pill-intermediate">Intermediate</span>
+                        <span class="pill pill-intermediate">Intermediate</span>
                         {% elif lvl == "advanced" %}
-                            <span class="pill pill-advanced">Advanced</span>
+                        <span class="pill pill-advanced">Advanced</span>
                         {% elif ex.level %}
-                            <span class="pill pill-default">{{ ex.level }}</span>
+                        <span class="pill pill-default">{{ ex.level }}</span>
                         {% else %}
-                            <span style="color:var(--text-muted);">—</span>
+                        <span style="color:var(--text-muted);">—</span>
                         {% endif %}
                     </td>
 
@@ -475,9 +531,8 @@
         {% if page > 1 %}
         <a href="?page={{ page - 1 }}&q={{ q }}&level={{ level }}&week={{ week }}" class="page-btn">← Prev</a>
         {% endif %}
-        {% if page < total_pages %}
-        <a href="?page={{ page + 1 }}&q={{ q }}&level={{ level }}&week={{ week }}" class="page-btn">Next →</a>
-        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}&level={{ level }}&week={{ week }}" class="page-btn">Next →</a>
+            {% endif %}
     </div>
 </div>
 
