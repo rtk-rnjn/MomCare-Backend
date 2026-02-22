@@ -12,7 +12,7 @@ from pymongo.asynchronous.database import AsyncDatabase as Database
 
 from src.app import app
 from src.models import AccountStatus, CredentialsDict, UserDict
-from src.utils import GoogleAPIHandler, EmailNormalizer
+from src.utils import EmailNormalizer, GoogleAPIHandler
 
 router = APIRouter()
 

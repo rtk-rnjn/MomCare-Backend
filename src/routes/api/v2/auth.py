@@ -15,6 +15,7 @@ from fastapi.responses import ORJSONResponse as JSONResponse
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import _aiohttp_requests
 from google.oauth2 import _id_token_async
+from pydantic import BaseModel
 from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from redis.asyncio import Redis
@@ -40,6 +41,16 @@ load_dotenv()
 APPLE_ISSUER = "https://appleid.apple.com"
 APPLE_AUDIENCE = "com.Team05.MomCare"  # TODO: Update this to the actual Apple Service ID or Bundle ID used for Sign in with Apple
 APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys"
+
+
+class ErrorDetailModel(BaseModel):
+    loc: list[str | int]
+    msg: str
+    type: str
+
+
+class ErrorResponseModel(BaseModel):
+    detail: list[ErrorDetailModel] | str
 
 
 class ApplePublicKey(TypedDict):
@@ -155,6 +166,18 @@ async def create_new_google_account(google_id: str) -> str:
     response_model=TokenPairDict,
     description="Authenticate a user using a Google ID token and return access and refresh tokens.",
     response_description="A pair of access and refresh tokens for the authenticated user.",
+    responses={
+        HTTP_400_BAD_REQUEST: {
+            "description": "Invalid Google ID token payload.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_401_UNAUTHORIZED: {
+            "description": "Token verification failed.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def google_login(
     id_token: str = Body(
@@ -312,6 +335,18 @@ async def create_new_apple_account(apple_id: str) -> str:
     response_model=TokenPairDict,
     description="Authenticate a user using an Apple ID token and return access and refresh tokens.",
     response_description="A pair of access and refresh tokens for the authenticated user.",
+    responses={
+        HTTP_400_BAD_REQUEST: {
+            "description": "Invalid Apple ID token payload.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_401_UNAUTHORIZED: {
+            "description": "Token verification failed.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def apple_login(
     id_token: str = Body(

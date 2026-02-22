@@ -37,7 +37,7 @@ from src.models import (
 from src.routes.api.utils import get_user_id
 from src.utils import S3, DailyInsightModel, GoogleAPIHandler
 
-from .objects import TimestampRange
+from .objects import ErrorResponseModel, TimestampRange
 
 google_api_handler: GoogleAPIHandler = app.state.google_api_handler
 database: Database = app.state.mongo_database
@@ -64,6 +64,7 @@ class DailyInsightDict(TypedDict):
 
 
 def _today_window(tz: str = "Asia/Kolkata", /) -> tuple[float, float]:
+    """Return start/end float timestamps for the current day in the given timezone."""
     now = arrow.now(tz)
     start_of_the_day = now.floor("day")
     end_of_the_day = now.ceil("day")
@@ -74,6 +75,11 @@ def _today_window(tz: str = "Asia/Kolkata", /) -> tuple[float, float]:
 
 
 async def _get_verified_user(user_id: str) -> UserDict:
+    """Fetch user + credentials ensuring the account is active and email verified.
+
+    Raises HTTPException with codes 404 (missing credentials), 410 (deleted),
+    403 (locked or unverified), or 423 (user document missing).
+    """
     cred = await credentials_collection.find_one({"_id": user_id})
     if not cred:
         raise HTTPException(
@@ -105,6 +111,7 @@ async def _get_verified_user(user_id: str) -> UserDict:
 
 
 def _exercise_pipeline(user_id: str, start: float, end: float) -> list[dict]:
+    """Build aggregation pipeline to join user exercises with exercise catalog."""
     return [
         {
             "$match": {
@@ -125,6 +132,7 @@ def _exercise_pipeline(user_id: str, start: float, end: float) -> list[dict]:
 
 
 async def _hydrate_exercise(exercise: ExerciseDict) -> ExerciseModel:
+    """Return ExerciseModel with a presigned image URL populated."""
     model = ExerciseModel(**exercise)
     name = model.name.lower().strip().replace(" ", "_").replace("'", "")
     model.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{name}.png")
@@ -132,6 +140,7 @@ async def _hydrate_exercise(exercise: ExerciseDict) -> ExerciseModel:
 
 
 async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: type[BaseModel]):
+    """Yield JSON lines for a cursor/generator using the provided model factory."""
     async for m in cursor:
         yield model_factory(**m).model_dump_json(by_alias=True) + "\n"
 
@@ -143,8 +152,27 @@ async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: t
     response_description="The generated daily insight containing today's focus and a helpful tip.",
     summary="Generate daily tips",
     description="Generate daily tips including today's focus and a helpful tip for the user.",
+    responses={
+        HTTP_403_FORBIDDEN: {
+            "description": "User not verified or forbidden.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User credentials not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {"description": "Account deleted.", "model": ErrorResponseModel, "content": {"application/json": {}}},
+        HTTP_423_LOCKED: {
+            "description": "User account locked or profile missing.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
+    """Return today's tip for the verified user, generating and persisting it if absent."""
     user = await _get_verified_user(user_id)
     timezone = user.get("timezone") or "Asia/Kolkata"
     start, end = _today_window(timezone)
@@ -178,11 +206,34 @@ async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
     response_description="A list of daily insights matching the search criteria.",
     summary="Search daily tips",
     description="Search for daily tips within a specified timestamp range.",
+    responses={
+        HTTP_200_OK: {
+            "description": "NDJSON stream of daily insights.",
+            "content": {"application/x-ndjson": {}},
+        },
+        HTTP_403_FORBIDDEN: {
+            "description": "User not verified or forbidden.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User credentials not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {"description": "Account deleted.", "model": ErrorResponseModel, "content": {"application/json": {}}},
+        HTTP_423_LOCKED: {
+            "description": "User account locked or profile missing.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def fetch_all_tips(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
+    """Stream all tips for a verified user within the provided timestamp range."""
     await _get_verified_user(user_id)
 
     cursor = tips_collection.find(
@@ -197,7 +248,7 @@ async def fetch_all_tips(
 
     return StreamingResponse(
         _stream_json(cursor=cursor, model_factory=DailyInsightModel),
-        media_type="application/json",
+        media_type="application/x-ndjson",
     )
 
 
@@ -208,11 +259,31 @@ async def fetch_all_tips(
     response_description="A list of meal plans matching the search criteria.",
     summary="Search meal plans",
     description="Search for meal plans within a specified timestamp range.",
+    responses={
+        HTTP_200_OK: {"description": "NDJSON stream of meal plans.", "content": {"application/x-ndjson": {}}},
+        HTTP_403_FORBIDDEN: {
+            "description": "User not verified or forbidden.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User credentials not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {"description": "Account deleted.", "model": ErrorResponseModel, "content": {"application/json": {}}},
+        HTTP_423_LOCKED: {
+            "description": "User account locked or profile missing.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def fetch_all_plans(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
+    """Stream all generated meal plans for a verified user in the requested window."""
     await _get_verified_user(user_id)
 
     cursor = plans_collection.find(
@@ -227,7 +298,7 @@ async def fetch_all_plans(
 
     return StreamingResponse(
         _stream_json(cursor=cursor, model_factory=MyPlanModel),
-        media_type="application/json",
+        media_type="application/x-ndjson",
     )
 
 
@@ -238,8 +309,27 @@ async def fetch_all_plans(
     response_description="The generated meal plan for the user.",
     summary="Generate meal plan",
     description="Generate a meal plan for the user based on their dietary preferences and food intolerances.",
+    responses={
+        HTTP_403_FORBIDDEN: {
+            "description": "User not verified or forbidden.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User credentials not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {"description": "Account deleted.", "model": ErrorResponseModel, "content": {"application/json": {}}},
+        HTTP_423_LOCKED: {
+            "description": "User account locked or profile missing.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
+    """Return today's meal plan if it exists; otherwise generate, persist, and return one."""
     user: UserDict = await _get_verified_user(user_id)
     timezone = user.get("timezone") or "Asia/Kolkata"
     start, end = _today_window(timezone)
@@ -297,8 +387,27 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     response_description="A list of exercises generated for the user.",
     summary="Generate exercises",
     description="Generate a list of exercises for the user based on their profile and past exercise history.",
+    responses={
+        HTTP_403_FORBIDDEN: {
+            "description": "User not verified or forbidden.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User credentials not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {"description": "Account deleted.", "model": ErrorResponseModel, "content": {"application/json": {}}},
+        HTTP_423_LOCKED: {
+            "description": "User account locked or profile missing.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
+    """Return today's exercises if present; otherwise generate, store, and return new ones."""
     user = await _get_verified_user(user_id)
     timezone = user.get("timezone") or "Asia/Kolkata"
     window_start_ts, window_end_ts = _today_window(timezone)
@@ -353,11 +462,38 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
     response_description="A list of exercises matching the search criteria.",
     summary="Search exercises",
     description="Search for exercises within a specified timestamp range.",
+    responses={
+        HTTP_200_OK: {
+            "description": "NDJSON stream of hydrated exercises.",
+            "content": {"application/x-ndjson": {}},
+        },
+        HTTP_403_FORBIDDEN: {
+            "description": "User not verified or forbidden.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User credentials not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {
+            "description": "Account deleted.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_423_LOCKED: {
+            "description": "User account locked or profile missing.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def fetch_all_exercises(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
+    """Stream hydrated exercise models for a verified user in the requested window."""
     await _get_verified_user(user_id)
 
     pipeline = _exercise_pipeline(
@@ -371,5 +507,5 @@ async def fetch_all_exercises(
 
     return StreamingResponse(
         _stream_json(cursor=models, model_factory=ExerciseModel),
-        media_type="application/json",
+        media_type="application/x-ndjson",
     )

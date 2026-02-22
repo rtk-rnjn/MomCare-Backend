@@ -49,3 +49,13 @@ class TimestampRange(BaseModel):
         description="The end of the timestamp range.",
         title="End Timestamp",
     )
+
+
+class ErrorDetailModel(BaseModel):
+    loc: list[str | int]
+    msg: str
+    type: str
+
+
+class ErrorResponseModel(BaseModel):
+    detail: list[ErrorDetailModel] | str

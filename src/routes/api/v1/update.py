@@ -12,6 +12,8 @@ from src.app import app
 from src.models import MyPlanDict, UserExerciseDict
 from src.routes.api.utils import get_user_id
 
+from .objects import ErrorResponseModel
+
 router = APIRouter(prefix="/update", tags=["Update Management"])
 
 database: Database = app.state.mongo_database
@@ -50,6 +52,13 @@ def _inc_food(plan_id: str, meal: Meal, food_id: str, user_id: str, delta: int):
     response_description="Whether the exercise duration was successfully updated.",
     summary="Update the duration of an exercise",
     description="Update the duration of an exercise the user has completed.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "Exercise for user not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def update_exercise(
     exercise_id: str = Path(
@@ -88,6 +97,13 @@ async def update_exercise(
     response_description="Whether the food item was successfully marked as consumed.",
     summary="Mark a food item as consumed",
     description="Mark a specific food item in a meal plan as consumed at the current timestamp.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "Meal plan or food item not found for user.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def consume_food(
     plan_id: str = Path(
@@ -121,6 +137,13 @@ async def consume_food(
     response_description="Whether the food item was successfully marked as unconsumed.",
     summary="Mark a food item as unconsumed",
     description="Mark a specific food item in a meal plan as unconsumed.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "Meal plan or food item not found for user.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def unconsume_food(
     plan_id: str = Path(
@@ -154,6 +177,13 @@ async def unconsume_food(
     response_description="Whether the food item was successfully added to the meal.",
     summary="Add a food item to a meal",
     description="Add a specific food item to a meal in the user's meal plan. If the food item already exists in the meal, its count will be incremented by 1.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "Meal plan not found for user.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def add_food_to_meal(
     plan_id: str = Path(
@@ -210,6 +240,13 @@ async def add_food_to_meal(
     response_description="Whether the food item was successfully removed from the meal.",
     summary="Remove a food item from a meal",
     description="Remove a specific food item from a meal in the user's meal plan. If the food item's count reaches 0, it will be removed from the meal.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "Meal plan or food item not found for user.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def remove_food_from_meal(
     plan_id: str = Path(

@@ -19,6 +19,8 @@ from redis.asyncio import Redis
 from src.app import app
 from src.routes.api.utils import rate_limiter
 
+from .objects import ErrorResponseModel
+
 load_dotenv()
 
 database: Database = app.state.mongo_database
@@ -255,6 +257,13 @@ async def extract_mongo_metadata(mongo_client: AsyncMongoClient) -> MongoMetadat
     description="Retrieve statistics about the MongoDB database, including collection counts and storage size.",
     response_model=dict,
     include_in_schema=False,
+    responses={
+        500: {
+            "description": "Failed to retrieve MongoDB metadata.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        }
+    },
 )
 async def get_database_stats() -> ORJSONResponse:
     mongo_client = app.state.mongo_client
@@ -328,6 +337,13 @@ async def extract_redis_metadata(redis_client: Redis) -> RedisMetadata:
     description="Retrieve statistics about the Redis instance, including memory usage and uptime.",
     response_model=RedisMetadata,
     include_in_schema=False,
+    responses={
+        500: {
+            "description": "Failed to retrieve Redis metadata.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        }
+    },
 )
 async def get_redis_stats() -> ORJSONResponse:
     redis_client = app.state.redis_client

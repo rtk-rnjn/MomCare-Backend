@@ -37,7 +37,7 @@ from src.routes.api.utils import get_user_id
 from src.utils import EmailHandler, EmailNormalizer
 from src.utils.token_manager import AuthError, TokenManager, TokenPairDict
 
-from .objects import RegistrationResponse, ServerMessage
+from .objects import ErrorResponseModel, RegistrationResponse, ServerMessage
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -113,6 +113,18 @@ def _create_json_response(*, detail: str, status: int = HTTP_200_OK):
     response_description="The registered email address along with access and refresh tokens for authentication.",
     summary="Register a new user account",
     description="Create a new user account using an email address and password. Returns the registered email address along with access and refresh tokens for authentication.",
+    responses={
+        HTTP_400_BAD_REQUEST: {
+            "description": "Missing email or password.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_409_CONFLICT: {
+            "description": "Email already registered.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def register(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
@@ -166,6 +178,33 @@ async def register(data: CredentialsModel = Body(...)):
     response_model=TokenPairDict,
     summary="Login to user account",
     description="Authenticate a user using their email address and password. Returns access and refresh tokens for authentication if the credentials are valid.",
+    responses={
+        HTTP_400_BAD_REQUEST: {
+            "description": "Missing email or password.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid credentials or account status prevents login.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {
+            "description": "Account deleted.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_423_LOCKED: {
+            "description": "Account locked.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def login(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
@@ -232,6 +271,13 @@ async def login(data: CredentialsModel = Body(...)):
     response_model=UserModel,
     summary="Get current authenticated user",
     description="Retrieve the details of the currently authenticated user. Requires a valid access token.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "User not found for provided token.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        }
+    },
 )
 async def get_current_user(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await users_collection.find_one({"_id": user_id})
@@ -249,6 +295,13 @@ async def get_current_user(user_id: str = Depends(get_user_id, use_cache=False))
     response_model=TokenPairDict,
     summary="Refresh authentication tokens",
     description="Obtain new access and refresh tokens using a valid refresh token. Returns new tokens if the provided refresh token is valid.",
+    responses={
+        HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid refresh token.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        }
+    },
 )
 async def refresh_token(
     refresh_token: str = Body(
@@ -274,6 +327,13 @@ async def refresh_token(
     response_model=ServerMessage,
     summary="Logout user",
     description="Invalidate the provided refresh token to log the user out. Requires a valid refresh token. Returns a message confirming successful logout if the token is valid.",
+    responses={
+        HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid refresh token.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        }
+    },
 )
 async def logout(
     refresh_token: str = Body(
@@ -298,6 +358,28 @@ async def logout(
     response_model=ServerMessage,
     summary="Update current user details",
     description="Update the details of the currently authenticated user. Requires a valid access token. Accepts any subset of user fields to update and returns a message confirming successful update.",
+    responses={
+        HTTP_400_BAD_REQUEST: {
+            "description": "No updatable fields provided.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_401_UNAUTHORIZED: {
+            "description": "Account deleted; unauthorized to update.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_423_LOCKED: {
+            "description": "Account locked.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def update_user(
     updated_data: UserModel = Body(...),
@@ -308,7 +390,7 @@ async def update_user(
     fields.pop("_id", None)
 
     if not fields:
-        return HTTPException(
+        raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
         )
 
@@ -351,6 +433,13 @@ async def update_user(
     response_description="A message confirming successful deletion of the user account.",
     summary="Delete current user account",
     description="Permanently delete the currently authenticated user's account. Requires a valid access token. Deletes the user's credentials and details from the database and returns a message confirming successful deletion.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "User not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
     update_result = await credentials_collection.update_one(
@@ -373,6 +462,18 @@ async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
     response_description="A message confirming successful email change.",
     summary="Change user email address",
     description="Change the email address of the currently authenticated user. Requires a valid access token. Accepts the new email address, updates it in the user's credentials, and returns a message confirming successful email change.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "User not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_409_CONFLICT: {
+            "description": "Email already in use.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def change_email(
     new_email_address: str = Body(
@@ -429,6 +530,28 @@ async def change_email(
     status_code=HTTP_200_OK,
     summary="Change user password",
     description="Change the password of the currently authenticated user. Requires a valid access token. Accepts the current password and the new password, verifies the current password, and updates to the new password if valid. Returns a message confirming successful password change.",
+    responses={
+        HTTP_401_UNAUTHORIZED: {
+            "description": "Current password incorrect.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_423_LOCKED: {
+            "description": "Account locked.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {
+            "description": "Account deleted.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def change_password(
     current_password: str = Body(
@@ -471,6 +594,13 @@ async def change_password(
     response_description="A message confirming that the OTP was sent successfully.",
     summary="Request OTP for email verification",
     description="Request a One-Time Password (OTP) to be sent to the user's email address for verification purposes. Accepts the user's email address and sends an OTP to that address if it exists in the system. Returns a message confirming that the OTP was sent successfully.",
+    responses={
+        HTTP_404_NOT_FOUND: {
+            "description": "Email not registered.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def request_otp(
     background_tasks: BackgroundTasks,
@@ -504,6 +634,18 @@ async def request_otp(
     status_code=HTTP_200_OK,
     summary="Verify OTP for email verification",
     description="Verify a One-Time Password (OTP) sent to the user's email address for verification purposes. Accepts the user's email address and the OTP, and verifies the OTP if it matches the one stored in the system. Returns a message confirming successful verification.",
+    responses={
+        HTTP_400_BAD_REQUEST: {
+            "description": "OTP invalid or expired.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "Email not registered.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
 )
 async def verify_otp(
     email_address: str = Body(
