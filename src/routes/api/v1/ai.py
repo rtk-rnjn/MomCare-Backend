@@ -110,106 +110,26 @@ async def _get_verified_user(user_id: str) -> UserDict:
     )
 
 
-def _exercise_pipeline(user_id: str, start: float, end: float) -> list[dict]:
-    """Build aggregation pipeline to join user exercises with exercise catalog."""
-    return [
-        {
-            "$match": {
-                "user_id": user_id,
-                "added_at_timestamp": {"$gte": start, "$lte": end},
-            }
-        },
-        {
-            "$lookup": {
-                "from": "exercises",
-                "let": {"exerciseId": "$exercise_id"},
-                "pipeline": [{"$match": {"$expr": {"$eq": ["$_id", "$$exerciseId"]}}}],
-                "as": "exercise",
-            }
-        },
-        {"$unwind": "$exercise"},
-    ]
-
-
-async def _hydrate_exercise(exercise: ExerciseDict) -> ExerciseModel:
-    """Return ExerciseModel with a presigned image URL populated."""
-    model = ExerciseModel(**exercise)
-    name = model.name.lower().strip().replace(" ", "_").replace("'", "")
-    model.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{name}.png")
-    return model
-
-
 async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: type[BaseModel]):
     """Yield JSON lines for a cursor/generator using the provided model factory."""
     async for m in cursor:
         yield model_factory(**m).model_dump_json(by_alias=True) + "\n"
 
 
-@router.get(
-    "/generate/tips",
-    response_model=DailyInsightModel,
-    status_code=HTTP_200_OK,
-    response_description="The generated daily insight containing today's focus and a helpful tip.",
-    summary="Generate daily tips",
-    description="Generate daily tips including today's focus and a helpful tip for the user.",
-    responses={
-        HTTP_403_FORBIDDEN: {
-            "description": "User not verified or forbidden.",
-            "model": ErrorResponseModel,
-            "content": {"application/json": {}},
-        },
-        HTTP_404_NOT_FOUND: {
-            "description": "User credentials not found.",
-            "model": ErrorResponseModel,
-            "content": {"application/json": {}},
-        },
-        HTTP_410_GONE: {"description": "Account deleted.", "model": ErrorResponseModel, "content": {"application/json": {}}},
-        HTTP_423_LOCKED: {
-            "description": "User account locked or profile missing.",
-            "model": ErrorResponseModel,
-            "content": {"application/json": {}},
-        },
-    },
-)
-async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
-    """Return today's tip for the verified user, generating and persisting it if absent."""
-    user = await _get_verified_user(user_id)
-    timezone = user.get("timezone") or "Asia/Kolkata"
-    start, end = _today_window(timezone)
-
-    tip = await tips_collection.find_one(
-        {
-            "user_id": user_id,
-            "created_at_timestamp": {"$gte": start, "$lt": end},
-        }
-    )
-    if tip:
-        return JSONResponse(DailyInsightModel(daily_tip=tip["daily_tip"], todays_focus=tip["todays_focus"]).model_dump(by_alias=True))
-
-    generated = await google_api_handler.generate_tips(user=user)
-    await tips_collection.insert_one(
-        {
-            "_id": str(uuid.uuid4()),
-            "user_id": user_id,
-            "todays_focus": generated.todays_focus,
-            "daily_tip": generated.daily_tip,
-            "created_at_timestamp": arrow.now().float_timestamp,
-        }
-    )
-    return JSONResponse(generated.model_dump(by_alias=True))
-
-
-@router.get(
+@router.post(
     "/search/tips",
     response_class=StreamingResponse,
-    response_model=list[DailyInsightModel],
     response_description="A list of daily insights matching the search criteria.",
     summary="Search daily tips",
     description="Search for daily tips within a specified timestamp range.",
     responses={
         HTTP_200_OK: {
             "description": "NDJSON stream of daily insights.",
-            "content": {"application/x-ndjson": {}},
+            "content": {
+                "application/x-ndjson": {
+                    "schema": DailyInsightModel.model_json_schema(by_alias=True),
+                }
+            },
         },
         HTTP_403_FORBIDDEN: {
             "description": "User not verified or forbidden.",
@@ -252,15 +172,17 @@ async def fetch_all_tips(
     )
 
 
-@router.get(
+@router.post(
     "/search/plan",
     response_class=StreamingResponse,
-    response_model=list[MyPlanModel],
     response_description="A list of meal plans matching the search criteria.",
     summary="Search meal plans",
     description="Search for meal plans within a specified timestamp range.",
     responses={
-        HTTP_200_OK: {"description": "NDJSON stream of meal plans.", "content": {"application/x-ndjson": {}}},
+        HTTP_200_OK: {
+            "description": "NDJSON stream of meal plans.",
+            "content": {"application/x-ndjson": {}},
+        },
         HTTP_403_FORBIDDEN: {
             "description": "User not verified or forbidden.",
             "model": ErrorResponseModel,
@@ -302,10 +224,68 @@ async def fetch_all_plans(
     )
 
 
+@router.post(
+    "/search/exercises",
+    response_class=StreamingResponse,
+    response_description="A list of exercises matching the search criteria.",
+    summary="Search exercises",
+    description="Search for exercises within a specified timestamp range.",
+    responses={
+        HTTP_200_OK: {
+            "description": "NDJSON stream of hydrated exercises.",
+            "content": {"application/x-ndjson": {}},
+        },
+        HTTP_403_FORBIDDEN: {
+            "description": "User not verified or forbidden.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "User credentials not found.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_410_GONE: {
+            "description": "Account deleted.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_423_LOCKED: {
+            "description": "User account locked or profile missing.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
+)
+async def fetch_all_exercises(
+    timestamp_range: TimestampRange = Body(...),
+    user_id: str = Depends(get_user_id, use_cache=False),
+):
+    """Stream hydrated exercise models for a verified user in the requested window."""
+    await _get_verified_user(user_id)
+
+    start_ts = timestamp_range.start_timestamp
+    end_ts = timestamp_range.end_timestamp
+
+    cursor = exercises_collection.find(
+        {
+            "added_at_timestamp": {
+                "$gte": start_ts,
+                "$lte": end_ts,
+            },
+        }
+    )
+
+    return StreamingResponse(
+        _stream_json(cursor=cursor, model_factory=UserExerciseModel),
+        media_type="application/x-ndjson",
+    )
+
+
 @router.get(
     "/generate/plan",
-    response_class=StreamingResponse,
     response_model=MyPlanModel,
+    status_code=HTTP_200_OK,
     response_description="The generated meal plan for the user.",
     summary="Generate meal plan",
     description="Generate a meal plan for the user based on their dietary preferences and food intolerances.",
@@ -377,7 +357,7 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     plan_dict = cast(MyPlanDict, plan.model_dump(by_alias=True, mode="json"))
     await plans_collection.insert_one(plan_dict)
 
-    return plan
+    return JSONResponse(plan.model_dump(by_alias=True))
 
 
 @router.get(
@@ -456,17 +436,13 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
 
 
 @router.get(
-    "/search/exercises",
-    response_class=StreamingResponse,
-    response_model=list[ExerciseModel],
-    response_description="A list of exercises matching the search criteria.",
-    summary="Search exercises",
-    description="Search for exercises within a specified timestamp range.",
+    "/generate/tips",
+    response_model=DailyInsightModel,
+    status_code=HTTP_200_OK,
+    response_description="The generated daily insight containing today's focus and a helpful tip.",
+    summary="Generate daily tips",
+    description="Generate daily tips including today's focus and a helpful tip for the user.",
     responses={
-        HTTP_200_OK: {
-            "description": "NDJSON stream of hydrated exercises.",
-            "content": {"application/x-ndjson": {}},
-        },
         HTTP_403_FORBIDDEN: {
             "description": "User not verified or forbidden.",
             "model": ErrorResponseModel,
@@ -477,11 +453,7 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
             "model": ErrorResponseModel,
             "content": {"application/json": {}},
         },
-        HTTP_410_GONE: {
-            "description": "Account deleted.",
-            "model": ErrorResponseModel,
-            "content": {"application/json": {}},
-        },
+        HTTP_410_GONE: {"description": "Account deleted.", "model": ErrorResponseModel, "content": {"application/json": {}}},
         HTTP_423_LOCKED: {
             "description": "User account locked or profile missing.",
             "model": ErrorResponseModel,
@@ -489,23 +461,29 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
         },
     },
 )
-async def fetch_all_exercises(
-    timestamp_range: TimestampRange = Body(...),
-    user_id: str = Depends(get_user_id, use_cache=False),
-):
-    """Stream hydrated exercise models for a verified user in the requested window."""
-    await _get_verified_user(user_id)
+async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
+    """Return today's tip for the verified user, generating and persisting it if absent."""
+    user = await _get_verified_user(user_id)
+    timezone = user.get("timezone") or "Asia/Kolkata"
+    start, end = _today_window(timezone)
 
-    pipeline = _exercise_pipeline(
-        user_id,
-        timestamp_range.start_timestamp,
-        timestamp_range.end_timestamp,
+    tip = await tips_collection.find_one(
+        {
+            "user_id": user_id,
+            "created_at_timestamp": {"$gte": start, "$lt": end},
+        }
     )
+    if tip:
+        return JSONResponse(DailyInsightModel(daily_tip=tip["daily_tip"], todays_focus=tip["todays_focus"]).model_dump(by_alias=True))
 
-    cursor = await user_exercises_collection.aggregate(pipeline)
-    models = (await _hydrate_exercise(doc["exercise"]) async for doc in cursor if "exercise" in doc)
-
-    return StreamingResponse(
-        _stream_json(cursor=models, model_factory=ExerciseModel),
-        media_type="application/x-ndjson",
+    generated = await google_api_handler.generate_tips(user=user)
+    await tips_collection.insert_one(
+        {
+            "_id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "todays_focus": generated.todays_focus,
+            "daily_tip": generated.daily_tip,
+            "created_at_timestamp": arrow.now().float_timestamp,
+        }
     )
+    return JSONResponse(generated.model_dump(by_alias=True))
