@@ -10,6 +10,7 @@ from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from redis.asyncio import Redis
 
 from src.utils import (
+    RNG,
     S3,
     EmailNormalizer,
     GoogleAPIHandler,
@@ -71,6 +72,7 @@ REDIS_DB = int(os.getenv("REDIS_DB", 5))
 auth_manager = TokenManager()
 google_api_handler = GoogleAPIHandler()
 s3 = S3()
+rng = RNG()
 redis_client = Redis(
     host=REDIS_HOST,
     port=REDIS_PORT,
@@ -86,6 +88,7 @@ email_normalizer = EmailNormalizer()
 app.state.auth_manager = auth_manager
 app.state.google_api_handler = google_api_handler
 app.state.s3 = s3
+app.state.rng = rng
 app.state.redis_client = redis_client
 app.state.email_normalizer = email_normalizer
 app.state.start_time = arrow.utcnow()

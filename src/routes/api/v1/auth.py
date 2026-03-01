@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import random
 import uuid
 
 import arrow
@@ -34,7 +33,7 @@ from src.models import (
     UserModel,
 )
 from src.routes.api.utils import get_user_id
-from src.utils import EmailHandler, EmailNormalizer
+from src.utils import RNG, EmailHandler, EmailNormalizer
 from src.utils.token_manager import AuthError, TokenManager, TokenPairDict
 
 from .objects import ErrorResponseModel, RegistrationResponse, ServerMessage
@@ -45,6 +44,7 @@ auth_manager: TokenManager = app.state.auth_manager
 database: Database = app.state.mongo_database
 redis_client: Redis = app.state.redis_client
 email_normalizer: EmailNormalizer = app.state.email_normalizer
+rng: RNG = app.state.rng
 
 credentials_collection: Collection[CredentialsDict] = database["credentials"]
 users_collection: Collection[UserDict] = database["users"]
@@ -85,19 +85,13 @@ async def _get_credential_by_email(email_address: str, /) -> CredentialsDict:
 async def _get_credential_by_id(user_id: str, /) -> CredentialsDict:
     cred = await credentials_collection.find_one({"_id": user_id})
     if cred is None:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
     if cred.get("account_status") == AccountStatus.DELETED:
-        raise HTTPException(
-            status_code=HTTP_410_GONE,
-        )
+        raise HTTPException(status_code=HTTP_410_GONE)
 
     if cred.get("account_status") == AccountStatus.LOCKED:
-        raise HTTPException(
-            status_code=HTTP_423_LOCKED,
-        )
+        raise HTTPException(status_code=HTTP_423_LOCKED)
     return cred
 
 
@@ -390,9 +384,7 @@ async def update_user(
     fields.pop("_id", None)
 
     if not fields:
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-        )
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST)
 
     credential = await credentials_collection.find_one_and_update(
         {"_id": user_id},
@@ -402,25 +394,17 @@ async def update_user(
     )
 
     if credential is None:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
     if credential.get("account_status") == AccountStatus.DELETED:
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-        )
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
 
     if credential.get("account_status") == AccountStatus.LOCKED:
-        raise HTTPException(
-            status_code=HTTP_423_LOCKED,
-        )
+        raise HTTPException(status_code=HTTP_423_LOCKED)
 
     update_result = await users_collection.update_one({"_id": user_id}, {"$set": fields})
     if update_result.matched_count == 0:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
     return _create_json_response(detail="User updated successfully.")
 
@@ -447,9 +431,7 @@ async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
         {"$set": {"account_status": AccountStatus.DELETED, "updated_at_timestamp": arrow.utcnow().timestamp()}},
     )
     if update_result.matched_count == 0:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
     await users_collection.delete_one({"_id": user_id})
 
@@ -487,9 +469,7 @@ async def change_email(
 ):
     cred = await _get_credential_by_id(user_id)
     if not cred:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
     normalised_email_result = await email_normalizer.normalize(new_email_address)
 
@@ -502,9 +482,7 @@ async def change_email(
         }
     )
     if existing_user and existing_user.get("_id") != user_id and existing_user.get("account_status") != AccountStatus.DELETED:
-        raise HTTPException(
-            status_code=HTTP_409_CONFLICT,
-        )
+        raise HTTPException(status_code=HTTP_409_CONFLICT)
 
     await credentials_collection.update_one(
         {"_id": user_id},
@@ -568,9 +546,7 @@ async def change_password(
 ):
     cred = await _get_credential_by_id(user_id)
     if not _verify_password(password=current_password, hashed=cred.get("password_hash") or _hash_password("")):
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-        )
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
 
     await credentials_collection.update_one(
         {"_id": user_id},
@@ -613,7 +589,7 @@ async def request_otp(
     ),
 ):
     await _get_credential_by_email(email_address)
-    otp = str(random.randint(100000, 999999))
+    otp = str(rng.random_int(start=100000, end=999999))
     await redis_client.setex(f"otp:{email_address}", 600, otp)
 
     background_tasks.add_task(

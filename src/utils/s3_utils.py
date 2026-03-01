@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from contextlib import AsyncExitStack
+from typing import cast
 
 from aiobotocore.config import AioConfig
 from aiobotocore.session import AioSession, get_session
@@ -43,7 +44,7 @@ async def create_s3_client(session: AioSession, exit_stack: AsyncExitStack) -> S
             ),
         )
     )
-    return client
+    return cast(S3Client, client)
 
 
 class S3:
