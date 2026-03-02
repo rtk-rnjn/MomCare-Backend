@@ -7,6 +7,7 @@ from src.app import app
 from .admin_credentials import router as admin_credentials_router
 from .admin_dashboard import router as admin_dashboard_router
 from .admin_data_manager import router as admin_data_manager_router
+from .admin_datastores import router as admin_datastores_router
 from .admin_exercise import router as admin_exercises_router
 from .admin_food_items import router as admin_food_items_router
 from .admin_login import router as admin_login_router
@@ -32,6 +33,7 @@ proxy_admin = APIRouter(prefix="/admin", dependencies=[Depends(admin_required)])
 proxy_admin.include_router(admin_root_router)
 proxy_admin.include_router(admin_dashboard_router)
 proxy_admin.include_router(admin_data_manager_router)
+proxy_admin.include_router(admin_datastores_router)
 proxy_admin.include_router(admin_tools_router)
 proxy_admin.include_router(admin_users_router)
 proxy_admin.include_router(admin_credentials_router)

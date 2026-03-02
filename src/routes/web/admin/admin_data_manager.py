@@ -22,15 +22,8 @@ email_normalizer: EmailNormalizer = app.state.email_normalizer
 google_api_handler: GoogleAPIHandler = app.state.google_api_handler
 
 
-ALLOWED_COLLECTIONS = {
-    "users",
-    "credentials",
-    "foods",
-    "songs",
-    "exercises",
-    "plans",
-    "tips",
-    "user_exercises",
+NOT_ALLOWED_COLLECTIONS = {
+    "admin",
 }
 
 
@@ -138,7 +131,7 @@ COLLECTION_SHORTCUTS: dict[str, list[dict[str, str]]] = {
 
 
 def _ensure_collection_allowed(collection_name: str) -> str:
-    if collection_name not in ALLOWED_COLLECTIONS:
+    if collection_name in NOT_ALLOWED_COLLECTIONS:
         raise HTTPException(status_code=400, detail="Collection not allowed")
     return collection_name
 
@@ -256,7 +249,7 @@ async def admin_data_manager(request: Request):
 
 @router.get("/data-manager/api/collections", include_in_schema=False)
 async def admin_data_manager_collections():
-    names = sorted([name for name in await database.list_collection_names() if name in ALLOWED_COLLECTIONS])
+    names = sorted([name for name in await database.list_collection_names() if name not in NOT_ALLOWED_COLLECTIONS])
     return JSONResponse({"collections": names})
 
 

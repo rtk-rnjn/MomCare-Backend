@@ -80,9 +80,3 @@ class RNG:
             chars += string.digits
 
         return "".join(self.random.choices(chars, k=length))
-
-
-if __debug__:
-    import doctest
-
-    doctest.testmod(verbose=True)

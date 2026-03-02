@@ -35,7 +35,7 @@ class ORJSONResponse(_ORJSONResponse):
     media_type = "application/json"
 
     def render(self, content: Any) -> bytes:
-        def default(obj):
+        def default(obj: Any) -> Any:
             if isinstance(obj, Timestamp):
                 return obj.as_datetime().timestamp()
 
@@ -50,12 +50,12 @@ class ORJSONResponse(_ORJSONResponse):
 
 
 class MongoServerInfo(TypedDict, total=False):
-    version: str
-    git_version: str
-    sys_info: str
-    loader_flags: str
-    allocator: str
-    javascript_engine: str
+    version: Any
+    git_version: Any
+    sys_info: Any
+    loader_flags: Any
+    allocator: Any
+    javascript_engine: Any
 
 
 class MongoBuildInfo(TypedDict, total=False):

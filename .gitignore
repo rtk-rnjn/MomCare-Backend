@@ -12,13 +12,10 @@ env.bak/
 venv.bak/
 .ruff_cache/
 .pypirc
-test.py
+
 *.rdb
 .DS_Store
-logs.*
 *.db
-bucket/
 config.json
-app.log
+app.log*
 node_modules/
-dist/
