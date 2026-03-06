@@ -101,9 +101,14 @@ templates = Jinja2Templates(directory="src/templates")
 templates.env.filters["humanize_timestamp"] = humanize_timestamp
 app.state.templates = templates
 
-from .middleware import add_process_time_header, websocket_logs  # noqa: E402, F401
+from .middleware import (  # noqa: E402, F401
+    add_process_time_header,
+    websocket_logs,
+    websocket_metrics,
+)
 from .routes import api_router, web_router  # noqa: E402
 
 app.include_router(api_router)
 app.include_router(web_router)
 app.add_websocket_route("/ws/logs", websocket_logs)
+app.add_websocket_route("/ws/metrics", websocket_metrics)

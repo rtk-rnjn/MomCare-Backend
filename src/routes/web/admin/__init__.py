@@ -11,6 +11,7 @@ from .admin_datastores import router as admin_datastores_router
 from .admin_exercise import router as admin_exercises_router
 from .admin_food_items import router as admin_food_items_router
 from .admin_login import router as admin_login_router
+from .admin_logs import router as admin_logs_router
 from .admin_myplan import router as admin_myplan_router
 from .admin_songs import router as admin_songs_router
 from .admin_tools import router as admin_tools_router
@@ -41,6 +42,7 @@ proxy_admin.include_router(admin_food_items_router)
 proxy_admin.include_router(admin_songs_router)
 proxy_admin.include_router(admin_exercises_router)
 proxy_admin.include_router(admin_myplan_router)
+proxy_admin.include_router(admin_logs_router)
 
 router = APIRouter()
 router.include_router(proxy_admin)

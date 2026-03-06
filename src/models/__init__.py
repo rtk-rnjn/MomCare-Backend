@@ -4,7 +4,7 @@ from .exercise import (  # noqa: F401
     UserExerciseDict,
     UserExerciseModel,
 )
-from .food_item import FoodItemDict, FoodItemModel  # noqa: F401
+from .food_item import FoodItemDict, FoodItemModel, FoodType  # noqa: F401
 from .plan import (  # noqa: F401
     FoodReferenceDict,
     FoodReferenceModel,

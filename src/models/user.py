@@ -169,6 +169,7 @@ class UserModel(BaseModel):
         examples=[[Allergen.GLUTEN, Allergen.BANANA]],
         title="Food Intolerances",
     )
+
     dietary_preferences: list[FoodType] = Field(
         default_factory=list,
         description="A list of the user's dietary preferences.",

@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="en" x-data="{ sidebarOpen: false, dark: true }" :class="{ 'dark': dark }">
+<html lang="en"
+    x-data="{ sidebarOpen: false, dark: localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches }"
+    x-init="$watch('dark', value => localStorage.setItem('theme', value ? 'dark' : 'light'))" :class="{ 'dark': dark }">
 
 <head>
     <meta charset="UTF-8">
@@ -13,22 +15,40 @@
 
     <style>
         :root {
-            --bg-base: #09090f;
-            --bg-surface: #111118;
-            --bg-elevated: #17171f;
-            --bg-hover: #1e1e28;
-            --border: rgba(255, 255, 255, 0.06);
-            --border-accent: rgba(99, 102, 241, 0.4);
-            --accent: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.15);
-            --accent-subtle: rgba(99, 102, 241, 0.08);
-            --text-primary: #fafafa;
-            --text-secondary: #d9d9d9;
-            --text-muted: #78788d;
-            --success: #22d3a0;
-            --warning: #f59e0b;
-            --danger: #f43f5e;
+            --bg-base: #f7f7f5;
+            --bg-surface: #ffffff;
+            --bg-elevated: #f1f2f4;
+            --bg-hover: #e8e9ec;
+            --border: #e2e4e8;
+            --border-accent: #9abed1;
+            --accent: #2d6a8f;
+            --accent-glow: rgba(45, 106, 143, 0.12);
+            --accent-subtle: rgba(45, 106, 143, 0.08);
+            --text-primary: #1f2933;
+            --text-secondary: #334155;
+            --text-muted: #6b7280;
+            --success: #2f855a;
+            --warning: #c05621;
+            --danger: #c53030;
             --sidebar-width: 240px;
+        }
+
+        .dark {
+            --bg-base: #0f1720;
+            --bg-surface: #131c26;
+            --bg-elevated: #182433;
+            --bg-hover: #1f2c3d;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-accent: #4a90b7;
+            --accent: #5ea3c4;
+            --accent-glow: rgba(94, 163, 196, 0.18);
+            --accent-subtle: rgba(94, 163, 196, 0.12);
+            --text-primary: #f4f7fb;
+            --text-secondary: #d7deea;
+            --text-muted: #8fa0b4;
+            --success: #48bb78;
+            --warning: #f6ad55;
+            --danger: #f56565;
         }
 
         * {
@@ -41,22 +61,8 @@
             background: var(--bg-base);
             color: var(--text-primary);
             font-family: 'Instrument Sans', sans-serif;
-
             line-height: 1.6;
             min-height: 100vh;
-        }
-
-        /* Subtle grid background */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            pointer-events: none;
-            z-index: 0;
         }
 
         .layout {
@@ -87,12 +93,8 @@
         .sidebar-brand h1 {
             font-family: 'Syne', sans-serif;
             font-weight: 800;
-
             letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--text-primary);
         }
 
         .sidebar-brand p {
@@ -326,7 +328,7 @@
     {% block head %}{% endblock %}
 </head>
 
-<body class="bg-gray-900 text-gray-100">
+<body class="app-body">
 
     <div class="layout">
 
@@ -344,6 +346,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h6v6H3zM3 15h6v4H3zM13 3h8v8h-8zM13 15h8v6h-8z" />
                     </svg>
                     Dashboard
+                </a>
+                <a href="{{ url_for('admin_logs') }}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                    Logs
                 </a>
                 <a href="{{ url_for('admin_data_manager') }}">
                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -427,7 +435,7 @@
                 </div>
 
                 <div class="topbar-right">
-                    <button @click="dark = !dark" class="btn-theme">⬡ Theme</button>
+                    <button @click="dark = !dark" class="btn-theme" :aria-pressed="dark" x-text="dark ? 'Light theme' : 'Dark theme'"></button>
                     <span class="admin-badge">ADMIN</span>
                 </div>
             </header>
