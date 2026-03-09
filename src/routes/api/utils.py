@@ -47,20 +47,10 @@ async def rate_limiter(request: Request):
         )
 
 
-ERROR_MAP = {
-    "Refresh token revoked": "refresh_token_revoked",
-    "Invalid token payload": "invalid_token_payload",
-    "Invalid token": "invalid_token",
-    "Token expired": "token_expired",
-}
-
-
 def get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         return auth_manager.authenticate(credentials.credentials)
-    except AuthError as e:
-        ERROR_MAP.get(str(e), "invalid_token")
-
+    except AuthError:
         raise HTTPException(
             status_code=401,
             headers={"WWW-Authenticate": "Bearer"},
@@ -70,9 +60,7 @@ def get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)):
 def get_access_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         return auth_manager.decode(credentials.credentials, "access")
-    except AuthError as e:
-        ERROR_MAP.get(str(e), "invalid_token")
-
+    except AuthError:
         raise HTTPException(
             status_code=401,
             headers={"WWW-Authenticate": "Bearer"},
@@ -82,9 +70,7 @@ def get_access_token(credentials: HTTPAuthorizationCredentials = Depends(securit
 def get_refresh_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         return auth_manager.decode(credentials.credentials, "refresh")
-    except AuthError as e:
-        ERROR_MAP.get(str(e), "invalid_token")
-
+    except AuthError:
         raise HTTPException(
             status_code=401,
             headers={"WWW-Authenticate": "Bearer"},

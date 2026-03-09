@@ -162,7 +162,7 @@ async def register(data: CredentialsModel = Body(...)):
 
     await users_collection.insert_one({"_id": cred_id})
 
-    tokens = auth_manager.login(cred_id)
+    tokens = await auth_manager.login(cred_id)
     return RegistrationResponse(email_address=data.email_address, **tokens)
 
 
@@ -250,7 +250,7 @@ async def login(data: CredentialsModel = Body(...)):
             status_code=HTTP_200_OK,
         )
 
-    token_pair = auth_manager.login(str(cred.get("_id")))
+    token_pair = await auth_manager.login(str(cred.get("_id")))
     maybe_awaitable = redis_client.hset(redis_key, mapping=dict(token_pair))
     await redis_client.expire(redis_key, 15 * 60)
     if inspect.isawaitable(maybe_awaitable):
@@ -308,8 +308,9 @@ async def refresh_token(
     ),
 ):
     try:
-        return auth_manager.refresh(refresh_token)
-    except AuthError:
+        return await auth_manager.refresh(refresh_token)
+    except AuthError as e:
+        print(f"Auth error during token refresh: {str(e)}")  # Debug log
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
         )
@@ -340,7 +341,7 @@ async def logout(
     ),
 ):
     try:
-        auth_manager.logout(refresh_token)
+        await auth_manager.logout(refresh_token)
     except AuthError:
         raise HTTPException(status_code=401)
     return _create_json_response(detail="Logged out successfully.")

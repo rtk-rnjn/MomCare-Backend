@@ -9,7 +9,7 @@ from typing import Any, Literal, Mapping, TypedDict, overload
 import arrow
 import jwt
 from dotenv import load_dotenv
-from redis import Redis
+from redis.asyncio import Redis
 
 _ = load_dotenv(verbose=True)
 
@@ -123,18 +123,25 @@ class TokenManager(metaclass=SingletonMeta):
         }
         return jwt.encode(dict(payload), JWT_SECRET, algorithm=JWT_ALGO)
 
-    def login(self, user_id: str, /) -> TokenPairDict:
-        jti = str(uuid.uuid4())
+    async def create_or_get_refresh_token(self, user_id: str, /) -> str:
+        pattern = "refresh:*"
+        async for key in self.redis_client.scan_iter(pattern):
+            if await self.redis_client.get(key) == user_id:
+                jti = key.split(":", 1)[1]
+                return self.create_refresh_token(user_id, jti)
 
-        self.redis_client.setex(
+        jti = str(uuid.uuid4())
+        await self.redis_client.setex(
             f"refresh:{jti}",
             int(REFRESH_EXP.total_seconds()),
             user_id,
         )
+        return self.create_refresh_token(user_id, jti)
 
+    async def login(self, user_id: str, /) -> TokenPairDict:
         return {
             "access_token": self.create_access_token(user_id),
-            "refresh_token": self.create_refresh_token(user_id, jti),
+            "refresh_token": await self.create_or_get_refresh_token(user_id),
             "expires_at_timestamp": int((self.utc_now() + ACCESS_EXP).timestamp()),
         }
 
@@ -219,31 +226,21 @@ class TokenManager(metaclass=SingletonMeta):
         payload = self.decode(access_token, "access")
         return payload["sub"]
 
-    def refresh(self, refresh_token: str, /) -> TokenPairDict:
+    async def refresh(self, refresh_token: str, /) -> TokenPairDict:
         payload = self.decode(refresh_token, "refresh")
-        jti = payload["jti"]
         user_id = payload["sub"]
-
+        jti = payload["jti"]
         key = f"refresh:{jti}"
-
-        if not self.redis_client.exists(key):
-            raise AuthError("Refresh token revoked")
-
-        self.redis_client.delete(key)
-
-        new_jti = str(uuid.uuid4())
-        self.redis_client.setex(
-            f"refresh:{new_jti}",
-            int(REFRESH_EXP.total_seconds()),
-            user_id,
-        )
+        stored_user_id = await self.redis_client.get(key)
+        if stored_user_id != user_id:
+            raise AuthError("Invalid refresh token")
 
         return {
             "access_token": self.create_access_token(user_id),
-            "refresh_token": self.create_refresh_token(user_id, new_jti),
+            "refresh_token": await self.create_or_get_refresh_token(user_id),
             "expires_at_timestamp": int((self.utc_now() + ACCESS_EXP).timestamp()),
         }
 
-    def logout(self, refresh_token: str, /):
+    async def logout(self, refresh_token: str, /):
         payload = self.decode(refresh_token, "refresh")
-        self.redis_client.delete(f"refresh:{payload['jti']}")
+        await self.redis_client.delete(f"refresh:{payload['jti']}")
