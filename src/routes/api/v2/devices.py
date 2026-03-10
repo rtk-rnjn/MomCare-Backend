@@ -106,7 +106,9 @@ async def receive_daily_metrics(data: dict = Body(..., embed=False), user_id: st
     },
     include_in_schema=False,
 )
-async def receive_diagnostic_metrics(data: dict = Body(..., embed=False), user_id: str = Depends(get_user_id, use_cache=False)) -> bool:
+async def receive_diagnostic_metrics(
+    data: dict = Body(..., embed=False), user_id: str = Depends(get_user_id, use_cache=False)
+) -> bool:
     print(data)
     timestamp = arrow.now().int_timestamp
 

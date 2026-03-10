@@ -101,7 +101,10 @@ async def _get_verified_user(user_id: str) -> UserDict:
         return user
 
     authentication_providers = cred.get("authentication_providers") or []
-    if AuthenticationProvider.APPLE.value in authentication_providers or AuthenticationProvider.GOOGLE.value in authentication_providers:
+    if (
+        AuthenticationProvider.APPLE.value in authentication_providers
+        or AuthenticationProvider.GOOGLE.value in authentication_providers
+    ):
         return user
 
     raise HTTPException(HTTP_403_FORBIDDEN)
