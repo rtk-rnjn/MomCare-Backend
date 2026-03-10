@@ -156,6 +156,7 @@ async def create_new_google_account(google_id: str) -> str:
     )
 
     await credentials_collection.insert_one(credentials)
+    await users_collection.insert_one({"_id": credentials["_id"]})  # pyright: ignore[reportTypedDictNotRequiredAccess]
     return credentials["_id"]  # pyright: ignore
 
 
@@ -325,6 +326,7 @@ async def create_new_apple_account(apple_id: str) -> str:
     )
 
     await credentials_collection.insert_one(credentials)
+    await users_collection.insert_one({"_id": credentials["_id"]})  # pyright: ignore[reportTypedDictNotRequiredAccess]
     return credentials["_id"]  # pyright: ignore
 
 
