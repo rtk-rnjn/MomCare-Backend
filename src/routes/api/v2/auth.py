@@ -97,7 +97,7 @@ async def login_if_google_id_exists(
         return None
 
     user_id: str = credentials["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
-    return auth_manager.login(user_id)
+    return await auth_manager.login(user_id)
 
 
 async def link_google_to_existing_account(
@@ -210,7 +210,7 @@ async def google_login(
     else:
         user_id = await create_new_google_account(google_id)
 
-    token_pair = auth_manager.login(user_id)
+    token_pair = await auth_manager.login(user_id)
     return JSONResponse(content=token_pair, status_code=HTTP_200_OK)
 
 
@@ -266,7 +266,7 @@ async def login_if_apple_id_exists(
         return None
 
     user_id: str = credentials["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
-    return auth_manager.login(user_id)
+    return await auth_manager.login(user_id)
 
 
 async def link_apple_to_existing_account(
@@ -384,5 +384,5 @@ async def apple_login(
     else:
         user_id = await create_new_apple_account(apple_id)
 
-    token_pair = auth_manager.login(user_id)
+    token_pair = await auth_manager.login(user_id)
     return JSONResponse(content=token_pair, status_code=HTTP_200_OK)
