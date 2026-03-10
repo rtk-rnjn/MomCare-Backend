@@ -414,7 +414,7 @@ async def update_user(
     "/delete",
     name="Delete User Account",
     status_code=HTTP_200_OK,
-    response_model=ServerMessage,
+    response_model=bool,
     response_description="A message confirming successful deletion of the user account.",
     summary="Delete current user account",
     description="Permanently delete the currently authenticated user's account. Requires a valid access token. Deletes the user's credentials and details from the database and returns a message confirming successful deletion.",
@@ -435,6 +435,7 @@ async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
     await users_collection.delete_one({"_id": user_id})
+    return True
 
 
 @router.patch(
