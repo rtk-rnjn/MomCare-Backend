@@ -23,6 +23,7 @@ from starlette.status import (
 from src.app import app
 from src.models import (
     AccountStatus,
+    AuthenticationProvider,
     CredentialsDict,
     ExerciseDict,
     ExerciseModel,
@@ -82,19 +83,13 @@ async def _get_verified_user(user_id: str) -> UserDict:
     """
     cred = await credentials_collection.find_one({"_id": user_id})
     if not cred:
-        raise HTTPException(
-            HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(HTTP_404_NOT_FOUND)
 
     if cred.get("account_status") == AccountStatus.DELETED:
-        raise HTTPException(
-            HTTP_410_GONE,
-        )
+        raise HTTPException(HTTP_410_GONE)
 
     if cred.get("account_status") == AccountStatus.LOCKED:
-        raise HTTPException(
-            HTTP_403_FORBIDDEN,
-        )
+        raise HTTPException(HTTP_403_FORBIDDEN)
 
     user = await users_collection.find_one({"_id": user_id})
     if not user:
@@ -105,9 +100,11 @@ async def _get_verified_user(user_id: str) -> UserDict:
     if cred.get("verified_email", False):
         return user
 
-    raise HTTPException(
-        HTTP_403_FORBIDDEN,
-    )
+    authentication_providers = cred.get("authentication_providers") or []
+    if AuthenticationProvider.APPLE.value in authentication_providers or AuthenticationProvider.GOOGLE.value in authentication_providers:
+        return user
+
+    raise HTTPException(HTTP_403_FORBIDDEN)
 
 
 async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: type[BaseModel]):
