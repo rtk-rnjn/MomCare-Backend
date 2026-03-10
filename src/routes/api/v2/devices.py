@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import arrow
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 from redis.asyncio import Redis
@@ -62,4 +63,52 @@ async def register_device_token(
 )
 async def unregister_device_token(user_id: str = Depends(get_user_id, use_cache=False)) -> bool:
     await redis_client.delete(f"device_token:{user_id}")
+    return True
+
+
+@router.post(
+    "/daily-metrics",
+    summary="Data receiving endpoint from `MXMetricManagerSubscriber` in iOS app",
+    name="Receive Daily Metrics",
+    description="Endpoint to receive daily metrics data from the iOS app using `MXMetricManagerSubscriber`.",
+    response_model=bool,
+    response_description="Always returns true if the metrics data was successfully received.",
+    status_code=HTTP_200_OK,
+    responses={
+        HTTP_200_OK: {
+            "description": "Metrics data received.",
+            "content": {"application/json": {"example": True}},
+        },
+    },
+    include_in_schema=False,
+)
+async def receive_daily_metrics(data: dict = Body(..., embed=False), user_id: str = Depends(get_user_id, use_cache=False)) -> bool:
+    print(data)
+    timestamp = arrow.now().int_timestamp
+
+    await redis_client.set(f"daily_metrics:{user_id}:{timestamp}", str(data))
+    return True
+
+
+@router.post(
+    "/diagnostic-metrics",
+    summary="Data receiving endpoint from `MXMetricManagerSubscriber` in iOS app",
+    name="Receive Diagnostic Metrics",
+    description="Endpoint to receive diagnostic metrics data from the iOS app using `MXMetricManagerSubscriber`.",
+    response_model=bool,
+    response_description="Always returns true if the metrics data was successfully received.",
+    status_code=HTTP_200_OK,
+    responses={
+        HTTP_200_OK: {
+            "description": "Metrics data received.",
+            "content": {"application/json": {"example": True}},
+        },
+    },
+    include_in_schema=False,
+)
+async def receive_diagnostic_metrics(data: dict = Body(..., embed=False), user_id: str = Depends(get_user_id, use_cache=False)) -> bool:
+    print(data)
+    timestamp = arrow.now().int_timestamp
+
+    await redis_client.set(f"diagnostic_metrics:{user_id}:{timestamp}", str(data))
     return True

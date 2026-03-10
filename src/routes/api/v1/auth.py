@@ -77,9 +77,7 @@ async def _get_credential_by_email(email_address: str, /) -> CredentialsDict:
         }
     )
     if cred is None:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
     return cred
 
 
@@ -123,9 +121,7 @@ def _create_json_response(*, detail: str, status: int = HTTP_200_OK):
 )
 async def register(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
-        raise HTTPException(
-            status_code=400,
-        )
+        raise HTTPException(status_code=400)
 
     normalization_result = await email_normalizer.normalize(data.email_address)
     if await credentials_collection.find_one(
@@ -137,9 +133,7 @@ async def register(data: CredentialsModel = Body(...)):
             "account_status": {"$ne": AccountStatus.DELETED},
         }
     ):
-        raise HTTPException(
-            status_code=409,
-        )
+        raise HTTPException(status_code=409)
 
     cred_id = str(uuid.uuid4())
 
@@ -203,9 +197,7 @@ async def register(data: CredentialsModel = Body(...)):
 )
 async def login(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-        )
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST)
 
     cred = await _get_credential_by_email(data.email_address)
 
@@ -219,9 +211,7 @@ async def login(data: CredentialsModel = Body(...)):
                 "$set": {"failed_login_attempts_timestamp": now},
             },
         )
-        raise HTTPException(
-            status_code=401,
-        )
+        raise HTTPException(status_code=401)
 
     await credentials_collection.update_one(
         {"_id": cred.get("_id")},
@@ -277,9 +267,7 @@ async def login(data: CredentialsModel = Body(...)):
 async def get_current_user(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await users_collection.find_one({"_id": user_id})
     if user is None:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
     return UserModel.model_validate(user)
 
 
@@ -311,9 +299,7 @@ async def refresh_token(
         return await auth_manager.refresh(refresh_token)
     except AuthError as e:
         print(f"Auth error during token refresh: {str(e)}")  # Debug log
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-        )
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
 
 
 @router.post(
