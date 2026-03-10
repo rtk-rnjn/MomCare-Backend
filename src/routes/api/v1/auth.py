@@ -8,8 +8,8 @@ import bcrypt
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 from fastapi.exceptions import HTTPException
 from fastapi.responses import ORJSONResponse as JSONResponse
-from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo import ReturnDocument
+from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from redis.asyncio import Redis
 from starlette.status import (
