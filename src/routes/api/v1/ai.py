@@ -267,8 +267,9 @@ async def fetch_all_exercises(
     start_ts = timestamp_range.start_timestamp
     end_ts = timestamp_range.end_timestamp
 
-    cursor = exercises_collection.find(
+    cursor = user_exercises_collection.find(
         {
+            "user_id": user_id,
             "added_at_timestamp": {
                 "$gte": start_ts,
                 "$lte": end_ts,
