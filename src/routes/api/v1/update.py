@@ -45,7 +45,7 @@ def _inc_food(plan_id: str, meal: Meal, food_id: str, user_id: str, delta: int):
 
 
 @router.post(
-    "/exercise/{exercise_id}",
+    "/exercise/{user_exercise_id}",
     name="Update Exercise Duration",
     status_code=HTTP_200_OK,
     response_model=bool,
@@ -61,11 +61,11 @@ def _inc_food(plan_id: str, meal: Meal, food_id: str, user_id: str, delta: int):
     },
 )
 async def update_exercise(
-    exercise_id: str = Path(
-        description="The ID of the exercise to update.",
+    user_exercise_id: str = Path(
+        description="The ID of the user exercise to update.",
         examples=["123e4567-e89b-12d3-a456-426614174000"],
-        title="Exercise ID",
-        alias="exercise_id",
+        title="User Exercise ID",
+        alias="user_exercise_id",
     ),
     duration: float = Body(
         description="The duration of the exercise in seconds.",
@@ -78,13 +78,11 @@ async def update_exercise(
 ):
     duration = min(max(0, duration), duration)
     update_result = await exercises_collection.update_one(
-        {"exercise_id": exercise_id, "user_id": user_id},
+        {"_id": user_exercise_id, "user_id": user_id},
         {"$set": {"video_duration_completed_seconds": duration}},
     )
     if update_result.matched_count == 0:
-        raise HTTPException(
-            status_code=HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
     return update_result.modified_count == 1
 
