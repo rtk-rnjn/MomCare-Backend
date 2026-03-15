@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 import uuid
-from typing import AsyncGenerator, TypedDict, cast
+from typing import TypedDict, cast
 
 import arrow
 from fastapi import APIRouter, Body, Depends
 from fastapi.exceptions import HTTPException
 from fastapi.responses import ORJSONResponse as JSONResponse
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from pymongo.asynchronous.collection import AsyncCollection as Collection
-from pymongo.asynchronous.cursor import AsyncCursor
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from starlette.status import (
     HTTP_200_OK,
@@ -110,27 +107,14 @@ async def _get_verified_user(user_id: str) -> UserDict:
     raise HTTPException(HTTP_403_FORBIDDEN)
 
 
-async def _stream_json(*, cursor: AsyncGenerator | AsyncCursor, model_factory: type[BaseModel]):
-    """Yield JSON lines for a cursor/generator using the provided model factory."""
-    async for m in cursor:
-        yield model_factory(**m).model_dump_json(by_alias=True) + "\n"
-
-
 @router.post(
     "/search/tips",
-    response_class=StreamingResponse,
+    response_class=JSONResponse,
+    response_model=list[DailyInsightDict],
     response_description="A list of daily insights matching the search criteria.",
     summary="Search daily tips",
     description="Search for daily tips within a specified timestamp range.",
     responses={
-        HTTP_200_OK: {
-            "description": "NDJSON stream of daily insights.",
-            "content": {
-                "application/x-ndjson": {
-                    "schema": DailyInsightModel.model_json_schema(by_alias=True),
-                }
-            },
-        },
         HTTP_403_FORBIDDEN: {
             "description": "User not verified or forbidden.",
             "model": ErrorResponseModel,
@@ -153,7 +137,6 @@ async def fetch_all_tips(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
-    """Stream all tips for a verified user within the provided timestamp range."""
     await _get_verified_user(user_id)
 
     cursor = tips_collection.find(
@@ -166,23 +149,20 @@ async def fetch_all_tips(
         }
     )
 
-    return StreamingResponse(
-        _stream_json(cursor=cursor, model_factory=DailyInsightModel),
-        media_type="application/x-ndjson",
+    tips = await cursor.to_list(length=None)
+    return JSONResponse(
+        [DailyInsightModel(todays_focus=tip["todays_focus"], daily_tip=tip["daily_tip"]).model_dump(by_alias=True) for tip in tips]
     )
 
 
 @router.post(
     "/search/plan",
-    response_class=StreamingResponse,
+    response_class=JSONResponse,
+    response_model=list[MyPlanModel],
     response_description="A list of meal plans matching the search criteria.",
     summary="Search meal plans",
     description="Search for meal plans within a specified timestamp range.",
     responses={
-        HTTP_200_OK: {
-            "description": "NDJSON stream of meal plans.",
-            "content": {"application/x-ndjson": {}},
-        },
         HTTP_403_FORBIDDEN: {
             "description": "User not verified or forbidden.",
             "model": ErrorResponseModel,
@@ -205,7 +185,6 @@ async def fetch_all_plans(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
-    """Stream all generated meal plans for a verified user in the requested window."""
     await _get_verified_user(user_id)
 
     cursor = plans_collection.find(
@@ -218,23 +197,31 @@ async def fetch_all_plans(
         }
     )
 
-    return StreamingResponse(
-        _stream_json(cursor=cursor, model_factory=MyPlanModel),
-        media_type="application/x-ndjson",
+    plans = await cursor.to_list(length=None)
+    return JSONResponse(
+        [
+            MyPlanModel(
+                id=plan.get("_id"),  # type: ignore
+                user_id=plan.get("user_id"),
+                breakfast=[FoodReferenceModel(**item) for item in plan.get("breakfast", [])],
+                lunch=[FoodReferenceModel(**item) for item in plan.get("lunch", [])],
+                dinner=[FoodReferenceModel(**item) for item in plan.get("dinner", [])],
+                snacks=[FoodReferenceModel(**item) for item in plan.get("snacks", [])],
+                created_at_timestamp=plan.get("created_at_timestamp"),
+            ).model_dump(by_alias=True)
+            for plan in plans
+        ]
     )
 
 
 @router.post(
     "/search/exercises",
-    response_class=StreamingResponse,
+    response_class=JSONResponse,
+    response_model=list[UserExerciseModel],
     response_description="A list of exercises matching the search criteria.",
     summary="Search exercises",
     description="Search for exercises within a specified timestamp range.",
     responses={
-        HTTP_200_OK: {
-            "description": "NDJSON stream of hydrated exercises.",
-            "content": {"application/x-ndjson": {}},
-        },
         HTTP_403_FORBIDDEN: {
             "description": "User not verified or forbidden.",
             "model": ErrorResponseModel,
@@ -261,7 +248,6 @@ async def fetch_all_exercises(
     timestamp_range: TimestampRange = Body(...),
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
-    """Stream hydrated exercise models for a verified user in the requested window."""
     await _get_verified_user(user_id)
 
     start_ts = timestamp_range.start_timestamp
@@ -277,10 +263,8 @@ async def fetch_all_exercises(
         }
     )
 
-    return StreamingResponse(
-        _stream_json(cursor=cursor, model_factory=UserExerciseModel),
-        media_type="application/x-ndjson",
-    )
+    exercises = await cursor.to_list(length=None)
+    return JSONResponse([UserExerciseModel(**exercise).model_dump(by_alias=True) for exercise in exercises])
 
 
 @router.get(
@@ -363,7 +347,6 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
 
 @router.get(
     "/generate/exercises",
-    response_class=StreamingResponse,
     response_model=list[UserExerciseModel],
     response_description="A list of exercises generated for the user.",
     summary="Generate exercises",
