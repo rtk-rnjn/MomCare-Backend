@@ -36,7 +36,6 @@ async def admin_credentials(
             {"_id": q},
             {"email_address": {"$regex": q, "$options": "i"}},
             {"email_address_normalized": {"$regex": q, "$options": "i"}},
-            {"google_id": {"$regex": q, "$options": "i"}},
             {"apple_id": {"$regex": q, "$options": "i"}},
         ]
 

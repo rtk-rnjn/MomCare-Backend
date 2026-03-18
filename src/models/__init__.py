@@ -19,5 +19,7 @@ from .user import (  # noqa: F401
     CredentialsModel,
     PasswordAlgorithm,
     UserDict,
+    ResponseCredentialsDict,
+    ResponseCredentialsModel,
     UserModel,
 )

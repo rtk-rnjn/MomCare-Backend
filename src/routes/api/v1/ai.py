@@ -201,7 +201,7 @@ async def fetch_all_plans(
     return JSONResponse(
         [
             MyPlanModel(
-                id=plan.get("_id"),  # type: ignore
+                _id=plan.get("_id"),  # type: ignore
                 user_id=plan.get("user_id"),
                 breakfast=[FoodReferenceModel(**item) for item in plan.get("breakfast", [])],
                 lunch=[FoodReferenceModel(**item) for item in plan.get("lunch", [])],

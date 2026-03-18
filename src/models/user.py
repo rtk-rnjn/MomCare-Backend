@@ -20,6 +20,25 @@ class AccountStatus(StrEnum):
     LOCKED = "locked"
     DELETED = "deleted"
 
+    @staticmethod
+    def is_valid_transition(current_status: AccountStatus, new_status: AccountStatus) -> bool:
+        if current_status == new_status:
+            return True
+        if current_status == AccountStatus.ACTIVE and new_status in {AccountStatus.LOCKED, AccountStatus.DELETED}:
+            return True
+        if current_status == AccountStatus.LOCKED and new_status in {AccountStatus.ACTIVE, AccountStatus.DELETED}:
+            return True
+        if current_status == AccountStatus.DELETED and new_status == AccountStatus.ACTIVE:
+            return True
+        return False
+
+    @classmethod
+    def from_str(cls, status_str: str) -> AccountStatus:
+        try:
+            return cls(status_str)
+        except ValueError:
+            raise ValueError(f"Invalid account status: {status_str!r}")
+
 
 EMAIL_PROVIDER = Literal[
     "Apple",
@@ -48,7 +67,6 @@ class CredentialsDict(TypedDict, total=False):
     password_hash: NotRequired[str | None]
     password_algo: NotRequired[PasswordAlgorithm | None]
 
-    google_id: str | None
     apple_id: str | None
 
     authentication_providers: list[AuthenticationProvider]
@@ -67,6 +85,28 @@ class CredentialsDict(TypedDict, total=False):
 
     verified_email: NotRequired[bool]
     verified_email_at_timestamp: NotRequired[float]
+
+
+class ResponseCredentialsDict(TypedDict, total=False):
+    email_address: NotRequired[str | None]
+    apple_id: str | None
+    authentication_providers: list[AuthenticationProvider]
+
+    account_status: NotRequired[AccountStatus]
+    verified_email: NotRequired[bool]
+
+
+class ResponseCredentialsModel(BaseModel):
+    email_address: str | None = Field(default=None, description="The user's email address, if available.")
+    apple_id: str | None = Field(default=None, description="The user's Apple ID, if available.")
+    authentication_providers: list[AuthenticationProvider] = Field(
+        default_factory=list, description="A list of authentication providers linked to the user's account."
+    )
+    account_status: AccountStatus = Field(default=AccountStatus.ACTIVE, description="The current status of the user's account.")
+    verified_email: bool = Field(default=False, description="Indicates whether the user's email address has been verified.")
+
+    class Config:
+        extra = "ignore"
 
 
 class CredentialsModel(BaseModel):
