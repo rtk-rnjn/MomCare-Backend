@@ -40,6 +40,20 @@ class MyPlanDict(TypedDict):
 
     created_at_timestamp: NotRequired[float]
 
+    original_breakfast: list[FoodReferenceDict]
+    original_lunch: list[FoodReferenceDict]
+    original_dinner: list[FoodReferenceDict]
+    original_snacks: list[FoodReferenceDict]
+
+
+class PartialMyPlanModel(BaseModel):
+    breakfast: list[FoodReferenceModel] = Field(..., description="The list of food items for breakfast.", title="Breakfast")
+    lunch: list[FoodReferenceModel] = Field(..., description="The list of food items for lunch.", title="Lunch")
+    dinner: list[FoodReferenceModel] = Field(..., description="The list of food items for dinner.", title="Dinner")
+    snacks: list[FoodReferenceModel] = Field(..., description="The list of food items for snacks.", title="Snacks")
+
+    class Config:
+        extra = "ignore"
 
 class MyPlanModel(BaseModel):
     id: str = Field(
@@ -59,6 +73,11 @@ class MyPlanModel(BaseModel):
     created_at_timestamp: float | None = Field(
         None, description="The timestamp when the plan was created.", title="Created At Timestamp"
     )
+
+    original_breakfast: list[FoodReferenceModel] = Field(..., description="The original list of food items for breakfast.", title="Original Breakfast")
+    original_lunch: list[FoodReferenceModel] = Field(..., description="The original list of food items for lunch.", title="Original Lunch")
+    original_dinner: list[FoodReferenceModel] = Field(..., description="The original list of food items for dinner.", title="Original Dinner")
+    original_snacks: list[FoodReferenceModel] = Field(..., description="The original list of food items for snacks.", title="Original Snacks")
 
     class Config:
         extra = "ignore"

@@ -11,7 +11,7 @@ from google import genai
 from google.genai.types import Content, GenerateContentConfig, Part
 from pydantic import BaseModel, Field
 
-from src.models import ExerciseModel, MyPlanModel
+from src.models import ExerciseModel, PartialMyPlanModel
 from src.models import UserDict as User
 
 load_dotenv()
@@ -123,6 +123,6 @@ class GoogleAPIHandler:
         generated = await self._generate_response(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            response_schema=MyPlanModel,
+            response_schema=PartialMyPlanModel,
         )
         return generated

@@ -9,6 +9,7 @@ from .plan import (  # noqa: F401
     FoodReferenceDict,
     FoodReferenceModel,
     MyPlanDict,
+    PartialMyPlanModel,
     MyPlanModel,
 )
 from .song import SongDict, SongMetadata, SongMetadataModel, SongModel  # noqa: F401

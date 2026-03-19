@@ -311,10 +311,17 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
         model = MyPlanModel(
             _id=existing_plan.get("_id"),  # type: ignore
             user_id=existing_plan.get("user_id"),
+            #
             breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("breakfast", [])],
             lunch=[FoodReferenceModel(**item) for item in existing_plan.get("lunch", [])],
             dinner=[FoodReferenceModel(**item) for item in existing_plan.get("dinner", [])],
             snacks=[FoodReferenceModel(**item) for item in existing_plan.get("snacks", [])],
+            # 
+            original_breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("original_breakfast", [])],
+            original_lunch=[FoodReferenceModel(**item) for item in existing_plan.get("original_lunch", [])],
+            original_dinner=[FoodReferenceModel(**item) for item in existing_plan.get("original_dinner", [])],
+            original_snacks=[FoodReferenceModel(**item) for item in existing_plan.get("original_snacks", [])],
+            # 
             created_at_timestamp=existing_plan.get("created_at_timestamp"),
         )
         return JSONResponse(model.model_dump(by_alias=True))
@@ -333,10 +340,23 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     foods_cursor = await foods_collection.aggregate(pipeline)
     foods = [{"_id": food.get("_id"), "name": food.get("name")} async for food in foods_cursor]
 
-    plan = await google_api_handler.generate_plan(user=user, available_foods=foods)
+    partial_plan = await google_api_handler.generate_plan(user=user, available_foods=foods)
+
+    plan = MyPlanModel(
+        _id="",
+        user_id=user_id,
+        breakfast=partial_plan.breakfast,
+        lunch=partial_plan.lunch,
+        dinner=partial_plan.dinner,
+        snacks=partial_plan.snacks,
+        original_breakfast=partial_plan.breakfast,
+        original_lunch=partial_plan.lunch,
+        original_dinner=partial_plan.dinner,
+        original_snacks=partial_plan.snacks,
+        created_at_timestamp=0.0,
+    )
 
     plan.created_at_timestamp = arrow.now().float_timestamp
-    plan.user_id = user_id
     plan.id = str(uuid.uuid4())
 
     plan_dict = cast(MyPlanDict, plan.model_dump(by_alias=True, mode="json"))
