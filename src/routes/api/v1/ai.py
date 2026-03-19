@@ -267,6 +267,38 @@ async def fetch_all_exercises(
     return JSONResponse([UserExerciseModel(**exercise).model_dump(by_alias=True) for exercise in exercises])
 
 
+async def _has_existing_plan_for_today(user: UserDict):
+    timezone = user.get("timezone") or "Asia/Kolkata"
+    start, end = _today_window(timezone)
+    existing_plan = await plans_collection.find_one(
+        {
+            "user_id": user.get("_id"),
+            "created_at_timestamp": {
+                "$gte": start,
+                "$lte": end,
+            },
+        }
+    )
+    if existing_plan:
+        model = MyPlanModel(
+            _id=existing_plan.get("_id"),  # type: ignore
+            user_id=existing_plan.get("user_id"),
+            #
+            breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("breakfast", [])],
+            lunch=[FoodReferenceModel(**item) for item in existing_plan.get("lunch", [])],
+            dinner=[FoodReferenceModel(**item) for item in existing_plan.get("dinner", [])],
+            snacks=[FoodReferenceModel(**item) for item in existing_plan.get("snacks", [])],
+            #
+            original_breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("original_breakfast", [])],
+            original_lunch=[FoodReferenceModel(**item) for item in existing_plan.get("original_lunch", [])],
+            original_dinner=[FoodReferenceModel(**item) for item in existing_plan.get("original_dinner", [])],
+            original_snacks=[FoodReferenceModel(**item) for item in existing_plan.get("original_snacks", [])],
+            #
+            created_at_timestamp=existing_plan.get("created_at_timestamp"),
+        )
+        return JSONResponse(model.model_dump(by_alias=True))
+
+
 @router.get(
     "/generate/plan",
     response_model=MyPlanModel,
@@ -296,35 +328,9 @@ async def fetch_all_exercises(
 async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     """Return today's meal plan if it exists; otherwise generate, persist, and return one."""
     user: UserDict = await _get_verified_user(user_id)
-    timezone = user.get("timezone") or "Asia/Kolkata"
-    start, end = _today_window(timezone)
-    existing_plan = await plans_collection.find_one(
-        {
-            "user_id": user_id,
-            "created_at_timestamp": {
-                "$gte": start,
-                "$lte": end,
-            },
-        }
-    )
+    existing_plan = await _has_existing_plan_for_today(user)
     if existing_plan:
-        model = MyPlanModel(
-            _id=existing_plan.get("_id"),  # type: ignore
-            user_id=existing_plan.get("user_id"),
-            #
-            breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("breakfast", [])],
-            lunch=[FoodReferenceModel(**item) for item in existing_plan.get("lunch", [])],
-            dinner=[FoodReferenceModel(**item) for item in existing_plan.get("dinner", [])],
-            snacks=[FoodReferenceModel(**item) for item in existing_plan.get("snacks", [])],
-            # 
-            original_breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("original_breakfast", [])],
-            original_lunch=[FoodReferenceModel(**item) for item in existing_plan.get("original_lunch", [])],
-            original_dinner=[FoodReferenceModel(**item) for item in existing_plan.get("original_dinner", [])],
-            original_snacks=[FoodReferenceModel(**item) for item in existing_plan.get("original_snacks", [])],
-            # 
-            created_at_timestamp=existing_plan.get("created_at_timestamp"),
-        )
-        return JSONResponse(model.model_dump(by_alias=True))
+        return existing_plan
 
     food_intolerances = user.get("food_intolerances", [])
     dietary_preferences = user.get("dietary_preferences", [])
@@ -360,9 +366,33 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
     plan.id = str(uuid.uuid4())
 
     plan_dict = cast(MyPlanDict, plan.model_dump(by_alias=True, mode="json"))
+
+    existing_plan = await _has_existing_plan_for_today(user)
+    # Huh? Somehow it already has plan, which can only mean it was created in the tiny window between the first check and now. Return that one instead of trying to insert and creating duplicates.
+    if existing_plan:
+        return existing_plan
+
     await plans_collection.insert_one(plan_dict)
 
     return JSONResponse(plan.model_dump(by_alias=True))
+
+
+async def _has_existing_exercises_for_today(user: UserDict):
+    timezone = user.get("timezone") or "Asia/Kolkata"
+    start, end = _today_window(timezone)
+
+    existing_exercises = await user_exercises_collection.find(
+        {
+            "user_id": user.get("_id"),
+            "added_at_timestamp": {
+                "$gte": start,
+                "$lte": end,
+            },
+        }
+    ).to_list(length=None)
+
+    if existing_exercises:
+        return JSONResponse([UserExerciseModel(**exercise).model_dump(by_alias=True) for exercise in existing_exercises])
 
 
 @router.get(
@@ -393,21 +423,9 @@ async def get_meal_plan(user_id: str = Depends(get_user_id, use_cache=False)):
 async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
     """Return today's exercises if present; otherwise generate, store, and return new ones."""
     user = await _get_verified_user(user_id)
-    timezone = user.get("timezone") or "Asia/Kolkata"
-    window_start_ts, window_end_ts = _today_window(timezone)
-
-    existing_user_exercises = await user_exercises_collection.find(
-        {
-            "user_id": user_id,
-            "added_at_timestamp": {
-                "$gte": window_start_ts,
-                "$lte": window_end_ts,
-            },
-        }
-    ).to_list(length=None)
-
-    if existing_user_exercises:
-        return JSONResponse(existing_user_exercises)
+    existing_exercises = await _has_existing_exercises_for_today(user)
+    if existing_exercises:
+        return existing_exercises
 
     exercise_catalog_payload = [
         ExerciseModel(**exercise).model_dump(by_alias=True, mode="json") async for exercise in exercises_collection.find({})
@@ -420,6 +438,10 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
 
     now_ts = arrow.now().float_timestamp
     created_user_exercises: list[UserExerciseDict] = []
+
+    existing_exercises = await _has_existing_exercises_for_today(user)
+    if existing_exercises:
+        return existing_exercises
 
     for exercise in ai_response.exercises:
         name = exercise.name.lower().strip().replace(" ", "_").replace("'", "")

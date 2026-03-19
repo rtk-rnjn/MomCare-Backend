@@ -55,6 +55,7 @@ class PartialMyPlanModel(BaseModel):
     class Config:
         extra = "ignore"
 
+
 class MyPlanModel(BaseModel):
     id: str = Field(
         ...,
@@ -74,10 +75,18 @@ class MyPlanModel(BaseModel):
         None, description="The timestamp when the plan was created.", title="Created At Timestamp"
     )
 
-    original_breakfast: list[FoodReferenceModel] = Field(..., description="The original list of food items for breakfast.", title="Original Breakfast")
-    original_lunch: list[FoodReferenceModel] = Field(..., description="The original list of food items for lunch.", title="Original Lunch")
-    original_dinner: list[FoodReferenceModel] = Field(..., description="The original list of food items for dinner.", title="Original Dinner")
-    original_snacks: list[FoodReferenceModel] = Field(..., description="The original list of food items for snacks.", title="Original Snacks")
+    original_breakfast: list[FoodReferenceModel] = Field(
+        ..., description="The original list of food items for breakfast.", title="Original Breakfast"
+    )
+    original_lunch: list[FoodReferenceModel] = Field(
+        ..., description="The original list of food items for lunch.", title="Original Lunch"
+    )
+    original_dinner: list[FoodReferenceModel] = Field(
+        ..., description="The original list of food items for dinner.", title="Original Dinner"
+    )
+    original_snacks: list[FoodReferenceModel] = Field(
+        ..., description="The original list of food items for snacks.", title="Original Snacks"
+    )
 
     class Config:
         extra = "ignore"
