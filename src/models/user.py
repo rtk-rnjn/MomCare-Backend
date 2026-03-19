@@ -11,7 +11,6 @@ from .food_item import Allergen, FoodType
 
 class AuthenticationProvider(StrEnum):
     INTERNAL = "internal"
-    GOOGLE = "google"
     APPLE = "apple"
 
 
