@@ -9,8 +9,8 @@ from .plan import (  # noqa: F401
     FoodReferenceDict,
     FoodReferenceModel,
     MyPlanDict,
-    PartialMyPlanModel,
     MyPlanModel,
+    PartialMyPlanModel,
 )
 from .song import SongDict, SongMetadata, SongMetadataModel, SongModel  # noqa: F401
 from .user import (  # noqa: F401
@@ -19,8 +19,8 @@ from .user import (  # noqa: F401
     CredentialsDict,
     CredentialsModel,
     PasswordAlgorithm,
-    UserDict,
     ResponseCredentialsDict,
     ResponseCredentialsModel,
+    UserDict,
     UserModel,
 )

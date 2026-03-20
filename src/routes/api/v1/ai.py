@@ -98,10 +98,7 @@ async def _get_verified_user(user_id: str) -> UserDict:
         return user
 
     authentication_providers = cred.get("authentication_providers") or []
-    if (
-        AuthenticationProvider.APPLE.value in authentication_providers
-        or AuthenticationProvider.GOOGLE.value in authentication_providers
-    ):
+    if AuthenticationProvider.APPLE.value in authentication_providers:
         return user
 
     raise HTTPException(HTTP_403_FORBIDDEN)
@@ -207,6 +204,10 @@ async def fetch_all_plans(
                 lunch=[FoodReferenceModel(**item) for item in plan.get("lunch", [])],
                 dinner=[FoodReferenceModel(**item) for item in plan.get("dinner", [])],
                 snacks=[FoodReferenceModel(**item) for item in plan.get("snacks", [])],
+                original_breakfast=[FoodReferenceModel(**item) for item in plan.get("original_breakfast", [])],
+                original_lunch=[FoodReferenceModel(**item) for item in plan.get("original_lunch", [])],
+                original_dinner=[FoodReferenceModel(**item) for item in plan.get("original_dinner", [])],
+                original_snacks=[FoodReferenceModel(**item) for item in plan.get("original_snacks", [])],
                 created_at_timestamp=plan.get("created_at_timestamp"),
             ).model_dump(by_alias=True)
             for plan in plans
