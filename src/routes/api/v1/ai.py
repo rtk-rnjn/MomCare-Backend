@@ -82,25 +82,25 @@ async def _get_verified_user(user_id: str) -> UserDict:
     user = await users_collection.find_one({"_id": user_id})
 
     if not cred:
-        raise HTTPException(HTTP_404_NOT_FOUND)
-    
+        raise HTTPException(HTTP_404_NOT_FOUND, detail="User credentials not found.")
+
     authentication_providers = cred.get("authentication_providers") or []
     if AuthenticationProvider.APPLE.value in authentication_providers and user is not None:
         return user
 
     if cred.get("account_status") == AccountStatus.DELETED:
-        raise HTTPException(HTTP_410_GONE)
+        raise HTTPException(HTTP_410_GONE, detail="This account has been deleted.")
 
     if cred.get("account_status") == AccountStatus.LOCKED:
-        raise HTTPException(HTTP_403_FORBIDDEN)
+        raise HTTPException(HTTP_423_LOCKED, detail="Your account is locked. Please contact support.")
 
     if not user:
-        raise HTTPException(HTTP_423_LOCKED)
+        raise HTTPException(HTTP_404_NOT_FOUND, detail="User profile is missing or unavailable.")
 
     if cred.get("verified_email", False):
         return user
 
-    raise HTTPException(HTTP_403_FORBIDDEN)
+    raise HTTPException(HTTP_403_FORBIDDEN, detail="Your email address has not been verified. Please verify your email to continue.")
 
 
 @router.post(

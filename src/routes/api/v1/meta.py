@@ -246,6 +246,7 @@ async def extract_mongo_metadata(mongo_client: AsyncMongoClient) -> MongoMetadat
     except PyMongoError:
         raise HTTPException(
             status_code=500,
+            detail="Unable to retrieve MongoDB metadata. The database may be unavailable.",
         )
 
     return parse_mongo_metadata(metadata)
@@ -326,6 +327,7 @@ async def extract_redis_metadata(redis_client: Redis) -> RedisMetadata:
     except RedisError:
         raise HTTPException(
             status_code=500,
+            detail="Unable to retrieve Redis metadata. The cache server may be unavailable.",
         )
 
     return metadata

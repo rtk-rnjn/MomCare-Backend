@@ -82,7 +82,7 @@ async def update_exercise(
         {"$set": {"video_duration_completed_seconds": duration}},
     )
     if update_result.matched_count == 0:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Exercise not found for this user.")
 
     return update_result.modified_count == 1
 
@@ -225,6 +225,7 @@ async def add_food_to_meal(
     if result.modified_count != 1:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
+            detail="Meal plan not found for this user.",
         )
 
     return True
@@ -272,6 +273,7 @@ async def remove_food_from_meal(
     if result.matched_count == 0:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
+            detail="Meal plan not found for this user.",
         )
 
     plan = await plans_collection.find_one(_plan_filter(plan_id, user_id))
@@ -279,6 +281,7 @@ async def remove_food_from_meal(
     if not plan:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
+            detail="Meal plan could not be retrieved after update.",
         )
 
     if any(f["food_id"] == food_id and f["count"] <= 0 for f in plan.get(meal, [])):

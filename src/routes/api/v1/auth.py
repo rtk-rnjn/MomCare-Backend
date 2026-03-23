@@ -77,20 +77,20 @@ async def _get_credential_by_email(email_address: str, /) -> CredentialsDict:
         }
     )
     if cred is None:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No account found with that email address.")
     return cred
 
 
 async def _get_credential_by_id(user_id: str, /) -> CredentialsDict:
     cred = await credentials_collection.find_one({"_id": user_id})
     if cred is None:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
 
     if cred.get("account_status") == AccountStatus.DELETED:
-        raise HTTPException(status_code=HTTP_410_GONE)
+        raise HTTPException(status_code=HTTP_410_GONE, detail="This account has been deleted.")
 
     if cred.get("account_status") == AccountStatus.LOCKED:
-        raise HTTPException(status_code=HTTP_423_LOCKED)
+        raise HTTPException(status_code=HTTP_423_LOCKED, detail="Your account is locked. Please contact support.")
     return cred
 
 
@@ -121,7 +121,7 @@ def _create_json_response(*, detail: str, status: int = HTTP_200_OK):
 )
 async def register(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
-        raise HTTPException(status_code=400)
+        raise HTTPException(status_code=400, detail="Email address and password are required.")
 
     normalization_result = await email_normalizer.normalize(data.email_address)
     if await credentials_collection.find_one(
@@ -133,7 +133,7 @@ async def register(data: CredentialsModel = Body(...)):
             "account_status": {"$ne": AccountStatus.DELETED},
         }
     ):
-        raise HTTPException(status_code=409)
+        raise HTTPException(status_code=409, detail="An account with this email address already exists.")
 
     cred_id = str(uuid.uuid4())
 
@@ -197,7 +197,7 @@ async def register(data: CredentialsModel = Body(...)):
 )
 async def login(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST)
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Email address and password are required.")
 
     cred = await _get_credential_by_email(data.email_address)
 
@@ -211,7 +211,7 @@ async def login(data: CredentialsModel = Body(...)):
                 "$set": {"failed_login_attempts_timestamp": now},
             },
         )
-        raise HTTPException(status_code=401)
+        raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
 
     await credentials_collection.update_one(
         {"_id": cred.get("_id")},
@@ -267,7 +267,7 @@ async def login(data: CredentialsModel = Body(...)):
 async def get_current_user(user_id: str = Depends(get_user_id, use_cache=False)):
     user = await users_collection.find_one({"_id": user_id})
     if user is None:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
     return UserModel.model_validate(user)
 
 
@@ -299,7 +299,7 @@ async def refresh_token(
         return await auth_manager.refresh(refresh_token)
     except AuthError as e:
         print(f"Auth error during token refresh: {str(e)}")  # Debug log
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token. Please log in again.")
 
 
 @router.post(
@@ -329,7 +329,7 @@ async def logout(
     try:
         await auth_manager.logout(refresh_token)
     except AuthError:
-        raise HTTPException(status_code=401)
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token. Please log in again.")
     return _create_json_response(detail="Logged out successfully.")
 
 
@@ -372,7 +372,7 @@ async def update_user(
     fields.pop("_id", None)
 
     if not fields:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST)
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="No updatable fields were provided.")
 
     credential = await credentials_collection.find_one_and_update(
         {"_id": user_id},
@@ -381,17 +381,17 @@ async def update_user(
     )
 
     if credential is None:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
 
     if credential.get("account_status") == AccountStatus.DELETED:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="This account has been deleted and cannot be updated.")
 
     if credential.get("account_status") == AccountStatus.LOCKED:
-        raise HTTPException(status_code=HTTP_423_LOCKED)
+        raise HTTPException(status_code=HTTP_423_LOCKED, detail="Your account is locked. Please contact support.")
 
     update_result = await users_collection.update_one({"_id": user_id}, {"$set": fields})
     if update_result.matched_count == 0:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User profile not found.")
 
     return _create_json_response(detail="User updated successfully.")
 
@@ -418,7 +418,7 @@ async def delete_user(user_id: str = Depends(get_user_id, use_cache=False)):
         {"$set": {"account_status": AccountStatus.DELETED, "updated_at_timestamp": arrow.utcnow().timestamp()}},
     )
     if update_result.matched_count == 0:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
 
     await users_collection.delete_one({"_id": user_id})
     return True
@@ -457,7 +457,7 @@ async def change_email(
 ):
     cred = await _get_credential_by_id(user_id)
     if not cred:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
 
     normalised_email_result = await email_normalizer.normalize(new_email_address)
 
@@ -470,7 +470,7 @@ async def change_email(
         }
     )
     if existing_user and existing_user.get("_id") != user_id and existing_user.get("account_status") != AccountStatus.DELETED:
-        raise HTTPException(status_code=HTTP_409_CONFLICT)
+        raise HTTPException(status_code=HTTP_409_CONFLICT, detail="That email address is already in use by another account.")
 
     await credentials_collection.update_one(
         {"_id": user_id},
@@ -534,7 +534,7 @@ async def change_password(
 ):
     cred = await _get_credential_by_id(user_id)
     if not _verify_password(password=current_password, hashed=cred.get("password_hash") or _hash_password("")):
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Current password is incorrect.")
 
     await credentials_collection.update_one(
         {"_id": user_id},
@@ -635,6 +635,7 @@ async def verify_otp(
     if stored is None or stored != otp:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
+            detail="The OTP is invalid or has expired. Please request a new one.",
         )
 
     await credentials_collection.update_one(

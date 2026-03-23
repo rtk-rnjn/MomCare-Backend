@@ -161,6 +161,7 @@ async def link_apple_to_existing_account(
     if not result:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
+            detail="No account found with that email address, or it is already linked to an Apple ID.",
         )
 
     return result["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
@@ -227,6 +228,7 @@ async def apple_login(
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
+            detail="Apple ID token is invalid or has expired. Please sign in with Apple again.",
         )
 
     apple_id: str = id_info["sub"]
@@ -266,7 +268,7 @@ async def get_user_credentials(
 ) -> JSONResponse:
     credentials = await credentials_collection.find_one({"_id": user_id})
     if credentials is None:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="No credentials found for this account. Please log in again.")
 
     response_model = ResponseCredentialsModel(
         email_address=credentials.get("email_address"),
