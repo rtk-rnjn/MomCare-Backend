@@ -116,7 +116,7 @@ async def verify_apple_id_token(id_token: str, redis_client: Redis) -> dict[str,
 async def login_if_apple_id_exists(
     apple_id: str,
 ) -> TokenPairDict | None:
-    credentials = await credentials_collection.find_one({"apple_id": apple_id})
+    credentials = await credentials_collection.find_one({"apple_id": apple_id, "account_status": AccountStatus.ACTIVE.value})
 
     if credentials is None:
         return None
@@ -167,11 +167,12 @@ async def link_apple_to_existing_account(
     return result["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
-async def create_new_apple_account(apple_id: str) -> str:
+async def create_new_apple_account(apple_id: str, email_address: str | None) -> str:
     now: float = arrow.utcnow().timestamp()
 
     credentials = CredentialsDict(
         _id=str(uuid.uuid4()),
+        email_address=email_address,
         apple_id=apple_id,
         authentication_providers=[AuthenticationProvider.APPLE],
         created_at_timestamp=now,
@@ -232,17 +233,18 @@ async def apple_login(
         )
 
     apple_id: str = id_info["sub"]
+    email_address = id_info.get("email")
+
+    if existing_email_address:
+        user_id = await link_apple_to_existing_account(apple_id, existing_email_address)
+        token_pair = await auth_manager.login(user_id)
+        return JSONResponse(content=token_pair, status_code=HTTP_200_OK)
 
     token_pair = await login_if_apple_id_exists(apple_id)
     if token_pair is not None:
         return JSONResponse(content=token_pair, status_code=HTTP_200_OK)
-    if existing_email_address:
-        user_id = await link_apple_to_existing_account(
-            apple_id,
-            existing_email_address,
-        )
-    else:
-        user_id = await create_new_apple_account(apple_id)
+    
+    user_id = await create_new_apple_account(apple_id, email_address=email_address)
 
     token_pair = await auth_manager.login(user_id)
     return JSONResponse(content=token_pair, status_code=HTTP_200_OK)
