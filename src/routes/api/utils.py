@@ -39,6 +39,7 @@ async def rate_limiter(request: Request):
     if count > RATE:
         raise HTTPException(
             status_code=429,
+            detail="Too many requests. Please slow down and try again later.",
             headers={
                 "X-RateLimit-Limit": str(RATE),
                 "X-RateLimit-Remaining": str(max(0, RATE - count)),
@@ -53,6 +54,7 @@ def get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except AuthError:
         raise HTTPException(
             status_code=401,
+            detail="Invalid or expired token. Please log in again.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -63,6 +65,7 @@ def get_access_token(credentials: HTTPAuthorizationCredentials = Depends(securit
     except AuthError:
         raise HTTPException(
             status_code=401,
+            detail="Invalid or expired access token.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -73,5 +76,6 @@ def get_refresh_token(credentials: HTTPAuthorizationCredentials = Depends(securi
     except AuthError:
         raise HTTPException(
             status_code=401,
+            detail="Invalid or expired refresh token.",
             headers={"WWW-Authenticate": "Bearer"},
         )

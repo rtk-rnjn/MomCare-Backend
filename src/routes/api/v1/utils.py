@@ -41,6 +41,7 @@ async def _get_or_404(collection: Collection, _id: str, label: str):
     if doc is None:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
+            detail=f"{label} not found.",
         )
     return doc
 
