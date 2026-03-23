@@ -79,8 +79,14 @@ async def _get_verified_user(user_id: str) -> UserDict:
     403 (locked or unverified), or 423 (user document missing).
     """
     cred = await credentials_collection.find_one({"_id": user_id})
+    user = await users_collection.find_one({"_id": user_id})
+
     if not cred:
         raise HTTPException(HTTP_404_NOT_FOUND)
+    
+    authentication_providers = cred.get("authentication_providers") or []
+    if AuthenticationProvider.APPLE.value in authentication_providers and user is not None:
+        return user
 
     if cred.get("account_status") == AccountStatus.DELETED:
         raise HTTPException(HTTP_410_GONE)
@@ -88,17 +94,10 @@ async def _get_verified_user(user_id: str) -> UserDict:
     if cred.get("account_status") == AccountStatus.LOCKED:
         raise HTTPException(HTTP_403_FORBIDDEN)
 
-    user = await users_collection.find_one({"_id": user_id})
     if not user:
-        raise HTTPException(
-            HTTP_423_LOCKED,
-        )
+        raise HTTPException(HTTP_423_LOCKED)
 
     if cred.get("verified_email", False):
-        return user
-
-    authentication_providers = cred.get("authentication_providers") or []
-    if AuthenticationProvider.APPLE.value in authentication_providers:
         return user
 
     raise HTTPException(HTTP_403_FORBIDDEN)

@@ -178,6 +178,7 @@ async def create_new_apple_account(apple_id: str) -> str:
         failed_login_attempts=0,
         failed_login_attempts_timestamp=0,
         last_login_timestamp=now,
+        account_status=AccountStatus.ACTIVE,
     )
 
     await credentials_collection.insert_one(credentials)
