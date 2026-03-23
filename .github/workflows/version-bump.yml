@@ -1,27 +1,74 @@
 name: Auto-Version Bump
+
 on:
   push:
     branches: [ "main" ]
-    paths: [ 'version.txt', '**.py', '**/*.html' ]
+    paths:
+      - '**.py'
+      - '**/*.html'
 
 permissions:
   contents: write
 
 jobs:
   version-bump:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed for commit message
 
-      - name: Bump version
+      - name: Read current version
+        id: version
         run: |
+          if [ ! -f version.txt ]; then
+            echo "0.0.0" > version.txt
+          fi
           current_version=$(cat version.txt)
+          echo "current_version=$current_version" >> $GITHUB_OUTPUT
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          current_version="${{ steps.version.outputs.current_version }}"
           IFS='.' read -r major minor patch <<< "$current_version"
-          new_patch=$((patch + 1))
-          new_version="$major.$minor.$new_patch"
-          echo "$new_version" > version.txt
+
+          commit_msg=$(git log -1 --pretty=%B)
+
+          echo "Commit message:"
+          echo "$commit_msg"
+
+          if [[ "$commit_msg" == *"BREAKING CHANGE"* ]]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+            bump_type="major"
+          elif [[ "$commit_msg" == feat:* ]]; then
+            minor=$((minor + 1))
+            patch=0
+            bump_type="minor"
+          else
+            patch=$((patch + 1))
+            bump_type="patch"
+          fi
+
+          new_version="$major.$minor.$patch"
+
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          echo "bump_type=$bump_type" >> $GITHUB_OUTPUT
+
+      - name: Update version file
+        run: |
+          echo "${{ steps.bump.outputs.new_version }}" > version.txt
+
+      - name: Commit and push
+        run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
-          git commit -am "Bump version to $new_version"
+
+          git add version.txt
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
           git push origin main
