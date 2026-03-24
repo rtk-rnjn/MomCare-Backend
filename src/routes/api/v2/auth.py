@@ -181,6 +181,7 @@ async def create_new_apple_account(apple_id: str, email_address: str | None) -> 
         failed_login_attempts_timestamp=0,
         last_login_timestamp=now,
         account_status=AccountStatus.ACTIVE,
+        verified_email=email_address is not None,
     )
 
     await credentials_collection.insert_one(credentials)
