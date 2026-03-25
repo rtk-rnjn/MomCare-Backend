@@ -18,22 +18,28 @@ EMAIL_FROM = "MomCare <no-reply@momcare.com>"
 
 class EmailHandler:
     otp_content_template: Template
+    forget_password_content_template: Template
 
     def __init__(self):
         self.refresh_template()
 
     def refresh_template(self):
-        with open(r"src/utils/otp_content.html", "r") as file:
-            self.otp_content_template = Template(file.read())
+        self.otp_content_template = self._load_template("src/utils/otp_content.html")
+        self.forget_password_content_template = self._load_template(
+            "src/utils/forget_password_content.html"
+        )
 
-    async def send_email(self, *, to: str, subject: str, otp: str):
+    def _load_template(self, path: str) -> Template:
+        with open(path, "r") as file:
+            return Template(file.read())
+
+    async def _send_email(self, *, to: str, subject: str, template: Template, otp: str):
         message = EmailMessage()
         message["From"] = EMAIL_FROM
         message["To"] = to
         message["Subject"] = subject
 
-        content = self.otp_content_template.safe_substitute(otp_code=otp)
-
+        content = template.safe_substitute(otp_code=otp)
         message.set_content(content, subtype="html")
 
         await aiosmtplib.send(
@@ -43,4 +49,20 @@ class EmailHandler:
             username=EMAIL_ADDRESS,
             password=EMAIL_PASSWORD,
             start_tls=True,
+        )
+
+    async def send_verification_email(self, *, to: str, subject: str, otp: str):
+        await self._send_email(
+            to=to,
+            subject=subject,
+            template=self.otp_content_template,
+            otp=otp,
+        )
+
+    async def send_forget_password_email(self, *, to: str, subject: str, otp: str):
+        await self._send_email(
+            to=to,
+            subject=subject,
+            template=self.forget_password_content_template,
+            otp=otp,
         )

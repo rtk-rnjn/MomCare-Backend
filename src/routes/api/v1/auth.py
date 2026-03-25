@@ -485,6 +485,9 @@ async def change_email(
         },
     )
 
+    refresh_token = await auth_manager.create_or_get_refresh_token(user_id)
+    await auth_manager.logout(refresh_token)
+
     return _create_json_response(detail="Email address changed successfully.")
 
 
@@ -533,8 +536,10 @@ async def change_password(
     user_id: str = Depends(get_user_id, use_cache=False),
 ):
     cred = await _get_credential_by_id(user_id)
+
     if not _verify_password(password=current_password, hashed=cred.get("password_hash") or _hash_password("")):
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Current password is incorrect.")
+
 
     await credentials_collection.update_one(
         {"_id": user_id},
@@ -546,6 +551,9 @@ async def change_password(
             },
         },
     )
+
+    refresh_token = await auth_manager.create_or_get_refresh_token(user_id)
+    await auth_manager.logout(refresh_token)
 
     return _create_json_response(detail="Password changed successfully.")
 
@@ -581,7 +589,7 @@ async def request_otp(
     await redis_client.setex(f"otp:{email_address}", 600, otp)
 
     background_tasks.add_task(
-        email_handler.send_email,
+        email_handler.send_verification_email,
         to=email_address,
         subject="Your MomCare OTP",
         otp=otp,
@@ -649,3 +657,141 @@ async def verify_otp(
     )
 
     return _create_json_response(detail="OTP verified successfully.")
+
+
+@router.post(
+    "/forget-password",
+    name="Forget Password",
+    status_code=HTTP_200_OK,
+    description="Initiate the password reset process for a user who has forgotten their password.",
+    responses={
+        HTTP_200_OK: {
+            "description": "Password reset initiated successfully. An email with reset instructions has been sent if the email address exists in our system.",
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "No account found with the provided email address.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
+)
+async def forget_password(
+    background_tasks: BackgroundTasks,
+    email_address: str = Body(
+        ...,
+        embed=True,
+        description="The email address associated with the user's account.",
+        title="Email Address",
+        alias="email_address",
+    ),
+    
+) -> JSONResponse:
+    normalized_email_result = await email_normalizer.normalize(email_address)
+    normalized_email_address = normalized_email_result.cleaned_email
+
+    credentials = await credentials_collection.find_one(
+        {
+            "$or": [
+                {"email_address_normalized": normalized_email_address},
+                {"email_address": email_address},
+            ],
+            "account_status": AccountStatus.ACTIVE.value,
+        }
+    )
+    if credentials is None:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No account found with that email address.")
+
+    user_id = credentials["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    otp = str(rng.random_int(start=100000, end=999999))
+    await redis_client.setex(f"forget_password_otp:{user_id}", 600, otp)
+    
+    background_tasks.add_task(
+        email_handler.send_forget_password_email,
+        to=email_address,
+        subject="Your MomCare Password Reset OTP",
+        otp=otp,
+    )
+
+    return _create_json_response(detail="If an account with that email address exists, a password reset OTP has been sent.")
+
+@router.post(
+    "/reset-password",
+    name="Reset Password",
+    status_code=HTTP_200_OK,
+    description="Reset the user's password using a valid OTP sent to their email address.",
+    responses={
+        HTTP_200_OK: {
+            "description": "Password reset successfully.",
+        },
+        HTTP_400_BAD_REQUEST: {
+            "description": "Invalid or expired OTP.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+        HTTP_404_NOT_FOUND: {
+            "description": "No account found for the provided email address.",
+            "model": ErrorResponseModel,
+            "content": {"application/json": {}},
+        },
+    },
+)
+async def reset_password(
+    email_address: str = Body(
+        ...,
+        embed=True,
+        description="The email address associated with the user's account.",
+        title="Email Address",
+        alias="email_address",
+    ),
+    otp: str = Body(
+        ...,
+        embed=True,
+        description="The OTP sent to the user's email address for password reset verification.",
+        title="OTP",
+        alias="otp",
+    ),
+    new_password: str = Body(
+        ...,
+        embed=True,
+        description="The new password to set for the user's account.",
+        title="New Password",
+        alias="new_password",
+    ),
+) -> JSONResponse:
+    normalized_email_result = await email_normalizer.normalize(email_address)
+    normalized_email_address = normalized_email_result.cleaned_email
+
+    credentials = await credentials_collection.find_one(
+        {
+            "$or": [
+                {"email_address_normalized": normalized_email_address},
+                {"email_address": email_address},
+            ],
+            "account_status": AccountStatus.ACTIVE.value,
+        }
+    )
+    if credentials is None:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No account found with that email address.")
+
+    user_id = credentials["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    stored_otp = await redis_client.get(f"forget_password_otp:{user_id}")
+    if stored_otp is None or stored_otp != otp:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP.")
+
+    await credentials_collection.update_one(
+        {"_id": user_id},
+        {
+            "$set": {
+                "password_hash": _hash_password(new_password),
+                "password_algo": PasswordAlgorithm.BCRYPT,
+                "updated_at_timestamp": arrow.utcnow().timestamp(),
+            },
+        },
+    )
+
+    await redis_client.delete(f"forget_password_otp:{user_id}")
+
+    refresh_token = await auth_manager.create_or_get_refresh_token(user_id)
+    await auth_manager.logout(refresh_token)
+
+    return _create_json_response(detail="Password reset successfully.")

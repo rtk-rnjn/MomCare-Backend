@@ -167,7 +167,9 @@ async def link_apple_to_existing_account(
     return result["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
-async def create_new_apple_account(apple_id: str, email_address: str | None) -> str:
+async def create_new_apple_account(
+    apple_id: str, /, *, email_address: str | None, normalized_email_address: str | None, email_address_provider: str | None
+) -> str:
     now: float = arrow.utcnow().timestamp()
 
     credentials = CredentialsDict(
@@ -183,6 +185,10 @@ async def create_new_apple_account(apple_id: str, email_address: str | None) -> 
         account_status=AccountStatus.ACTIVE,
         verified_email=email_address is not None,
     )
+    if normalized_email_address:
+        credentials["email_address_normalized"] = normalized_email_address
+    if email_address_provider:
+        credentials["email_address_provider"] = email_address_provider
 
     await credentials_collection.insert_one(credentials)
     await users_collection.insert_one({"_id": credentials["_id"]})  # pyright: ignore[reportTypedDictNotRequiredAccess]
@@ -236,6 +242,14 @@ async def apple_login(
     apple_id: str = id_info["sub"]
     email_address = id_info.get("email")
 
+    normalized_email_result = await email_normalizer.normalize(email_address) if email_address else None
+    if normalized_email_result and normalized_email_result.cleaned_email:
+        normalized_email_address = normalized_email_result.cleaned_email
+        email_address_provider = normalized_email_result.mailbox_provider
+    else:
+        normalized_email_address = None
+        email_address_provider = None
+
     if existing_email_address:
         user_id = await link_apple_to_existing_account(apple_id, existing_email_address)
         token_pair = await auth_manager.login(user_id)
@@ -244,8 +258,13 @@ async def apple_login(
     token_pair = await login_if_apple_id_exists(apple_id)
     if token_pair is not None:
         return JSONResponse(content=token_pair, status_code=HTTP_200_OK)
-    
-    user_id = await create_new_apple_account(apple_id, email_address=email_address)
+
+    user_id = await create_new_apple_account(
+        apple_id,
+        email_address=email_address,
+        normalized_email_address=normalized_email_address,
+        email_address_provider=email_address_provider,
+    )
 
     token_pair = await auth_manager.login(user_id)
     return JSONResponse(content=token_pair, status_code=HTTP_200_OK)

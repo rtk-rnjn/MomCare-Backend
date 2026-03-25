@@ -127,16 +127,16 @@ class TokenManager(metaclass=SingletonMeta):
         pattern = "refresh:*"
         async for key in self.redis_client.scan_iter(pattern):
             if await self.redis_client.get(key) == user_id:
-                jti = key.split(":", 1)[1]
-                return self.create_refresh_token(user_id, jti)
+                token_identifier = key.split(":", 1)[1]
+                return self.create_refresh_token(user_id, token_identifier)
 
-        jti = str(uuid.uuid4())
+        token_identifier = str(uuid.uuid4())
         await self.redis_client.setex(
-            f"refresh:{jti}",
+            f"refresh:{token_identifier}",
             int(REFRESH_EXP.total_seconds()),
             user_id,
         )
-        return self.create_refresh_token(user_id, jti)
+        return self.create_refresh_token(user_id, token_identifier)
 
     async def login(self, user_id: str, /) -> TokenPairDict:
         return {
