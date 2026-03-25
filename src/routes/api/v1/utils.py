@@ -55,8 +55,29 @@ async def _autocomplete_search(
 ):
     return await collection.aggregate(
         [
-            {"$search": {"index": "default", "autocomplete": {"query": query, "path": path, "fuzzy": {"maxEdits": 1}}}},
+            {
+                "$search": {
+                    "index": "default",
+                    "compound": {
+                        "should": [
+                            {"autocomplete": {"query": query, "path": path, "score": {"boost": {"value": 3}}}},
+                            {
+                                "autocomplete": {
+                                    "query": query,
+                                    "path": path,
+                                    "fuzzy": {"maxEdits": 1},
+                                    "score": {"boost": {"value": 1}},
+                                }
+                            },
+                            {"text": {"query": query, "path": path, "score": {"boost": {"value": 0.5}}}},
+                        ]
+                    },
+                }
+            },
+            {"$project": {"score": {"$meta": "searchScore"}, "doc": "$$ROOT"}},
+            {"$sort": {"score": -1}},
             {"$limit": limit},
+            {"$replaceRoot": {"newRoot": "$doc"}},
         ]
     )
 
