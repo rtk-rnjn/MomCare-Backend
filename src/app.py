@@ -4,6 +4,7 @@ import os
 
 import arrow
 from fastapi import FastAPI
+from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
@@ -96,7 +97,13 @@ app.state.start_time = arrow.utcnow()
 app.state.mongo_client = mongo_client
 app.state.mongo_database = mongo_client["MomCare"]
 
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+if not FRONTEND_DIR.exists():
+    raise FileNotFoundError(f"Frontend directory not found at {FRONTEND_DIR}")
+
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
+app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "dist" / "assets"), name="assets")
+
 templates = Jinja2Templates(directory="src/templates")
 templates.env.filters["humanize_timestamp"] = humanize_timestamp
 app.state.templates = templates

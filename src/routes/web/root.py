@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 from fastapi import Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 
-from src.app import app
+from src.app import app, FRONTEND_DIR
 
 templates: Jinja2Templates = app.state.templates
 
 
 @app.get("/", include_in_schema=False)
 async def read_root(request: Request):
-    url_for = app.docs_url if app.docs_url else "/docs"
-    return RedirectResponse(url=url_for)
+    return FileResponse(FRONTEND_DIR / "dist" / "index.html")
 
 
 @app.get("/spotlight", include_in_schema=False)

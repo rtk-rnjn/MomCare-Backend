@@ -25,9 +25,7 @@ class EmailHandler:
 
     def refresh_template(self):
         self.otp_content_template = self._load_template("src/utils/otp_content.html")
-        self.forget_password_content_template = self._load_template(
-            "src/utils/forget_password_content.html"
-        )
+        self.forget_password_content_template = self._load_template("src/utils/forget_password_content.html")
 
     def _load_template(self, path: str) -> Template:
         with open(path, "r") as file:

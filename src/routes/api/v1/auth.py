@@ -540,7 +540,6 @@ async def change_password(
     if not _verify_password(password=current_password, hashed=cred.get("password_hash") or _hash_password("")):
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Current password is incorrect.")
 
-
     await credentials_collection.update_one(
         {"_id": user_id},
         {
@@ -684,7 +683,6 @@ async def forget_password(
         title="Email Address",
         alias="email_address",
     ),
-    
 ) -> JSONResponse:
     normalized_email_result = await email_normalizer.normalize(email_address)
     normalized_email_address = normalized_email_result.cleaned_email
@@ -704,7 +702,7 @@ async def forget_password(
     user_id = credentials["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
     otp = str(rng.random_int(start=100000, end=999999))
     await redis_client.setex(f"forget_password_otp:{user_id}", 600, otp)
-    
+
     background_tasks.add_task(
         email_handler.send_forget_password_email,
         to=email_address,
@@ -713,6 +711,7 @@ async def forget_password(
     )
 
     return _create_json_response(detail="If an account with that email address exists, a password reset OTP has been sent.")
+
 
 @router.post(
     "/reset-password",
