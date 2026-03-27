@@ -124,19 +124,20 @@ class TokenManager(metaclass=SingletonMeta):
         return jwt.encode(dict(payload), JWT_SECRET, algorithm=JWT_ALGO)
 
     async def create_or_get_refresh_token(self, user_id: str, /) -> str:
-        pattern = "refresh:*"
-        async for key in self.redis_client.scan_iter(pattern):
-            if await self.redis_client.get(key) == user_id:
-                token_identifier = key.split(":", 1)[1]
-                return self.create_refresh_token(user_id, token_identifier)
+        user_key = f"refresh:user:{user_id}"
+        jti = await self.redis_client.get(user_key)
 
-        token_identifier = str(uuid.uuid4())
-        await self.redis_client.setex(
-            f"refresh:{token_identifier}",
-            int(REFRESH_EXP.total_seconds()),
-            user_id,
-        )
-        return self.create_refresh_token(user_id, token_identifier)
+        if jti:
+            return self.create_refresh_token(user_id, jti)
+
+        jti = str(uuid.uuid4())
+
+        pipe = self.redis_client.pipeline()
+        pipe.setex(user_key, int(REFRESH_EXP.total_seconds()), jti)
+        pipe.setex(f"refresh:{jti}", int(REFRESH_EXP.total_seconds()), user_id)
+        await pipe.execute()
+
+        return self.create_refresh_token(user_id, jti)
 
     async def login(self, user_id: str, /) -> TokenPairDict:
         return {
@@ -149,31 +150,29 @@ class TokenManager(metaclass=SingletonMeta):
         value = payload.get(key)
         if isinstance(value, str):
             return value
-
-        error_message = f"Invalid token payload: '{key!r}' must be a string"
-        raise ValueError(error_message)
+        raise ValueError(f"Invalid token payload: '{key!r}' must be a string")
 
     def _require_int(self, payload: Mapping[str, Any], key: str, /) -> int:
         value = payload.get(key)
         if isinstance(value, int) and not isinstance(value, bool):
             return int(value)
-
-        error_message = f"Invalid token payload: '{key!r}' must be an integer"
-        raise ValueError(error_message)
+        raise ValueError(f"Invalid token payload: '{key!r}' must be an integer")
 
     def _require_literal(self, payload: Mapping[str, Any], key: str, expected: str, /) -> None:
-        value = payload.get(key)
-        if value == expected:
-            return
-        raise AuthError(f"Invalid token payload: '{key}' must be '{expected}'")
+        if payload.get(key) != expected:
+            raise AuthError(f"Invalid token payload: '{key}' must be '{expected}'")
 
     @overload
     def decode(self, token: str, expected_type: Literal["access"], /) -> DecodedAccessPayload: ...
-
     @overload
     def decode(self, token: str, expected_type: Literal["refresh"], /) -> DecodedRefreshPayload: ...
 
-    def decode(self, token: str, expected_type: Literal["access", "refresh"], /) -> DecodedAccessPayload | DecodedRefreshPayload:
+    def decode(
+        self,
+        token: str,
+        expected_type: Literal["access", "refresh"],
+        /,
+    ) -> DecodedAccessPayload | DecodedRefreshPayload:
         try:
             decoded = jwt.decode(
                 token,
@@ -230,8 +229,10 @@ class TokenManager(metaclass=SingletonMeta):
         payload = self.decode(refresh_token, "refresh")
         user_id = payload["sub"]
         jti = payload["jti"]
+
         key = f"refresh:{jti}"
         stored_user_id = await self.redis_client.get(key)
+
         if stored_user_id != user_id:
             raise AuthError("Invalid refresh token")
 
@@ -243,4 +244,10 @@ class TokenManager(metaclass=SingletonMeta):
 
     async def logout(self, refresh_token: str, /):
         payload = self.decode(refresh_token, "refresh")
-        await self.redis_client.delete(f"refresh:{payload['jti']}")
+        jti = payload["jti"]
+        user_id = payload["sub"]
+
+        pipe = self.redis_client.pipeline()
+        pipe.delete(f"refresh:{jti}")
+        pipe.delete(f"refresh:user:{user_id}")
+        await pipe.execute()
