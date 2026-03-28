@@ -224,28 +224,7 @@ async def login(data: CredentialsModel = Body(...)):
         },
     )
 
-    redis_key = f"token:{cred.get('_id')}"
-
-    token_pair_dict = redis_client.hgetall(redis_key)
-    if inspect.isawaitable(token_pair_dict):
-        token_pair_dict = await token_pair_dict
-
-    if token_pair_dict and float(token_pair_dict["expires_at_timestamp"]) > arrow.utcnow().timestamp():
-        return JSONResponse(
-            TokenPairDict(
-                access_token=token_pair_dict["access_token"],
-                refresh_token=token_pair_dict["refresh_token"],
-                expires_at_timestamp=float(token_pair_dict["expires_at_timestamp"]),
-            ),
-            status_code=HTTP_200_OK,
-        )
-
     token_pair = await auth_manager.login(str(cred.get("_id")))
-    maybe_awaitable = redis_client.hset(redis_key, mapping=dict(token_pair))
-    await redis_client.expire(redis_key, 15 * 60)
-    if inspect.isawaitable(maybe_awaitable):
-        await maybe_awaitable
-
     return JSONResponse(token_pair, status_code=HTTP_200_OK)
 
 
@@ -484,8 +463,7 @@ async def change_email(
         },
     )
 
-    refresh_token = await auth_manager.create_or_get_refresh_token(user_id)
-    await auth_manager.logout(refresh_token)
+    await auth_manager.logout_everywhere(user_id)
 
     return _create_json_response(detail="Email address changed successfully.")
 
@@ -550,8 +528,7 @@ async def change_password(
         },
     )
 
-    refresh_token = await auth_manager.create_or_get_refresh_token(user_id)
-    await auth_manager.logout(refresh_token)
+    await auth_manager.logout_everywhere(user_id)
 
     return _create_json_response(detail="Password changed successfully.")
 
@@ -789,7 +766,6 @@ async def reset_password(
 
     await redis_client.delete(f"forget_password_otp:{user_id}")
 
-    refresh_token = await auth_manager.create_or_get_refresh_token(user_id)
-    await auth_manager.logout(refresh_token)
+    await auth_manager.logout_everywhere(user_id)
 
     return _create_json_response(detail="Password reset successfully.")
