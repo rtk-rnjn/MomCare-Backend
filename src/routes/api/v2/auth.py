@@ -138,6 +138,7 @@ async def link_apple_to_existing_account(
             {"email_address": existing_email_address},
         ],
         "apple_id": None,
+        "account_status": AccountStatus.ACTIVE.value,
     }
 
     update_query = {
