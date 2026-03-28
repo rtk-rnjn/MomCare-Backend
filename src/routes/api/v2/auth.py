@@ -16,8 +16,8 @@ from pydantic import BaseModel
 from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from redis.asyncio import Redis
-from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
-
+from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT
+import pymongo
 from src.app import app
 from src.models import (
     AccountStatus,
@@ -152,19 +152,20 @@ async def link_apple_to_existing_account(
 
     projection = {"_id": 1}
 
-    result = await credentials_collection.find_one_and_update(
+    credentials = await credentials_collection.find_one_and_update(
         filter_query,
         update_query,
         projection=projection,
+        return_document=pymongo.ReturnDocument.BEFORE,
     )
 
-    if not result:
+    if credentials is None or credentials.get("apple_id") is not None:
         raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
+            status_code=HTTP_409_CONFLICT,
             detail="No account found with that email address, or it is already linked to an Apple ID.",
         )
 
-    return result["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    return credentials["_id"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 async def create_new_apple_account(
