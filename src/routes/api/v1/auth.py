@@ -298,8 +298,7 @@ async def refresh_token(
     try:
         return await auth_manager.refresh(refresh_token)
     except AuthError as e:
-        print(f"Auth error during token refresh: {str(e)}")  # Debug log
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token. Please log in again.")
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=f"Refresh token error: {str(e)}. Please log in again.") from e
 
 
 @router.post(

@@ -83,7 +83,6 @@ async def unregister_device_token(user_id: str = Depends(get_user_id, use_cache=
     include_in_schema=False,
 )
 async def receive_daily_metrics(data: dict = Body(..., embed=False), user_id: str = Depends(get_user_id, use_cache=False)) -> bool:
-    print(data)
     timestamp = arrow.now().int_timestamp
 
     await redis_client.set(f"daily_metrics:{user_id}:{timestamp}", str(data))
@@ -109,7 +108,6 @@ async def receive_daily_metrics(data: dict = Body(..., embed=False), user_id: st
 async def receive_diagnostic_metrics(
     data: dict = Body(..., embed=False), user_id: str = Depends(get_user_id, use_cache=False)
 ) -> bool:
-    print(data)
     timestamp = arrow.now().int_timestamp
 
     await redis_client.set(f"diagnostic_metrics:{user_id}:{timestamp}", str(data))
