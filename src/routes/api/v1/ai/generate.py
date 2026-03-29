@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import uuid
-from typing import Awaitable, Callable, ParamSpec, TypedDict, TypeVar, cast
+from typing import Any, Awaitable, Callable, ParamSpec, TypedDict, TypeVar, cast
 
 import arrow
 from fastapi import APIRouter, BackgroundTasks, Depends
@@ -12,6 +14,7 @@ from pymongo.asynchronous.database import AsyncDatabase as Database
 from redis.asyncio import Redis
 from starlette.status import (
     HTTP_200_OK,
+    HTTP_202_ACCEPTED,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
     HTTP_410_GONE,
@@ -54,6 +57,12 @@ user_exercises_collection: Collection[UserExerciseDict] = database["user_exercis
 
 router = APIRouter(prefix="/generate", tags=["AI Content"])
 
+logger = logging.getLogger(__name__)
+
+DEFAULT_LONG_POLL_SECONDS = 25.0
+DEFAULT_POLL_INTERVAL_SECONDS = 0.5
+DEFAULT_LOCK_TTL_SECONDS = 300
+
 P = ParamSpec("P")
 T = TypeVar("T")
 
@@ -77,12 +86,37 @@ def _today_window(tz: str = "Asia/Kolkata", /) -> tuple[float, float]:
     )
 
 
-async def _get_verified_user(user_id: str) -> UserDict:
-    """Fetch user + credentials ensuring the account is active and email verified.
+def _timezone_for_user(user: UserDict) -> str:
+    return user.get("timezone") or "Asia/Kolkata"
 
-    Raises HTTPException with codes 404 (missing credentials), 410 (deleted),
-    403 (locked or unverified), or 423 (user document missing).
-    """
+
+def _daily_lock_key(kind: str, user: UserDict) -> str:
+    day_key = arrow.now(_timezone_for_user(user)).format("YYYY-MM-DD")
+    return f"locks:{kind}:{user.get('_id')}:{day_key}"
+
+
+async def _acquire_task_lock(lock_key: str, ttl_seconds: int = DEFAULT_LOCK_TTL_SECONDS) -> bool:
+    return bool(await redis_client.set(lock_key, "1", ex=ttl_seconds, nx=True))
+
+
+async def _long_poll(fetch_existing: Callable[[], Awaitable[Any]], *, timeout_seconds: float, interval_seconds: float):
+    if timeout_seconds <= 0:
+        return None
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout_seconds
+    while True:
+        existing = await fetch_existing()
+        if existing:
+            return existing
+
+        if loop.time() >= deadline:
+            return None
+
+        await asyncio.sleep(interval_seconds)
+
+
+async def _get_verified_user(user_id: str) -> UserDict:
     cred = await credentials_collection.find_one({"_id": user_id})
     user = await users_collection.find_one({"_id": user_id})
 
@@ -108,17 +142,9 @@ async def _get_verified_user(user_id: str) -> UserDict:
     raise HTTPException(HTTP_403_FORBIDDEN, detail="Your email address has not been verified. Please verify your email to continue.")
 
 
-async def _background_task(task_id: str, /, function: Callable[P, Awaitable[T]], *args: P.args, **kwargs: P.kwargs) -> T:
-    await redis_client.publish("background_tasks", task_id)
-    result = await function(*args, **kwargs)
-    await redis_client.publish(f"background_task_result:{task_id}", str(result))
-    return result
-
-
-async def _has_existing_plan_for_today(user: UserDict):
-    timezone = user.get("timezone") or "Asia/Kolkata"
-    start, end = _today_window(timezone)
-    existing_plan = await plans_collection.find_one(
+async def _find_plan_for_today(user: UserDict):
+    start, end = _today_window(_timezone_for_user(user))
+    return await plans_collection.find_one(
         {
             "user_id": user.get("_id"),
             "created_at_timestamp": {
@@ -127,24 +153,77 @@ async def _has_existing_plan_for_today(user: UserDict):
             },
         }
     )
+
+
+async def _has_existing_plan_for_today(user: UserDict):
+    existing_plan = await _find_plan_for_today(user)
     if existing_plan:
         model = MyPlanModel(
             _id=existing_plan.get("_id"),  # type: ignore
             user_id=existing_plan.get("user_id"),
-            #
             breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("breakfast", [])],
             lunch=[FoodReferenceModel(**item) for item in existing_plan.get("lunch", [])],
             dinner=[FoodReferenceModel(**item) for item in existing_plan.get("dinner", [])],
             snacks=[FoodReferenceModel(**item) for item in existing_plan.get("snacks", [])],
-            #
             original_breakfast=[FoodReferenceModel(**item) for item in existing_plan.get("original_breakfast", [])],
             original_lunch=[FoodReferenceModel(**item) for item in existing_plan.get("original_lunch", [])],
             original_dinner=[FoodReferenceModel(**item) for item in existing_plan.get("original_dinner", [])],
             original_snacks=[FoodReferenceModel(**item) for item in existing_plan.get("original_snacks", [])],
-            #
             created_at_timestamp=existing_plan.get("created_at_timestamp"),
         )
         return JSONResponse(model.model_dump(by_alias=True))
+
+
+async def _load_available_foods(user: UserDict) -> list[dict[str, Any]]:
+    food_intolerances = user.get("food_intolerances", [])
+    dietary_preferences = user.get("dietary_preferences", [])
+
+    pipeline: list[dict[str, Any]] = []
+
+    if food_intolerances:
+        pipeline.append({"$match": {"allergic_ingredients": {"$not": {"$elemMatch": {"$in": food_intolerances}}}}})
+
+    if dietary_preferences:
+        pipeline.append({"$match": {"type": {"$in": dietary_preferences}}})
+
+    foods_cursor = await foods_collection.aggregate(pipeline)
+    return [{"_id": food.get("_id"), "name": food.get("name")} async for food in foods_cursor]
+
+
+async def _generate_and_store_plan(user: UserDict, user_id: str, available_foods: list[dict[str, Any]], lock_key: str):
+    try:
+        if await _find_plan_for_today(user):
+            return
+
+        partial_plan = await google_api_handler.generate_plan(user=user, available_foods=available_foods)
+
+        plan = MyPlanModel(
+            _id="",
+            user_id=user_id,
+            breakfast=partial_plan.breakfast,
+            lunch=partial_plan.lunch,
+            dinner=partial_plan.dinner,
+            snacks=partial_plan.snacks,
+            original_breakfast=partial_plan.breakfast,
+            original_lunch=partial_plan.lunch,
+            original_dinner=partial_plan.dinner,
+            original_snacks=partial_plan.snacks,
+            created_at_timestamp=0.0,
+        )
+
+        plan.created_at_timestamp = arrow.now(_timezone_for_user(user)).float_timestamp
+        plan.id = str(uuid.uuid4())
+
+        plan_dict = cast(MyPlanDict, plan.model_dump(by_alias=True, mode="json"))
+
+        if await _find_plan_for_today(user):
+            return
+
+        await plans_collection.insert_one(plan_dict)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.exception("Failed to generate plan for user %s", user_id, exc_info=exc)
+    finally:
+        await redis_client.delete(lock_key)
 
 
 @router.get(
@@ -171,65 +250,47 @@ async def _has_existing_plan_for_today(user: UserDict):
             "model": ErrorResponseModel,
             "content": {"application/json": {}},
         },
+        HTTP_202_ACCEPTED: {"description": "Generation in progress.", "content": {"application/json": {}}},
     },
 )
-async def get_meal_plan(bg_task: BackgroundTasks, user_id: str = Depends(get_user_id, use_cache=False)):
-    """Return today's meal plan if it exists; otherwise generate, persist, and return one."""
+async def get_meal_plan(_background_tasks: BackgroundTasks, user_id: str = Depends(get_user_id, use_cache=False)):
+    """Return today's meal plan if it exists; otherwise enqueue generation and long-poll for the result."""
+    wait_seconds = DEFAULT_LONG_POLL_SECONDS
+    poll_interval_seconds = DEFAULT_POLL_INTERVAL_SECONDS
+
     user: UserDict = await _get_verified_user(user_id)
     existing_plan = await _has_existing_plan_for_today(user)
     if existing_plan:
         return existing_plan
 
-    food_intolerances = user.get("food_intolerances", [])
-    dietary_preferences = user.get("dietary_preferences", [])
+    available_foods = await _load_available_foods(user)
 
-    pipeline: list[dict] = []
+    lock_key = _daily_lock_key("plan", user)
+    if await _acquire_task_lock(lock_key):
+        asyncio.create_task(_generate_and_store_plan(user, user_id, available_foods, lock_key))
 
-    if food_intolerances:
-        pipeline.append({"$match": {"allergic_ingredients": {"$not": {"$elemMatch": {"$in": food_intolerances}}}}})
+    polled_plan = await _long_poll(
+        lambda: _has_existing_plan_for_today(user),
+        timeout_seconds=wait_seconds,
+        interval_seconds=poll_interval_seconds,
+    )
+    if polled_plan:
+        return polled_plan
 
-    if dietary_preferences:
-        pipeline.append({"$match": {"type": {"$in": dietary_preferences}}})
-
-    foods_cursor = await foods_collection.aggregate(pipeline)
-    foods = [{"_id": food.get("_id"), "name": food.get("name")} async for food in foods_cursor]
-
-    partial_plan = await google_api_handler.generate_plan(user=user, available_foods=foods)
-
-    plan = MyPlanModel(
-        _id="",
-        user_id=user_id,
-        breakfast=partial_plan.breakfast,
-        lunch=partial_plan.lunch,
-        dinner=partial_plan.dinner,
-        snacks=partial_plan.snacks,
-        original_breakfast=partial_plan.breakfast,
-        original_lunch=partial_plan.lunch,
-        original_dinner=partial_plan.dinner,
-        original_snacks=partial_plan.snacks,
-        created_at_timestamp=0.0,
+    return JSONResponse(
+        {
+            "status": "processing",
+            "task_id": lock_key,
+            "detail": "Meal plan generation is in progress. Retry shortly.",
+            "retry_after_seconds": poll_interval_seconds,
+        },
+        status_code=HTTP_202_ACCEPTED,
     )
 
-    plan.created_at_timestamp = arrow.now().float_timestamp
-    plan.id = str(uuid.uuid4())
 
-    plan_dict = cast(MyPlanDict, plan.model_dump(by_alias=True, mode="json"))
-
-    existing_plan = await _has_existing_plan_for_today(user)
-    # Huh? Somehow it already has plan, which can only mean it was created in the tiny window between the first check and now. Return that one instead of trying to insert and creating duplicates.
-    if existing_plan:
-        return existing_plan
-
-    await plans_collection.insert_one(plan_dict)
-
-    return JSONResponse(plan.model_dump(by_alias=True))
-
-
-async def _has_existing_exercises_for_today(user: UserDict):
-    timezone = user.get("timezone") or "Asia/Kolkata"
-    start, end = _today_window(timezone)
-
-    existing_exercises = await user_exercises_collection.find(
+async def _find_exercises_for_today(user: UserDict):
+    start, end = _today_window(_timezone_for_user(user))
+    return await user_exercises_collection.find(
         {
             "user_id": user.get("_id"),
             "added_at_timestamp": {
@@ -239,8 +300,90 @@ async def _has_existing_exercises_for_today(user: UserDict):
         }
     ).to_list(length=None)
 
+
+async def _has_existing_exercises_for_today(user: UserDict):
+    existing_exercises = await _find_exercises_for_today(user)
     if existing_exercises:
         return JSONResponse([UserExerciseModel(**exercise).model_dump(by_alias=True) for exercise in existing_exercises])
+
+
+async def _fetch_exercise_catalog_payload():
+    return [ExerciseModel(**exercise).model_dump(by_alias=True, mode="json") async for exercise in exercises_collection.find({})]
+
+
+async def _generate_and_store_exercises(user: UserDict, user_id: str, lock_key: str):
+    try:
+        if await _find_exercises_for_today(user):
+            return
+
+        exercise_catalog_payload = await _fetch_exercise_catalog_payload()
+
+        ai_response = await google_api_handler.generate_exercises(
+            user=user,
+            exercise_sets=exercise_catalog_payload,
+        )
+
+        now_ts = arrow.now(_timezone_for_user(user)).float_timestamp
+        if await _find_exercises_for_today(user):
+            return
+
+        payload = []
+
+        for exercise in ai_response.exercises:
+            name = exercise.name.lower().strip().replace(" ", "_").replace("'", "")
+            exercise.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{name}.png")
+
+            payload.append(
+                UserExerciseDict(
+                    _id=str(uuid.uuid4()),
+                    user_id=user_id,
+                    exercise_id=exercise.id,
+                    added_at_timestamp=now_ts,
+                    video_duration_completed_seconds=0.0,
+                )
+            )
+
+        await user_exercises_collection.insert_many(payload)
+
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.exception("Failed to generate exercises for user %s", user_id, exc_info=exc)
+    finally:
+        await redis_client.delete(lock_key)
+
+
+async def _find_tip_for_today(user: UserDict):
+    start, end = _today_window(_timezone_for_user(user))
+    return await tips_collection.find_one(
+        {
+            "user_id": user.get("_id"),
+            "created_at_timestamp": {"$gte": start, "$lt": end},
+        }
+    )
+
+
+async def _generate_and_store_tip(user: UserDict, user_id: str, lock_key: str):
+    try:
+        if await _find_tip_for_today(user):
+            return
+
+        generated = await google_api_handler.generate_tips(user=user)
+
+        if await _find_tip_for_today(user):
+            return
+
+        await tips_collection.insert_one(
+            {
+                "_id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "todays_focus": generated.todays_focus,
+                "daily_tip": generated.daily_tip,
+                "created_at_timestamp": arrow.now(_timezone_for_user(user)).float_timestamp,
+            }
+        )
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.exception("Failed to generate tips for user %s", user_id, exc_info=exc)
+    finally:
+        await redis_client.delete(lock_key)
 
 
 @router.get(
@@ -266,47 +409,40 @@ async def _has_existing_exercises_for_today(user: UserDict):
             "model": ErrorResponseModel,
             "content": {"application/json": {}},
         },
+        HTTP_202_ACCEPTED: {"description": "Generation in progress.", "content": {"application/json": {}}},
     },
 )
 async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
-    """Return today's exercises if present; otherwise generate, store, and return new ones."""
+    """Return today's exercises if present; otherwise enqueue generation and long-poll for the result."""
+    wait_seconds = DEFAULT_LONG_POLL_SECONDS
+    poll_interval_seconds = DEFAULT_POLL_INTERVAL_SECONDS
+
     user = await _get_verified_user(user_id)
     existing_exercises = await _has_existing_exercises_for_today(user)
     if existing_exercises:
         return existing_exercises
 
-    exercise_catalog_payload = [
-        ExerciseModel(**exercise).model_dump(by_alias=True, mode="json") async for exercise in exercises_collection.find({})
-    ]
+    lock_key = _daily_lock_key("exercises", user)
+    if await _acquire_task_lock(lock_key):
+        asyncio.create_task(_generate_and_store_exercises(user, user_id, lock_key))
 
-    ai_response = await google_api_handler.generate_exercises(
-        user=user,
-        exercise_sets=exercise_catalog_payload,
+    polled_exercises = await _long_poll(
+        lambda: _has_existing_exercises_for_today(user),
+        timeout_seconds=wait_seconds,
+        interval_seconds=poll_interval_seconds,
     )
+    if polled_exercises:
+        return polled_exercises
 
-    now_ts = arrow.now().float_timestamp
-    created_user_exercises: list[UserExerciseDict] = []
-
-    existing_exercises = await _has_existing_exercises_for_today(user)
-    if existing_exercises:
-        return existing_exercises
-
-    for exercise in ai_response.exercises:
-        name = exercise.name.lower().strip().replace(" ", "_").replace("'", "")
-        exercise.image_name_uri = await s3.get_presigned_url(f"ExerciseImages/{name}.png")
-
-        user_exercise_record = UserExerciseDict(
-            _id=str(uuid.uuid4()),
-            user_id=user_id,
-            exercise_id=exercise.id,
-            added_at_timestamp=now_ts,
-            video_duration_completed_seconds=0.0,
-        )
-
-        await user_exercises_collection.insert_one(user_exercise_record)
-        created_user_exercises.append(user_exercise_record)
-
-    return JSONResponse(created_user_exercises)
+    return JSONResponse(
+        {
+            "status": "processing",
+            "task_id": lock_key,
+            "detail": "Exercise generation is in progress. Retry shortly.",
+            "retry_after_seconds": poll_interval_seconds,
+        },
+        status_code=HTTP_202_ACCEPTED,
+    )
 
 
 @router.get(
@@ -333,31 +469,41 @@ async def get_exercises(user_id: str = Depends(get_user_id, use_cache=False)):
             "model": ErrorResponseModel,
             "content": {"application/json": {}},
         },
+        HTTP_202_ACCEPTED: {"description": "Generation in progress.", "content": {"application/json": {}}},
     },
 )
 async def get_tips(user_id: str = Depends(get_user_id, use_cache=False)):
     """Return today's tip for the verified user, generating and persisting it if absent."""
-    user = await _get_verified_user(user_id)
-    timezone = user.get("timezone") or "Asia/Kolkata"
-    start, end = _today_window(timezone)
+    wait_seconds = DEFAULT_LONG_POLL_SECONDS
+    poll_interval_seconds = DEFAULT_POLL_INTERVAL_SECONDS
 
-    tip = await tips_collection.find_one(
-        {
-            "user_id": user_id,
-            "created_at_timestamp": {"$gte": start, "$lt": end},
-        }
-    )
+    user = await _get_verified_user(user_id)
+
+    tip = await _find_tip_for_today(user)
     if tip:
         return JSONResponse(DailyInsightModel(daily_tip=tip["daily_tip"], todays_focus=tip["todays_focus"]).model_dump(by_alias=True))
 
-    generated = await google_api_handler.generate_tips(user=user)
-    await tips_collection.insert_one(
-        {
-            "_id": str(uuid.uuid4()),
-            "user_id": user_id,
-            "todays_focus": generated.todays_focus,
-            "daily_tip": generated.daily_tip,
-            "created_at_timestamp": arrow.now().float_timestamp,
-        }
+    lock_key = _daily_lock_key("tips", user)
+    if await _acquire_task_lock(lock_key):
+        asyncio.create_task(_generate_and_store_tip(user, user_id, lock_key))
+
+    polled_tip = await _long_poll(
+        lambda: _find_tip_for_today(user),
+        timeout_seconds=wait_seconds,
+        interval_seconds=poll_interval_seconds,
     )
-    return JSONResponse(generated.model_dump(by_alias=True))
+
+    if polled_tip:
+        return JSONResponse(
+            DailyInsightModel(daily_tip=polled_tip["daily_tip"], todays_focus=polled_tip["todays_focus"]).model_dump(by_alias=True)
+        )
+
+    return JSONResponse(
+        {
+            "status": "processing",
+            "task_id": lock_key,
+            "detail": "Daily tip generation is in progress. Retry shortly.",
+            "retry_after_seconds": poll_interval_seconds,
+        },
+        status_code=HTTP_202_ACCEPTED,
+    )

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import arrow
 from fastapi import FastAPI
-from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pymongo.asynchronous.mongo_client import AsyncMongoClient

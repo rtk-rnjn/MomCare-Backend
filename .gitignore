@@ -19,3 +19,4 @@ venv.bak/
 config.json
 app.log*
 node_modules/
+test.py

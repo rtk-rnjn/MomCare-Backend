@@ -4,7 +4,7 @@ from fastapi import Request
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 
-from src.app import app, FRONTEND_DIR
+from src.app import FRONTEND_DIR, app
 
 templates: Jinja2Templates = app.state.templates
 

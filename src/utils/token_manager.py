@@ -88,6 +88,7 @@ class RedisKeys:
 
 _KEYS = RedisKeys()
 
+
 class TokenManager:
     def __init__(self):
         self.redis_client = Redis(
