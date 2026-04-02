@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 from string import Template
 from typing import Any, TypedDict, TypeVar
@@ -48,11 +49,26 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 
 class GoogleAPIHandler:
     def __init__(self):
-        GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+        key_seperator = os.environ["GEMINI_API_KEY_SEPERATOR"]
+        self.__keys = os.environ["GEMINI_API_KEYS"].split(key_seperator)
 
-        self.gemini_api_key = GEMINI_API_KEY
+        if not self.__keys:
+            raise ValueError("No GEMINI API keys provided")
+
+        self.__index = 0
+        self.__lock = threading.Lock()
+
         self.model = "gemini-2.5-flash"
-        self.client = genai.Client(api_key=self.gemini_api_key)
+
+    def _next_key(self) -> str:
+        with self.__lock:
+            key = self.__keys[self.__index]
+            self.__index = (self.__index + 1) % len(self.__keys)
+            return key
+
+    @property
+    def client(self) -> genai.Client:
+        return genai.Client(api_key=self._next_key())
 
     async def _generate_response(
         self,
