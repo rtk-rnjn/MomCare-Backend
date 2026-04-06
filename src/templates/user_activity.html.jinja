@@ -1,0 +1,118 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}User Activity{% endblock %}
+{% block page_title %}User Activity{% endblock %}
+
+{% block head %}
+<style>
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.4s ease both;
+    }
+    .panel-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0; }
+    .detail-item { padding: 12px 18px; border-bottom: 1px solid var(--border); }
+    .detail-item:nth-child(even) { background: var(--bg-elevated); }
+    .detail-label { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .detail-value { font-size: 13px; color: var(--text-primary); word-break: break-all; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--accent); font-size: 13px; margin-bottom: 16px; }
+    .back-link:hover { text-decoration: underline; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: 'DM Mono', monospace; }
+    .badge.active { background: rgba(47,133,90,0.1); color: var(--success); border: 1px solid rgba(47,133,90,0.3); }
+    .badge.locked { background: rgba(197,48,48,0.1); color: var(--danger); border: 1px solid rgba(197,48,48,0.3); }
+    .badge.deleted { background: rgba(107,114,128,0.1); color: var(--text-muted); border: 1px solid var(--border); }
+    .action-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+    .btn-action { padding: 7px 16px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; cursor: pointer; background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-action:hover { background: var(--bg-hover); }
+    .btn-action.danger { color: var(--danger); border-color: rgba(197,48,48,0.3); }
+    .btn-action.success { color: var(--success); border-color: rgba(47,133,90,0.3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('admin_users') }}" class="back-link">← Back to Users</a>
+
+<!-- Action bar -->
+<div class="action-bar">
+    <button class="btn-action danger" onclick="lockUser()">Lock Account</button>
+    <button class="btn-action success" onclick="unlockUser()">Unlock Account</button>
+</div>
+
+<!-- User profile -->
+<div class="panel">
+    <div class="panel-header">
+        <span class="panel-title">User Profile</span>
+        <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted);">{{ user_id }}</span>
+    </div>
+    {% if user %}
+    <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">First Name</div><div class="detail-value">{{ user.first_name or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Last Name</div><div class="detail-value">{{ user.last_name or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Phone</div><div class="detail-value">{{ user.phone_number or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Timezone</div><div class="detail-value">{{ user.timezone or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">DOB</div><div class="detail-value">{{ user.date_of_birth_timestamp | humanize_timestamp if user.date_of_birth_timestamp else '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Height (cm)</div><div class="detail-value">{{ user.height or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Pre-preg Weight</div><div class="detail-value">{{ user.pre_pregnancy_weight or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Current Weight</div><div class="detail-value">{{ user.current_weight or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Due Date</div><div class="detail-value">{{ user.due_date_timestamp | humanize_timestamp if user.due_date_timestamp else '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Food Intolerances</div><div class="detail-value">{{ user.food_intolerances | join(', ') if user.food_intolerances else '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Dietary Prefs</div><div class="detail-value">{{ user.dietary_preferences | join(', ') if user.dietary_preferences else '—' }}</div></div>
+    </div>
+    {% else %}
+    <div style="padding:24px; text-align:center; color:var(--text-muted);">User profile not found.</div>
+    {% endif %}
+</div>
+
+<!-- Credentials -->
+<div class="panel">
+    <div class="panel-header">
+        <span class="panel-title">Credentials</span>
+        {% if credentials.account_status %}
+        <span class="badge {{ credentials.account_status }}">{{ credentials.account_status }}</span>
+        {% endif %}
+    </div>
+    {% if credentials %}
+    <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value">{{ credentials.email_address or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Email (Normalized)</div><div class="detail-value">{{ credentials.email_address_normalized or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Provider</div><div class="detail-value">{{ credentials.email_address_provider or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Auth Providers</div><div class="detail-value">{{ credentials.authentication_providers | join(', ') if credentials.authentication_providers else '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Verified Email</div><div class="detail-value">{{ '✓ Yes' if credentials.verified_email else '✗ No' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Account Status</div><div class="detail-value"><span class="badge {{ credentials.account_status or 'active' }}">{{ credentials.account_status or 'active' }}</span></div></div>
+        <div class="detail-item"><div class="detail-label">Failed Login Attempts</div><div class="detail-value">{{ credentials.failed_login_attempts or 0 }}</div></div>
+        <div class="detail-item"><div class="detail-label">Last Login</div><div class="detail-value">{{ credentials.last_login_timestamp | humanize_timestamp if credentials.last_login_timestamp else '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Created</div><div class="detail-value">{{ credentials.created_at_timestamp | humanize_timestamp if credentials.created_at_timestamp else '—' }}</div></div>
+    </div>
+    {% else %}
+    <div style="padding:24px; text-align:center; color:var(--text-muted);">Credentials not found.</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const csrfToken = document.cookie.split('; ').find(r => r.startsWith('csrf_token='))?.split('=')[1] || '';
+    const userId = '{{ user_id }}';
+
+    function lockUser() {
+        if (!confirm('Lock this user account?')) return;
+        fetch(`{{ url_for('admin_lock_user', user_id='__ID__') }}`.replace('__ID__', userId), {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': csrfToken }
+        }).then(r => r.json()).then(d => { if (d.success) location.reload(); else alert(d.message || 'Error'); });
+    }
+
+    function unlockUser() {
+        if (!confirm('Unlock this user account?')) return;
+        fetch(`{{ url_for('admin_unlock_user', user_id='__ID__') }}`.replace('__ID__', userId), {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': csrfToken }
+        }).then(r => r.json()).then(d => { if (d.success) location.reload(); else alert(d.message || 'Error'); });
+    }
+</script>
+{% endblock %}

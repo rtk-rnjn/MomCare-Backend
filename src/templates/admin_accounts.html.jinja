@@ -1,0 +1,191 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Admin Accounts{% endblock %}
+{% block page_title %}Admin Accounts{% endblock %}
+
+{% block head %}
+<style>
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.4s ease both;
+    }
+    .panel-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 14px; text-align: left; font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); background: var(--bg-elevated); }
+    td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-elevated); }
+    .role-badge {
+        display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: 'DM Mono', monospace;
+        background: var(--accent-subtle); color: var(--accent); border: 1px solid var(--border-accent);
+    }
+    .role-badge.super { background: rgba(197,48,48,0.08); color: var(--danger); border-color: rgba(197,48,48,0.3); }
+    .status-active { color: var(--success); }
+    .status-inactive { color: var(--danger); }
+    .btn-sm {
+        padding: 4px 10px; font-size: 11px; border: 1px solid var(--border); border-radius: 5px;
+        cursor: pointer; background: var(--bg-elevated); color: var(--text-primary); margin-right: 4px;
+    }
+    .btn-sm:hover { background: var(--bg-hover); }
+    .btn-sm.danger { color: var(--danger); border-color: rgba(197,48,48,0.3); }
+    .btn-sm.success { color: var(--success); border-color: rgba(47,133,90,0.3); }
+    .create-form {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.3s ease both;
+    }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .form-field { display: flex; flex-direction: column; gap: 5px; }
+    .form-field label { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+    .form-field input, .form-field select {
+        background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px;
+        color: var(--text-primary); padding: 7px 10px; font-size: 13px; outline: none;
+    }
+    .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+    .btn-create { padding: 8px 18px; background: var(--accent); color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+    .section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 14px; color: var(--text-secondary); }
+    .mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); }
+    .empty-row td { text-align: center; color: var(--text-muted); padding: 32px; }
+    .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; }
+    .page-info { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); }
+    .page-btns { display: flex; gap: 8px; }
+    .page-btn { padding: 6px 14px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; text-decoration: none; color: var(--text-primary); }
+    .page-btn:hover { background: var(--bg-hover); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Create Admin Form -->
+<div class="create-form">
+    <div class="section-title">Create New Admin Account</div>
+    <form method="post" action="{{ url_for('admin_create_account') }}">
+        <input type="hidden" name="csrf_token" id="csrfToken">
+        <div class="form-grid">
+            <div class="form-field">
+                <label>Username</label>
+                <input type="text" name="username" required minlength="3" placeholder="admin_user">
+            </div>
+            <div class="form-field">
+                <label>Display Name</label>
+                <input type="text" name="display_name" required placeholder="John Doe">
+            </div>
+            <div class="form-field">
+                <label>Password</label>
+                <input type="password" name="password" required minlength="8" placeholder="Min 8 characters">
+            </div>
+            <div class="form-field">
+                <label>Role</label>
+                <select name="role">
+                    {% for r in roles %}
+                    <option value="{{ r }}">{{ r }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn-create">Create Admin</button>
+    </form>
+</div>
+
+<!-- Admin Accounts Table -->
+<div class="panel">
+    <div class="panel-header">
+        <span class="panel-title">Admin Accounts</span>
+        <span class="mono">{{ total }} total</span>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Display Name</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for admin in admins %}
+            <tr>
+                <td class="mono">{{ admin.username }}</td>
+                <td>{{ admin.display_name }}</td>
+                <td>
+                    <span class="role-badge {% if admin.role == 'super_admin' %}super{% endif %}">{{ admin.role }}</span>
+                </td>
+                <td>
+                    {% if admin.is_active %}
+                    <span class="status-active">● Active</span>
+                    {% else %}
+                    <span class="status-inactive">● Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="mono">{{ admin.last_login_timestamp | humanize_timestamp if admin.last_login_timestamp else '—' }}</td>
+                <td>
+                    {% if admin.is_active %}
+                    <button class="btn-sm danger" onclick="deactivateAdmin('{{ admin._id }}')">Deactivate</button>
+                    {% else %}
+                    <button class="btn-sm success" onclick="activateAdmin('{{ admin._id }}')">Activate</button>
+                    {% endif %}
+                    <button class="btn-sm" onclick="rotatePassword('{{ admin._id }}')">Rotate Password</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr class="empty-row"><td colspan="6">No admin accounts found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination">
+    <div class="page-info">Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong></div>
+    <div class="page-btns">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}" class="page-btn">← Prev</a>
+        {% endif %}
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}" class="page-btn">Next →</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const csrfToken = document.cookie.split('; ').find(r => r.startsWith('csrf_token='))?.split('=')[1] || '';
+    document.getElementById('csrfToken').value = csrfToken;
+
+    function deactivateAdmin(id) {
+        if (!confirm('Deactivate this admin?')) return;
+        fetch(`{{ url_for('admin_accounts') }}/${id}/deactivate`, {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json' }
+        }).then(r => r.json()).then(d => { if (d.ok) location.reload(); else alert(d.detail || 'Error'); });
+    }
+
+    function activateAdmin(id) {
+        if (!confirm('Activate this admin?')) return;
+        fetch(`{{ url_for('admin_accounts') }}/${id}/activate`, {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json' }
+        }).then(r => r.json()).then(d => { if (d.ok) location.reload(); else alert(d.detail || 'Error'); });
+    }
+
+    function rotatePassword(id) {
+        const newPassword = prompt('Enter new password (min 8 chars):');
+        if (!newPassword || newPassword.length < 8) { alert('Password must be at least 8 characters.'); return; }
+        fetch(`{{ url_for('admin_accounts') }}/${id}/rotate-password`, {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_password: newPassword })
+        }).then(r => r.json()).then(d => { if (d.ok) alert('Password rotated.'); else alert(d.detail || 'Error'); });
+    }
+</script>
+{% endblock %}

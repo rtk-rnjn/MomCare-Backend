@@ -1,0 +1,969 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Admin Tools{% endblock %}
+{% block page_title %}Admin Tools{% endblock %}
+
+{% block head %}
+
+<script type="module">
+    import { EditorState, Compartment } from 'https://esm.sh/@codemirror/state@6';
+    import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, rectangularSelection, crosshairCursor } from 'https://esm.sh/@codemirror/view@6';
+    import { defaultKeymap, history, historyKeymap, indentWithTab } from 'https://esm.sh/@codemirror/commands@6';
+    import { syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldGutter, indentOnInput } from 'https://esm.sh/@codemirror/language@6';
+    import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from 'https://esm.sh/@codemirror/autocomplete@6';
+    import { searchKeymap, highlightSelectionMatches } from 'https://esm.sh/@codemirror/search@6';
+    import { lintKeymap } from 'https://esm.sh/@codemirror/lint@6';
+    import { python } from 'https://esm.sh/@codemirror/lang-python@6';
+    import { oneDark } from 'https://esm.sh/@codemirror/theme-one-dark@6';
+
+    // ── Custom theme matching the admin panel ──────────────────────────────────
+    const adminTheme = EditorView.theme({
+        '&': {
+            background: '#0c0c12',
+            color: '#d9d9d9',
+            borderRadius: '8px',
+            fontSize: '12.5px',
+            fontFamily: "'DM Mono', monospace",
+        },
+        '.cm-content': { padding: '12px 0', caretColor: '#6366f1' },
+        '.cm-cursor': { borderLeftColor: '#6366f1', borderLeftWidth: '2px' },
+        '.cm-gutters': {
+            background: '#0c0c12',
+            color: '#4a4a6a',
+            border: 'none',
+            borderRight: '1px solid rgba(255,255,255,0.05)',
+            paddingRight: '4px',
+        },
+        '.cm-lineNumbers .cm-gutterElement': { padding: '0 8px' },
+        '.cm-activeLine': { background: 'rgba(99,102,241,0.06)' },
+        '.cm-activeLineGutter': { background: 'rgba(99,102,241,0.06)', color: '#6366f1' },
+        '.cm-selectionBackground, ::selection': { background: 'rgba(99,102,241,0.22) !important' },
+        '.cm-matchingBracket': { background: 'rgba(99,102,241,0.2)', outline: '1px solid rgba(99,102,241,0.5)', borderRadius: '2px' },
+        '.cm-tooltip': {
+            background: '#17171f',
+            border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: '12px',
+        },
+        '.cm-tooltip-autocomplete > ul': { maxHeight: '200px' },
+        '.cm-tooltip-autocomplete > ul > li': {
+            padding: '5px 12px',
+            lineHeight: '1.5',
+            borderRadius: '4px',
+            margin: '2px 4px',
+        },
+        '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+            background: 'rgba(99,102,241,0.25)',
+            color: '#fff',
+        },
+        '.cm-completionLabel': { color: '#d9d9d9' },
+        '.cm-completionDetail': { color: '#78788d', marginLeft: '8px', fontStyle: 'italic' },
+        '.cm-completionIcon': { paddingRight: '6px', opacity: '0.7' },
+        '.cm-scroller': { fontFamily: "'DM Mono', monospace" },
+        '.cm-foldGutter .cm-gutterElement': { cursor: 'pointer', color: '#4a4a6a' },
+        '.cm-foldGutter .cm-gutterElement:hover': { color: '#6366f1' },
+    }, { dark: true });
+
+    // ── Python context completions ────────────────────────────────────────────
+    const pythonContext = [
+        { label: 'app', type: 'variable', detail: 'FastAPI app instance' },
+        { label: 'database', type: 'variable', detail: 'async database connection' },
+        { label: 'redis_client', type: 'variable', detail: 'aioredis client' },
+        { label: 'mongo_client', type: 'variable', detail: 'motor AsyncIOMotorClient' },
+        { label: 'arrow', type: 'variable', detail: 'arrow datetime library' },
+        { label: 'orjson', type: 'variable', detail: 'fast JSON library' },
+        { label: 'asyncio', type: 'variable', detail: 'asyncio module' },
+        { label: 'redis_client.ping()', type: 'function', detail: 'ping Redis' },
+        { label: 'redis_client.get(key)', type: 'function', detail: 'get key' },
+        { label: 'redis_client.set(key, value)', type: 'function', detail: 'set key' },
+        { label: 'redis_client.keys(pattern)', type: 'function', detail: 'list keys' },
+        { label: 'redis_client.delete(key)', type: 'function', detail: 'delete key' },
+        { label: 'redis_client.hgetall(name)', type: 'function', detail: 'get all hash fields' },
+        { label: 'database.fetch_all(query)', type: 'function', detail: 'fetch all rows' },
+        { label: 'database.fetch_one(query)', type: 'function', detail: 'fetch one row' },
+        { label: 'database.execute(query)', type: 'function', detail: 'execute query' },
+        { label: 'arrow.now()', type: 'function', detail: 'current datetime' },
+        { label: 'arrow.utcnow()', type: 'function', detail: 'current UTC datetime' },
+        { label: 'orjson.dumps(obj)', type: 'function', detail: 'serialize to JSON bytes' },
+        { label: 'orjson.loads(data)', type: 'function', detail: 'deserialize JSON' },
+        { label: 'asyncio.gather()', type: 'function', detail: 'gather coroutines' },
+        { label: 'asyncio.sleep(seconds)', type: 'function', detail: 'async sleep' },
+    ];
+
+    function pythonContextCompletion(context) {
+        const word = context.matchBefore(/[\w.()]*/);
+        if (!word || (word.from === word.to && !context.explicit)) return null;
+        return {
+            from: word.from,
+            options: pythonContext,
+            validFor: /^[\w.()]*$/,
+        };
+    }
+
+    // ── Build Python editor ───────────────────────────────────────────────────
+    const pythonExtensions = [
+        lineNumbers(),
+        highlightActiveLineGutter(),
+        highlightActiveLine(),
+        history(),
+        foldGutter(),
+        drawSelection(),
+        indentOnInput(),
+        bracketMatching(),
+        closeBrackets(),
+        highlightSelectionMatches(),
+        rectangularSelection(),
+        crosshairCursor(),
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        python(),
+        autocompletion({ override: [pythonContextCompletion], activateOnTyping: true }),
+        keymap.of([
+            indentWithTab,
+            ...closeBracketsKeymap,
+            ...defaultKeymap,
+            ...historyKeymap,
+            ...completionKeymap,
+            ...searchKeymap,
+            ...lintKeymap,
+        ]),
+        adminTheme,
+        EditorView.lineWrapping,
+        EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+                // sync hidden textarea for form submission compat
+                window.__pythonEditorContent = update.state.doc.toString();
+            }
+        }),
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const mountEl = document.getElementById('pythonEditorMount');
+        if (!mountEl) return;
+
+        window.__pythonEditor = new EditorView({
+            state: EditorState.create({
+                doc: '# Context available: app, database, redis_client, mongo_client, arrow, orjson, asyncio\n# Ctrl+Space for autocomplete  |  Tab to indent\n\nawait redis_client.ping()\n',
+                extensions: pythonExtensions,
+            }),
+            parent: mountEl,
+        });
+        window.__pythonEditorContent = window.__pythonEditor.state.doc.toString();
+    });
+</script>
+
+<style>
+    /* ── Layout ─────────────────────────────────────────────────────────────── */
+    .tools-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    /* ── Panel ──────────────────────────────────────────────────────────────── */
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(90deg, rgba(99, 102, 241, 0.04) 0%, transparent 100%);
+    }
+
+    .panel-title {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+
+        color: var(--text-primary);
+    }
+
+    .panel-subtitle {
+
+        color: var(--text-muted);
+        font-family: 'DM Mono', monospace;
+        margin-top: 2px;
+    }
+
+    .panel-body {
+        padding: 18px 20px;
+    }
+
+    /* ── Tabs ───────────────────────────────────────────────────────────────── */
+    .tab-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 14px;
+        margin-bottom: 18px;
+    }
+
+    .tab-btn {
+        border: 1px solid var(--border);
+        background: var(--bg-elevated);
+        color: var(--text-muted);
+        border-radius: 8px;
+        padding: 7px 16px;
+
+        font-family: 'DM Mono', monospace;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .tab-btn svg {
+        width: 13px;
+        height: 13px;
+        opacity: 0.5;
+        transition: opacity 0.15s;
+    }
+
+    .tab-btn:hover {
+        color: var(--text-primary);
+        border-color: var(--border-accent);
+        background: var(--bg-hover);
+    }
+
+    .tab-btn:hover svg {
+        opacity: 1;
+    }
+
+    .tab-btn.active {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.5);
+        color: #a5b4fc;
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+    }
+
+    .tab-btn.active svg {
+        opacity: 1;
+    }
+
+    .tab-pane[hidden] {
+        display: none !important;
+    }
+
+    /* ── Labels & Inputs ────────────────────────────────────────────────────── */
+    .field-group {
+        margin-bottom: 14px;
+    }
+
+    .input-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+
+        font-family: 'DM Mono', monospace;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+
+    .input-label .label-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--accent);
+        opacity: 0.6;
+    }
+
+    /* CodeMirror mount */
+    #pythonEditorMount {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        min-height: 220px;
+        transition: border-color 0.15s;
+        background: #0c0c12;
+    }
+
+    #pythonEditorMount:focus-within {
+        border-color: rgba(99, 102, 241, 0.4);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.06);
+    }
+
+    /* CodeMirror internal scroll */
+    #pythonEditorMount .cm-editor {
+        min-height: 220px;
+        max-height: 360px;
+    }
+
+    #pythonEditorMount .cm-scroller {
+        overflow: auto;
+    }
+
+    /* Plain text inputs (Redis / Terminal) */
+    .input-box {
+        width: 100%;
+        background: #0c0c12;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        border-radius: 8px;
+        padding: 11px 14px;
+
+        font-family: 'DM Mono', monospace;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .input-box:focus {
+        border-color: rgba(99, 102, 241, 0.4);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.06);
+    }
+
+    select.input-box {
+        cursor: pointer;
+    }
+
+    /* ── Shortcut chips ─────────────────────────────────────────────────────── */
+    .shortcut-bar {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+        margin-bottom: 4px;
+    }
+
+    .shortcut-chip {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 3px 8px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .shortcut-chip kbd {
+        font-family: inherit;
+
+        background: rgba(99, 102, 241, 0.12);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 3px;
+        padding: 0 4px;
+        color: #a5b4fc;
+    }
+
+    /* ── Actions ────────────────────────────────────────────────────────────── */
+    .actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .btn {
+        border: 1px solid var(--border);
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        border-radius: 8px;
+        padding: 8px 16px;
+
+        font-family: 'DM Mono', monospace;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+    }
+
+    .btn svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    .btn:hover {
+        color: var(--text-primary);
+        border-color: var(--border-accent);
+        background: var(--bg-hover);
+    }
+
+    .btn-primary {
+        background: rgba(99, 102, 241, 0.18);
+        border-color: rgba(99, 102, 241, 0.45);
+        color: #a5b4fc;
+    }
+
+    .btn-primary:hover {
+        background: rgba(99, 102, 241, 0.28);
+        border-color: rgba(99, 102, 241, 0.7);
+        color: #c7d2fe;
+        box-shadow: 0 0 12px rgba(99, 102, 241, 0.15);
+    }
+
+    .btn-danger {
+        border-color: rgba(244, 63, 94, 0.3);
+        color: rgba(244, 63, 94, 0.7);
+    }
+
+    .btn-danger:hover {
+        background: rgba(244, 63, 94, 0.1);
+        border-color: rgba(244, 63, 94, 0.5);
+        color: #f43f5e;
+    }
+
+    /* ── Status bar ─────────────────────────────────────────────────────────── */
+    .status-bar {
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        flex-shrink: 0;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .status-dot.running {
+        background: var(--warning);
+        box-shadow: 0 0 8px var(--warning);
+        animation: pulse-dot 0.8s ease-in-out infinite;
+    }
+
+    .status-dot.success {
+        background: var(--success);
+        box-shadow: 0 0 8px rgba(34, 211, 160, 0.4);
+    }
+
+    .status-dot.error {
+        background: var(--danger);
+        box-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+    }
+
+    .status-text {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        transition: color 0.2s;
+    }
+
+    /* ── Output ─────────────────────────────────────────────────────────────── */
+    .output-wrap {
+        margin-top: 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .output-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .output-label {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .output-copy-btn {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: color 0.15s;
+    }
+
+    .output-copy-btn:hover {
+        color: var(--text-primary);
+    }
+
+    .output {
+        background: #0c0c12;
+        color: #d9d9d9;
+        padding: 14px;
+        font-family: 'DM Mono', monospace;
+
+        white-space: pre-wrap;
+        min-height: 90px;
+        max-height: 300px;
+        overflow: auto;
+        line-height: 1.7;
+    }
+
+    .output::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    .output::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
+
+    /* Output token coloring */
+    .output .out-key {
+        color: #a5b4fc;
+    }
+
+    .output .out-val {
+        color: #34d399;
+    }
+
+    .output .out-err {
+        color: #f43f5e;
+    }
+
+    .out-muted {
+        color: #4a4a6a;
+        font-style: italic;
+    }
+
+    /* ── Command list ───────────────────────────────────────────────────────── */
+    .command-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 10px;
+        max-height: 100px;
+        overflow: auto;
+    }
+
+    .command-chip {
+
+        font-family: 'DM Mono', monospace;
+        background: rgba(99, 102, 241, 0.07);
+        border: 1px solid rgba(99, 102, 241, 0.15);
+        color: #a5b4fc;
+        border-radius: 4px;
+        padding: 3px 8px;
+        cursor: pointer;
+        transition: all 0.12s;
+    }
+
+    .command-chip:hover {
+        background: rgba(99, 102, 241, 0.18);
+        border-color: rgba(99, 102, 241, 0.35);
+        color: #c7d2fe;
+    }
+
+    /* ── Danger note ────────────────────────────────────────────────────────── */
+    .danger-note {
+        margin-top: 10px;
+
+        color: rgba(244, 63, 94, 0.65);
+        font-family: 'DM Mono', monospace;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .danger-note::before {
+        content: '⚠';
+
+    }
+
+    /* ── Hint ───────────────────────────────────────────────────────────────── */
+    .hint {
+        margin-top: 6px;
+
+        color: var(--text-muted);
+        font-family: 'DM Mono', monospace;
+    }
+
+    @keyframes pulse-dot {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.3;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tools-grid">
+
+    <!-- ── Console Panel ──────────────────────────────────────────────────── -->
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Admin Consoles</div>
+                <div class="panel-subtitle">Python REPL · Redis CLI · Terminal — with syntax highlighting & autocomplete</div>
+            </div>
+        </div>
+
+        <div class="panel-body">
+            <div class="tab-row">
+                <button id="tabBtnPython" class="tab-btn active" onclick="switchTab('python')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    Python REPL
+                </button>
+                <button id="tabBtnRedis" class="tab-btn" onclick="switchTab('redis')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                        <path stroke-linecap="round" d="M3 5v14c0 1.657 4.03 3 9 3s9-1.343 9-3V5" />
+                        <path stroke-linecap="round" d="M3 12c0 1.657 4.03 3 9 3s9-1.343 9-3" />
+                    </svg>
+                    Redis CLI
+                </button>
+                <button id="tabBtnTerminal" class="tab-btn" onclick="switchTab('terminal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Terminal
+                </button>
+            </div>
+
+            <!-- ── Python Tab ── -->
+            <div id="panePython" class="tab-pane">
+                <div class="field-group">
+                    <label class="input-label">
+                        <span class="label-dot"></span>Python code
+                    </label>
+                    <div id="pythonEditorMount"></div>
+                    <div class="shortcut-bar">
+                        <span class="shortcut-chip"><kbd>Ctrl</kbd>+<kbd>Space</kbd> autocomplete</span>
+                        <span class="shortcut-chip"><kbd>Tab</kbd> indent</span>
+                        <span class="shortcut-chip"><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo</span>
+                        <span class="shortcut-chip"><kbd>Ctrl</kbd>+<kbd>F</kbd> search</span>
+                    </div>
+                    <div class="hint">Context: app, database, redis_client, mongo_client, arrow, orjson, asyncio</div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="runPython()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
+                        </svg>
+                        Run Python
+                    </button>
+                    <button class="btn" onclick="clearOutput('pythonOutput', 'pythonStatus')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10" />
+                            <path d="M3.51 15a9 9 0 1 0 .49-3.79" />
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+                <div class="status-bar">
+                    <span class="status-dot" id="pythonDot"></span>
+                    <span class="status-text" id="pythonStatus">Ready</span>
+                </div>
+                <div class="output-wrap">
+                    <div class="output-header">
+                        <span class="output-label">Output</span>
+                        <button class="output-copy-btn" onclick="copyOutput('pythonOutput')">copy</button>
+                    </div>
+                    <pre id="pythonOutput" class="output"><span class="out-muted">(no output)</span></pre>
+                </div>
+            </div>
+
+            <!-- ── Redis Tab ── -->
+            <div id="paneRedis" class="tab-pane" hidden>
+                <div class="field-group">
+                    <label class="input-label" for="redisCommand">
+                        <span class="label-dot"></span>Redis command
+                    </label>
+                    <input id="redisCommand" class="input-box" type="text" placeholder="PING · GET key · KEYS pattern · HGETALL name" list="redisCmdList"
+                        autocomplete="off" spellcheck="false" />
+                    <datalist id="redisCmdList">
+                        {% for cmd in allowed_redis_commands %}
+                        <option value="{{ cmd }}">
+                            {% endfor %}
+                    </datalist>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="runRedis()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
+                        </svg>
+                        Run Redis
+                    </button>
+                    <button class="btn" onclick="clearOutput('redisOutput', 'redisStatus')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10" />
+                            <path d="M3.51 15a9 9 0 1 0 .49-3.79" />
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+                <div class="hint">Allowed commands (click to insert):</div>
+                <div class="command-chips" id="redisChips">
+                    {% for cmd in allowed_redis_commands %}
+                    <span class="command-chip" onclick="document.getElementById('redisCommand').value='{{ cmd }}'">{{ cmd }}</span>
+                    {% endfor %}
+                </div>
+                <div class="status-bar">
+                    <span class="status-dot" id="redisDot"></span>
+                    <span class="status-text" id="redisStatus">Ready</span>
+                </div>
+                <div class="output-wrap">
+                    <div class="output-header">
+                        <span class="output-label">Output</span>
+                        <button class="output-copy-btn" onclick="copyOutput('redisOutput')">copy</button>
+                    </div>
+                    <pre id="redisOutput" class="output"><span class="out-muted">(no output)</span></pre>
+                </div>
+            </div>
+
+            <!-- ── Terminal Tab ── -->
+            <div id="paneTerminal" class="tab-pane" hidden>
+                <div class="field-group">
+                    <label class="input-label" for="terminalCommand">
+                        <span class="label-dot"></span>Shell command
+                    </label>
+                    <input id="terminalCommand" class="input-box" type="text" placeholder="ls -la · ps aux · df -h · env" autocomplete="off" spellcheck="false" />
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="runTerminal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
+                        </svg>
+                        Run Command
+                    </button>
+                    <button class="btn" onclick="clearOutput('terminalOutput', 'terminalStatus')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10" />
+                            <path d="M3.51 15a9 9 0 1 0 .49-3.79" />
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+                <div class="status-bar">
+                    <span class="status-dot" id="terminalDot"></span>
+                    <span class="status-text" id="terminalStatus">Ready</span>
+                </div>
+                <div class="output-wrap">
+                    <div class="output-header">
+                        <span class="output-label">Output</span>
+                        <button class="output-copy-btn" onclick="copyOutput('terminalOutput')">copy</button>
+                    </div>
+                    <pre id="terminalOutput" class="output"><span class="out-muted">(no output)</span></pre>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── Restart Panel ──────────────────────────────────────────────────── -->
+    <section class="panel" id="restartPanel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Restart</div>
+                <div class="panel-subtitle">Graceful app restart control</div>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="hint" style="margin-top:0">Detected runtime: <code
+                    style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px;color:#a5b4fc">{{ runtime_mode }}</code> · {{ runtime_reason }}</div>
+            {% if restart_enabled %}
+            <div class="field-group">
+                <label class="input-label" for="restartMode">
+                    <span class="label-dot"></span>Restart mode
+                </label>
+                <select id="restartMode" class="input-box">
+                    <option value="execv" {% if restart_mode=='execv' %}selected{% endif %}>execv — replace process in-place</option>
+                    <option value="exit" {% if restart_mode=='exit' %}selected{% endif %}>exit — let supervisor restart</option>
+                    <option value="docker" {% if restart_mode=='docker' %}selected{% endif %}>docker — run configured Docker restart command</option>
+                    <option value="pm2" {% if restart_mode=='pm2' %}selected{% endif %}>pm2 — run configured PM2 restart command</option>
+                </select>
+            </div>
+            <div class="actions">
+                <button class="btn btn-danger" onclick="restartApp()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10" />
+                        <path d="M3.51 15a9 9 0 1 0 .49-3.79" />
+                    </svg>
+                    Restart App
+                </button>
+            </div>
+            <div class="danger-note">This drops current requests and admin session while restarting.</div>
+            <div class="hint">Docker command: <code
+                    style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px;color:#a5b4fc">{{ restart_docker_command or '(not configured)' }}</code></div>
+            <div class="hint">PM2 command: <code
+                    style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px;color:#a5b4fc">{{ restart_pm2_command or '(not configured)' }}</code></div>
+            {% else %}
+            <div class="hint" style="margin-top:0">Restart is disabled. Set <code
+                    style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px;color:#a5b4fc">ADMIN_ENABLE_RESTART=true</code> to enable.</div>
+            {% endif %}
+            <div class="status-bar" style="margin-top:14px">
+                <span class="status-dot" id="restartDot"></span>
+                <span class="status-text" id="restartStatus">Ready</span>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ── Tab switching ──────────────────────────────────────────────────────────
+    function switchTab(tab) {
+        const btns = { python: 'tabBtnPython', redis: 'tabBtnRedis', terminal: 'tabBtnTerminal' };
+        const panes = { python: 'panePython', redis: 'paneRedis', terminal: 'paneTerminal' };
+        Object.keys(btns).forEach(name => {
+            document.getElementById(btns[name]).classList.toggle('active', name === tab);
+            document.getElementById(panes[name]).hidden = name !== tab;
+        });
+    }
+
+    // ── Status helpers ─────────────────────────────────────────────────────────
+    function setStatus(statusId, dotId, text, state = 'idle') {
+        const statusEl = document.getElementById(statusId);
+        const dotEl = document.getElementById(dotId);
+        if (statusEl) statusEl.textContent = text;
+        if (dotEl) {
+            dotEl.className = 'status-dot';
+            if (state === 'running') dotEl.classList.add('running');
+            if (state === 'success') dotEl.classList.add('success');
+            if (state === 'error') dotEl.classList.add('error');
+        }
+    }
+
+    function setOutput(id, text, isError = false) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!text || !text.trim()) {
+            el.innerHTML = '<span class="out-muted">(no output)</span>';
+        } else if (isError) {
+            el.innerHTML = `<span class="out-err">${escHtml(text)}</span>`;
+        } else {
+            el.textContent = text;
+        }
+    }
+
+    function clearOutput(outputId, statusId) {
+        const dotId = statusId.replace('Status', 'Dot');
+        setOutput(outputId, '');
+        setStatus(statusId, dotId, 'Ready', 'idle');
+    }
+
+    function escHtml(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    async function copyOutput(outputId) {
+        const el = document.getElementById(outputId);
+        if (!el) return;
+        await navigator.clipboard.writeText(el.textContent).catch(() => { });
+    }
+
+    // ── HTTP helper ───────────────────────────────────────────────────────────
+    async function postJson(url, body) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const ct = response.headers.get('content-type') || '';
+        const data = ct.includes('application/json') ? await response.json() : { detail: await response.text() };
+        if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
+        return data;
+    }
+
+    // ── Python ────────────────────────────────────────────────────────────────
+    async function runPython() {
+        const code = window.__pythonEditorContent || '';
+        setStatus('pythonStatus', 'pythonDot', 'Running…', 'running');
+        try {
+            const data = await postJson("{{ url_for('admin_tools_python') }}", { code });
+            const ok = data.success;
+            setStatus('pythonStatus', 'pythonDot', ok ? 'Success' : 'Failed', ok ? 'success' : 'error');
+            setOutput('pythonOutput', ok ? data.result : (data.error || '(error)'), !ok);
+        } catch (err) {
+            setStatus('pythonStatus', 'pythonDot', err.message, 'error');
+            setOutput('pythonOutput', err.message, true);
+        }
+    }
+
+    // ── Redis ─────────────────────────────────────────────────────────────────
+    async function runRedis() {
+        const command = document.getElementById('redisCommand').value;
+        setStatus('redisStatus', 'redisDot', 'Running…', 'running');
+        try {
+            const data = await postJson("{{ url_for('admin_tools_redis') }}", { command });
+            const ok = data.success;
+            setStatus('redisStatus', 'redisDot', ok ? 'Success' : 'Failed', ok ? 'success' : 'error');
+            setOutput('redisOutput', ok ? data.result : (data.error || '(error)'), !ok);
+        } catch (err) {
+            setStatus('redisStatus', 'redisDot', err.message, 'error');
+            setOutput('redisOutput', err.message, true);
+        }
+    }
+
+    // ── Terminal ──────────────────────────────────────────────────────────────
+    async function runTerminal() {
+        const command = document.getElementById('terminalCommand').value;
+        setStatus('terminalStatus', 'terminalDot', 'Running…', 'running');
+        try {
+            const data = await postJson("{{ url_for('admin_tools_terminal') }}", { command });
+            const output = (data.events || []).map(e => {
+                const prefix = e.type ? `[${e.type}] ` : '';
+                return `${prefix}${e.data || ''}`;
+            }).join('\n');
+            const ok = data.success;
+            setStatus('terminalStatus', 'terminalDot',
+                ok ? `Completed (exit ${data.exit_code ?? 0})` : `Failed (exit ${data.exit_code ?? 'n/a'})`,
+                ok ? 'success' : 'error');
+            setOutput('terminalOutput', output, !ok);
+        } catch (err) {
+            setStatus('terminalStatus', 'terminalDot', err.message, 'error');
+            setOutput('terminalOutput', err.message, true);
+        }
+    }
+
+    // ── Restart ───────────────────────────────────────────────────────────────
+    async function restartApp() {
+        if (!window.confirm('Restart the app now?')) return;
+        const modeEl = document.getElementById('restartMode');
+        const mode = modeEl ? modeEl.value : 'execv';
+        setStatus('restartStatus', 'restartDot', 'Scheduling restart…', 'running');
+        try {
+            const data = await postJson("{{ url_for('admin_tools_restart') }}", { confirm: true, mode });
+            setStatus('restartStatus', 'restartDot', data.message || 'Restart scheduled', 'success');
+        } catch (err) {
+            setStatus('restartStatus', 'restartDot', err.message, 'error');
+        }
+    }
+
+    // ── Enter key shortcuts ───────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('redisCommand')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') runRedis();
+        });
+        document.getElementById('terminalCommand')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') runTerminal();
+        });
+    });
+</script>
+{% endblock %}

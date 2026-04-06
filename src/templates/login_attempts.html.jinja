@@ -1,0 +1,114 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Login Attempts{% endblock %}
+{% block page_title %}Login Attempts{% endblock %}
+
+{% block head %}
+<style>
+    .filter-form {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.3s ease both;
+    }
+    .filter-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .filter-field { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
+    .filter-field label { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+    .filter-field input, .filter-field select {
+        background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px;
+        color: var(--text-primary); padding: 7px 10px; font-size: 13px; outline: none;
+    }
+    .btn-filter { padding: 7px 16px; background: var(--accent); color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; align-self: flex-end; }
+    .table-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; animation: fadeInUp 0.4s ease both; }
+    .panel-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(to right, rgba(99,102,241,0.04), transparent); }
+    .panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+    .panel-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 14px; text-align: left; font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); background: var(--bg-elevated); }
+    td { padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-elevated); }
+    .status-ok { color: var(--success); font-weight: 600; }
+    .status-fail { color: var(--danger); font-weight: 600; }
+    .empty-row td { text-align: center; color: var(--text-muted); padding: 32px; }
+    .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; }
+    .page-info { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); }
+    .page-btns { display: flex; gap: 8px; }
+    .page-btn { padding: 6px 14px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; text-decoration: none; color: var(--text-primary); }
+    .page-btn:hover { background: var(--bg-hover); }
+    .mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<form class="filter-form" method="get">
+    <div class="filter-row">
+        <div class="filter-field">
+            <label>Username</label>
+            <input type="text" name="username" value="{{ username }}" placeholder="Admin username...">
+        </div>
+        <div class="filter-field">
+            <label>Status</label>
+            <select name="success">
+                <option value="" {% if not success %}selected{% endif %}>All</option>
+                <option value="true" {% if success == 'true' %}selected{% endif %}>Success</option>
+                <option value="false" {% if success == 'false' %}selected{% endif %}>Failed</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-filter">Search</button>
+    </div>
+</form>
+
+<div class="table-panel">
+    <div class="panel-header">
+        <span class="panel-title">Login Attempts</span>
+        <span class="panel-count">{{ total }} entries</span>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Username</th>
+                <th>IP Address</th>
+                <th>Status</th>
+                <th>Failure Reason</th>
+                <th>User Agent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attempt in attempts %}
+            <tr>
+                <td class="mono">{{ attempt.timestamp | humanize_timestamp }}</td>
+                <td>{{ attempt.username }}</td>
+                <td class="mono">{{ attempt.ip_address }}</td>
+                <td>
+                    {% if attempt.success %}
+                    <span class="status-ok">✓ Success</span>
+                    {% else %}
+                    <span class="status-fail">✗ Failed</span>
+                    {% endif %}
+                </td>
+                <td style="color:var(--text-muted); font-size:11px;">{{ attempt.failure_reason or '—' }}</td>
+                <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:var(--text-muted);" title="{{ attempt.user_agent }}">{{ attempt.user_agent or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr class="empty-row"><td colspan="6">No login attempts found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination">
+    <div class="page-info">Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong></div>
+    <div class="page-btns">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&username={{ username }}&success={{ success }}" class="page-btn">← Prev</a>
+        {% endif %}
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}&username={{ username }}&success={{ success }}" class="page-btn">Next →</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

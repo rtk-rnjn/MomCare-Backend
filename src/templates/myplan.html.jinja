@@ -1,0 +1,442 @@
+{% extends "base.html.jinja" %}
+{% block title %}My Plans{% endblock %}
+{% block page_title %}My Plans{% endblock %}
+
+{% block head %}
+<style>
+    /* ── FILTER BAR ── */
+    .filter-form {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.3s ease both;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 12px;
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .field-label {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .field-input {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        padding: 8px 12px;
+
+        font-family: 'Instrument Sans', sans-serif;
+        outline: none;
+        transition: border-color 0.15s ease, color 0.15s ease;
+        width: 260px;
+    }
+
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+    }
+
+    .btn-apply {
+        padding: 8px 20px;
+        border: 1px solid var(--accent);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: #fff;
+        background: var(--accent);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        align-self: flex-end;
+    }
+
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
+
+    .total-count {
+        margin-left: auto;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        align-self: center;
+    }
+
+    .total-count strong {
+        color: var(--text-primary);
+    }
+
+    /* ── TABLE PANEL ── */
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeInUp 0.4s ease both;
+        margin-bottom: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+
+    }
+
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
+
+    .data-table th {
+        padding: 11px 14px;
+        text-align: left;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .data-table tbody tr {
+        border-top: 1px solid var(--border);
+        transition: background 0.12s ease;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .data-table td {
+        padding: 12px 14px;
+        color: var(--text-secondary);
+        vertical-align: top;
+    }
+
+    .mono {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-muted);
+    }
+
+    .empty-row td {
+        padding: 40px;
+        text-align: center;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    /* ── USER CELL ── */
+    .user-id {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+
+    }
+
+    .user-phone {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    /* ── CONFIG CELL ── */
+    .config-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .config-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+    }
+
+    .config-key {
+        color: var(--text-muted);
+        opacity: 0.6;
+        white-space: nowrap;
+    }
+
+    .config-val {
+        color: var(--text-secondary);
+    }
+
+    .dietary-tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+
+        font-family: 'DM Mono', monospace;
+        background: rgba(99, 102, 241, 0.08);
+        color: #818cf8;
+        border: 1px solid rgba(99, 102, 241, 0.15);
+        margin: 1px;
+    }
+
+    /* ── MEAL CELL ── */
+    .meal-cell {
+        min-width: 140px;
+        max-width: 200px;
+    }
+
+    .meal-header {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        opacity: 0.6;
+    }
+
+    .food-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 4px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    .food-item:last-child {
+        border-bottom: none;
+    }
+
+    .food-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--accent);
+        flex-shrink: 0;
+        margin-top: 5px;
+        opacity: 0.6;
+    }
+
+    /* meal column accent dots */
+    .meal-breakfast .food-dot {
+        background: #f59e0b;
+    }
+
+    .meal-lunch .food-dot {
+        background: #22d3a0;
+    }
+
+    .meal-dinner .food-dot {
+        background: #6366f1;
+    }
+
+    .meal-snacks .food-dot {
+        background: #f43f5e;
+    }
+
+    .no-items {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        opacity: 0.5;
+    }
+
+    /* ── PAGINATION ── */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        animation: fadeInUp 0.5s ease both;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .page-info {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+    }
+
+    .page-info strong {
+        color: var(--text-secondary);
+    }
+
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
+
+    .page-btn {
+        padding: 6px 16px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        background: var(--bg-surface);
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .page-btn:hover {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── SEARCH BAR ── -->
+<form method="get" class="filter-form">
+    <div class="field-group">
+        <label class="field-label">Search User</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="First / Last / Phone" class="field-input" />
+    </div>
+    <button type="submit" class="btn-apply">⌕ Apply</button>
+    <div class="total-count">Total: <strong>{{ total }}</strong></div>
+</form>
+
+<!-- ── TABLE ── -->
+<div class="panel">
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Plan ID</th>
+                    <th>User</th>
+                    <th>User Config</th>
+                    <th>Breakfast</th>
+                    <th>Lunch</th>
+                    <th>Dinner</th>
+                    <th>Snacks</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in plans %}
+                <tr>
+
+                    <td class="mono">{{ plan._id }}</td>
+
+                    <td>
+                        <div class="user-id">{{ plan.user._id }}</div>
+                        <div class="user-name">{{ plan.user.first_name }} {{ plan.user.last_name or "" }}</div>
+                        {% if plan.user.phone_number %}
+                        <div class="user-phone">{{ plan.user.phone_number }}</div>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <div class="config-list">
+                            <div class="config-item">
+                                <span class="config-key">Height</span>
+                                <span class="config-val">{{ plan.user.height or "—" }} <span style="opacity:.5;font-size:9px;">cm</span></span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-key">Weight</span>
+                                <span class="config-val">{{ plan.user.current_weight or "—" }} <span style="opacity:.5;font-size:9px;">kg</span></span>
+                            </div>
+                            {% if plan.user.dietary_preferences %}
+                            <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:2px;">
+                                {% for pref in plan.user.dietary_preferences %}
+                                <span class="dietary-tag">{{ pref }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    {% for meal, css_class in [
+                    ("breakfast_food", "meal-breakfast"),
+                    ("lunch_food", "meal-lunch"),
+                    ("dinner_food", "meal-dinner"),
+                    ("snacks_food", "meal-snacks")
+                    ] %}
+                    <td>
+                        <div class="meal-cell {{ css_class }}">
+                            {% set foods = plan[meal] | selectattr("name", "defined") | list if plan[meal] else [] %}
+                            {% if foods %}
+                            {% for food in foods %}
+                            {% if food %}
+                            <div class="food-item">
+                                <span class="food-dot"></span>
+                                <span>{{ food.name }}</span>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <span class="no-items">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endfor %}
+
+                    <td class="mono">{{ plan.created_at_timestamp | humanize_timestamp }}</td>
+
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td colspan="8">No plans found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── PAGINATION ── -->
+<div class="pagination">
+    <div class="page-info">
+        Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong>
+    </div>
+    <div class="page-btns">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&q={{ q }}" class="page-btn">← Prev</a>
+        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}" class="page-btn">Next →</a>
+            {% endif %}
+    </div>
+</div>
+
+{% endblock %}

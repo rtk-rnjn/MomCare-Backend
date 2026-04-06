@@ -1,0 +1,155 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Metrics{% endblock %}
+{% block page_title %}Metrics{% endblock %}
+
+{% block head %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .stat-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        animation: fadeInUp 0.4s ease both;
+    }
+    .stat-card:hover { border-color: var(--border-accent); transform: translateY(-1px); transition: 0.2s; }
+    .stat-label { font-family: 'DM Mono', monospace; color: var(--text-muted); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+    .stat-value { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 22px; color: var(--text-primary); }
+    .stat-card.danger .stat-value { color: var(--danger); }
+    .stat-card.warning .stat-value { color: var(--warning); }
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.5s ease both;
+    }
+    .panel-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 14px; text-align: left; font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); background: var(--bg-elevated); }
+    td { padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-elevated); }
+    .bar { height: 4px; border-radius: 2px; background: var(--accent); max-width: 100%; }
+    .mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); }
+    .text-danger { color: var(--danger); }
+    .duration-form { display: flex; gap: 8px; align-items: center; }
+    .duration-form select { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); padding: 5px 10px; font-size: 13px; }
+    .duration-form button { padding: 5px 14px; background: var(--accent); color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Duration selector -->
+<form class="duration-form" method="get" style="margin-bottom:20px;">
+    <label style="font-size:12px; color:var(--text-muted);">Window:</label>
+    <select name="duration_sec">
+        <option value="60" {% if duration_sec == 60 %}selected{% endif %}>1 min</option>
+        <option value="300" {% if duration_sec == 300 %}selected{% endif %}>5 min</option>
+        <option value="600" {% if duration_sec == 600 %}selected{% endif %}>10 min</option>
+        <option value="1800" {% if duration_sec == 1800 %}selected{% endif %}>30 min</option>
+        <option value="3600" {% if duration_sec == 3600 %}selected{% endif %}>1 hour</option>
+    </select>
+    <button type="submit">Apply</button>
+</form>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Requests</div>
+        <div class="stat-value">{{ metrics.total_requests }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Req / Second</div>
+        <div class="stat-value">{{ metrics.requests_per_second }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Current RPS</div>
+        <div class="stat-value">{{ metrics.current_second_rps }}</div>
+    </div>
+    <div class="stat-card danger">
+        <div class="stat-label">Total 404s</div>
+        <div class="stat-value">{{ metrics.total_404 }}</div>
+    </div>
+    <div class="stat-card danger">
+        <div class="stat-label">Total 500s</div>
+        <div class="stat-value">{{ metrics.total_500 }}</div>
+    </div>
+    <div class="stat-card warning">
+        <div class="stat-label">Total 5xx</div>
+        <div class="stat-value">{{ metrics.total_5xx }}</div>
+    </div>
+</div>
+
+<!-- Endpoint Traffic -->
+<div class="panel">
+    <div class="panel-header">
+        <span class="panel-title">Endpoint Traffic (top 30)</span>
+        <span class="mono">{{ duration_sec }}s window</span>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Total</th>
+                <th>2xx</th>
+                <th>3xx</th>
+                <th>4xx</th>
+                <th>5xx</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ep in metrics.endpoint_traffic %}
+            <tr>
+                <td class="mono">{{ ep.endpoint }}</td>
+                <td>{{ ep.count }}</td>
+                <td style="color:var(--success);">{{ ep['2xx'] }}</td>
+                <td>{{ ep['3xx'] }}</td>
+                <td {% if ep['4xx'] > 0 %}class="text-danger"{% endif %}>{{ ep['4xx'] }}</td>
+                <td {% if ep['5xx'] > 0 %}class="text-danger"{% endif %}>{{ ep['5xx'] }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">No traffic data yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Endpoint Failures -->
+<div class="panel">
+    <div class="panel-header">
+        <span class="panel-title">Endpoint Failures</span>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Error Count</th>
+                <th>Last Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ep in metrics.endpoint_failures %}
+            <tr>
+                <td class="mono">{{ ep.endpoint }}</td>
+                <td class="text-danger">{{ ep.count }}</td>
+                <td style="font-size:11px; color:var(--text-muted); max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                    title="{{ ep.last_error.message if ep.last_error else '' }}">
+                    {{ ep.last_error.message if ep.last_error else '—' }}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:24px;">No failures recorded.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

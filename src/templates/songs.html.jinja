@@ -1,0 +1,526 @@
+{% extends "base.html.jinja" %}
+{% block title %}Songs{% endblock %}
+{% block page_title %}Songs{% endblock %}
+
+{% block head %}
+<style>
+    .filter-form {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.3s ease both;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto auto;
+        gap: 14px;
+        align-items: end;
+    }
+
+    @media (max-width: 900px) {
+        .filter-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .field-label {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .field-input,
+    .field-select {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        padding: 8px 12px;
+
+        font-family: 'Instrument Sans', sans-serif;
+        outline: none;
+        transition: border-color 0.15s ease, color 0.15s ease;
+        width: 100%;
+    }
+
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus,
+    .field-select:focus {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+    }
+
+    .filter-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .record-count {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+    }
+
+    .record-count strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-reset {
+        padding: 7px 16px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        background: var(--bg-elevated);
+        text-decoration: none;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-reset:hover {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    .btn-apply {
+        padding: 7px 20px;
+        border: 1px solid var(--accent);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: #fff;
+        background: var(--accent);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
+
+    /* ── TABLE ── */
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeInUp 0.4s ease both;
+        margin-bottom: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+
+    }
+
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
+
+    .data-table th {
+        padding: 11px 14px;
+        text-align: left;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .data-table tbody tr {
+        border-top: 1px solid var(--border);
+        transition: background 0.12s ease;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .data-table td {
+        padding: 12px 14px;
+        color: var(--text-secondary);
+        vertical-align: top;
+    }
+
+    .mono {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-muted);
+    }
+
+    .empty-row td {
+        padding: 40px;
+        text-align: center;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    /* ── SONG NAME ── */
+    .song-name {
+        font-weight: 600;
+        color: var(--text-primary);
+
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .song-icon {
+
+        opacity: 0.4;
+        flex-shrink: 0;
+    }
+
+    /* ── MOOD PILLS ── */
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 9px;
+        border-radius: 20px;
+
+        font-family: 'DM Mono', monospace;
+        letter-spacing: 0.04em;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .pill-happy {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .pill-sad {
+        background: rgba(99, 102, 241, 0.12);
+        color: #a5b4fc;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .pill-stressed {
+        background: rgba(244, 63, 94, 0.12);
+        color: #fb7185;
+        border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+
+    .pill-angry {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .pill-default {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+    }
+
+    /* mood emoji */
+    .mood-emoji {}
+
+    /* ── PLAYLIST BADGE ── */
+    .playlist-badge {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 6px;
+
+        font-family: 'DM Mono', monospace;
+        background: rgba(34, 211, 160, 0.08);
+        color: #6ee7b7;
+        border: 1px solid rgba(34, 211, 160, 0.15);
+        white-space: nowrap;
+    }
+
+    /* ── METADATA ── */
+    .meta-author {
+
+        color: var(--text-secondary);
+    }
+
+    .meta-title {
+
+        color: var(--text-muted);
+        font-style: italic;
+        margin-top: 2px;
+    }
+
+    /* ── DURATION ── */
+    .duration-val {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-secondary);
+        white-space: nowrap;
+    }
+
+    .duration-unit {
+
+        color: var(--text-muted);
+        margin-left: 2px;
+    }
+
+    /* ── VIEW LINK ── */
+    .view-link {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--accent);
+        text-decoration: none;
+        transition: opacity 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .view-link:hover {
+        opacity: 0.7;
+    }
+
+    /* ── PAGINATION ── */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        animation: fadeInUp 0.5s ease both;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .page-info {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+    }
+
+    .page-info strong {
+        color: var(--text-secondary);
+    }
+
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
+
+    .page-btn {
+        padding: 6px 16px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        background: var(--bg-surface);
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .page-btn:hover {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── FILTER FORM ── -->
+<form method="get" class="filter-form">
+    <div class="filter-grid">
+
+        <div class="field-group" style="grid-column: span 2;">
+            <label class="field-label">Search</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="Song name / Author / Title" class="field-input" />
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Mood</label>
+            <select name="mood" class="field-select">
+                <option value="">All Moods</option>
+                <option value="Happy" {% if mood=="Happy" %}selected{% endif %}>😊 Happy</option>
+                <option value="Sad" {% if mood=="Sad" %}selected{% endif %}>😔 Sad</option>
+                <option value="Stressed" {% if mood=="Stressed" %}selected{% endif %}>😤 Stressed</option>
+                <option value="Angry" {% if mood=="Angry" %}selected{% endif %}>😠 Angry</option>
+            </select>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Playlist</label>
+            <input type="text" name="playlist" value="{{ playlist }}" placeholder="Playlist name" class="field-input" />
+        </div>
+
+    </div>
+
+    <div class="filter-footer">
+        <div class="record-count">Total records: <strong>{{ total }}</strong></div>
+        <div class="filter-actions">
+            <a href="/songs" class="btn-reset">↺ Reset</a>
+            <button type="submit" class="btn-apply">⌕ Apply Filters</button>
+        </div>
+    </div>
+</form>
+
+<!-- ── TABLE ── -->
+<div class="panel">
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Song Name</th>
+                    <th>Mood</th>
+                    <th>Playlist</th>
+                    <th>Author / Title</th>
+                    <th>Duration</th>
+                    <th>Playlist Image</th>
+                    <th>Song Image</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in songs %}
+                <tr>
+
+                    <td class="mono">{{ s._id }}</td>
+
+                    <td>
+                        <div class="song-name">
+                            <span class="song-icon">♪</span>
+                            {{ s.song_name }}
+                        </div>
+                    </td>
+
+                    <td>
+                        {% set m = s.mood | lower if s.mood else "" %}
+                        {% if m == "happy" %}
+                        <span class="pill pill-happy"><span class="mood-emoji">😊</span>Happy</span>
+                        {% elif m == "sad" %}
+                        <span class="pill pill-sad"><span class="mood-emoji">😔</span>Sad</span>
+                        {% elif m == "stressed" %}
+                        <span class="pill pill-stressed"><span class="mood-emoji">😤</span>Stressed</span>
+                        {% elif m == "angry" %}
+                        <span class="pill pill-angry"><span class="mood-emoji">😠</span>Angry</span>
+                        {% elif s.mood %}
+                        <span class="pill pill-default">{{ s.mood }}</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if s.playlist %}
+                        <span class="playlist-badge">{{ s.playlist }}</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if s.metadata %}
+                        <div class="meta-author">{{ s.metadata.author or "—" }}</div>
+                        {% if s.metadata.title %}
+                        <div class="meta-title">{{ s.metadata.title }}</div>
+                        {% endif %}
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if s.metadata and s.metadata.duration %}
+                        <span class="duration-val">{{ s.metadata.duration }}<span class="duration-unit">s</span></span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if s.playlist_image_uri %}
+                        <a href="{{ s.playlist_image_uri }}" target="_blank" class="view-link">↗ View</a>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if s.song_image_uri %}
+                        <a href="{{ s.song_image_uri }}" target="_blank" class="view-link">↗ View</a>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td colspan="8">No songs found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── PAGINATION ── -->
+<div class="pagination">
+    <div class="page-info">
+        Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong>
+    </div>
+    <div class="page-btns">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&q={{ q }}&mood={{ mood }}&playlist={{ playlist }}" class="page-btn">← Prev</a>
+        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}&mood={{ mood }}&playlist={{ playlist }}" class="page-btn">Next →</a>
+            {% endif %}
+    </div>
+</div>
+
+{% endblock %}

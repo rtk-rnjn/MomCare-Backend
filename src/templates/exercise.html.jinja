@@ -1,0 +1,539 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Exercises{% endblock %}
+{% block page_title %}Exercises{% endblock %}
+
+{% block head %}
+<style>
+    /* ── FILTER FORM ── */
+    .filter-form {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.3s ease both;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto auto;
+        gap: 14px;
+        align-items: end;
+    }
+
+    @media (max-width: 900px) {
+        .filter-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .field-label {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .field-input,
+    .field-select {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        padding: 8px 12px;
+
+        font-family: 'Instrument Sans', sans-serif;
+        outline: none;
+        transition: border-color 0.15s ease, color 0.15s ease;
+        width: 100%;
+    }
+
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus,
+    .field-select:focus {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+    }
+
+    .filter-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .record-count {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+    }
+
+    .record-count strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-reset {
+        padding: 7px 16px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        background: var(--bg-elevated);
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-reset:hover {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    .btn-apply {
+        padding: 7px 20px;
+        border: 1px solid var(--accent);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: #fff;
+        background: var(--accent);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
+
+    /* ── TABLE PANEL ── */
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeInUp 0.4s ease both;
+        margin-bottom: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+
+    }
+
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
+
+    .data-table th {
+        padding: 11px 14px;
+        text-align: left;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .data-table tbody tr {
+        border-top: 1px solid var(--border);
+        transition: background 0.12s ease;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .data-table td {
+        padding: 12px 14px;
+        color: var(--text-secondary);
+        vertical-align: top;
+    }
+
+    .mono {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-muted);
+    }
+
+    .empty-row td {
+        padding: 40px;
+        text-align: center;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    /* ── EXERCISE-SPECIFIC ── */
+    .ex-name {
+        font-weight: 600;
+        color: var(--text-primary);
+
+    }
+
+    /* Level pills */
+    .pill {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 20px;
+
+        font-family: 'DM Mono', monospace;
+        letter-spacing: 0.04em;
+        font-weight: 500;
+    }
+
+    .pill-beginner {
+        background: rgba(34, 211, 160, 0.12);
+        color: #22d3a0;
+        border: 1px solid rgba(34, 211, 160, 0.2);
+    }
+
+    .pill-intermediate {
+        background: rgba(245, 158, 11, 0.12);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .pill-advanced {
+        background: rgba(244, 63, 94, 0.12);
+        color: #f43f5e;
+        border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .pill-default {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+    }
+
+    /* Week badge */
+    .week-badge {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 6px;
+
+        font-family: 'DM Mono', monospace;
+        background: var(--accent-subtle);
+        color: #a5b4fc;
+        border: 1px solid var(--border-accent);
+    }
+
+    /* Tags */
+    .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .tag {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 4px;
+
+        font-family: 'DM Mono', monospace;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+    }
+
+    /* Body parts */
+    .body-part {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 4px;
+
+        font-family: 'DM Mono', monospace;
+        background: rgba(99, 102, 241, 0.08);
+        color: #818cf8;
+        border: 1px solid rgba(99, 102, 241, 0.15);
+        margin: 1px;
+    }
+
+    /* Description truncation */
+    .description-cell {
+        max-width: 220px;
+
+        color: var(--text-muted);
+        line-height: 1.5;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+    }
+
+    /* Video duration */
+    .duration-val {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-secondary);
+    }
+
+    /* View link */
+    .view-link {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--accent);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: opacity 0.15s;
+    }
+
+    .view-link:hover {
+        opacity: 0.7;
+    }
+
+    /* ── PAGINATION ── */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        animation: fadeInUp 0.5s ease both;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .page-info {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+    }
+
+    .page-info strong {
+        color: var(--text-secondary);
+    }
+
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
+
+    .page-btn {
+        padding: 6px 16px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        background: var(--bg-surface);
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .page-btn:hover {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── FILTER FORM ── -->
+<form method="get" class="filter-form">
+    <div class="filter-grid">
+
+        <div class="field-group" style="grid-column: span 2;">
+            <label class="field-label">Search</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="Exercise name / Tags" class="field-input" />
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Level</label>
+            <select name="level" class="field-select">
+                <option value="">All Levels</option>
+                <option value="Beginner" {% if level=="Beginner" %}selected{% endif %}>Beginner</option>
+                <option value="Intermediate" {% if level=="Intermediate" %}selected{% endif %}>Intermediate</option>
+                <option value="Advanced" {% if level=="Advanced" %}selected{% endif %}>Advanced</option>
+            </select>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Week</label>
+            <input type="text" name="week" value="{{ week }}" placeholder="e.g. Week 12" class="field-input" />
+        </div>
+
+    </div>
+
+    <div class="filter-footer">
+        <div class="record-count">
+            Total records: <strong>{{ total }}</strong>
+        </div>
+        <div class="filter-actions">
+            <a href="/exercise" class="btn-reset">↺ Reset</a>
+            <button type="submit" class="btn-apply">⌕ Apply Filters</button>
+        </div>
+    </div>
+</form>
+
+<!-- ── TABLE ── -->
+<div class="panel">
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Level</th>
+                    <th>Week</th>
+                    <th>Tags</th>
+                    <th>Body Parts</th>
+                    <th>Description</th>
+                    <th>Image</th>
+                    <th>Duration (s)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ex in exercises %}
+                <tr>
+
+                    <td class="mono">{{ ex._id }}</td>
+
+                    <td>
+                        <span class="ex-name">{{ ex.name }}</span>
+                    </td>
+
+                    <td>
+                        {% set lvl = ex.level | lower if ex.level else "" %}
+                        {% if lvl == "beginner" %}
+                        <span class="pill pill-beginner">Beginner</span>
+                        {% elif lvl == "intermediate" %}
+                        <span class="pill pill-intermediate">Intermediate</span>
+                        {% elif lvl == "advanced" %}
+                        <span class="pill pill-advanced">Advanced</span>
+                        {% elif ex.level %}
+                        <span class="pill pill-default">{{ ex.level }}</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if ex.week %}
+                        <span class="week-badge">{{ ex.week }}</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if ex.tags %}
+                        <div class="tag-list">
+                            {% for tag in ex.tags %}
+                            <span class="tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if ex.targeted_body_parts %}
+                        <div class="tag-list">
+                            {% for part in ex.targeted_body_parts %}
+                            <span class="body-part">{{ part }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <div class="description-cell">{{ ex.description or "—" }}</div>
+                    </td>
+
+                    <td>
+                        {% if ex.image_name_uri %}
+                        <a href="{{ ex.image_name_uri }}" target="_blank" class="view-link">↗ View</a>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if ex.video_duration_seconds %}
+                        <span class="duration-val">{{ ex.video_duration_seconds }}s</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td colspan="9">No exercises found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── PAGINATION ── -->
+<div class="pagination">
+    <div class="page-info">
+        Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong>
+    </div>
+    <div class="page-btns">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&q={{ q }}&level={{ level }}&week={{ week }}" class="page-btn">← Prev</a>
+        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}&level={{ level }}&week={{ week }}" class="page-btn">Next →</a>
+            {% endif %}
+    </div>
+</div>
+
+{% endblock %}

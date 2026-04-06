@@ -1,0 +1,145 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Audit Log{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block head %}
+<style>
+    .filter-form {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.3s ease both;
+    }
+    .filter-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+    .filter-field { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
+    .filter-field label { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+    .filter-field input, .filter-field select {
+        background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px;
+        color: var(--text-primary); padding: 7px 10px; font-size: 13px; outline: none;
+    }
+    .filter-field input:focus, .filter-field select:focus { border-color: var(--accent); }
+    .btn-filter {
+        padding: 7px 16px; background: var(--accent); color: #fff; border: none; border-radius: 6px;
+        font-size: 13px; cursor: pointer; align-self: flex-end;
+    }
+    .table-panel {
+        background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px;
+        overflow: hidden; animation: fadeInUp 0.4s ease both;
+    }
+    .panel-header {
+        padding: 14px 18px; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+        background: linear-gradient(to right, rgba(99,102,241,0.04), transparent);
+    }
+    .panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+    .panel-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 14px; text-align: left; font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace;
+         text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); background: var(--bg-elevated); }
+    td { padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-elevated); }
+    .action-badge {
+        display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px;
+        font-family: 'DM Mono', monospace; background: var(--accent-subtle); color: var(--accent); border: 1px solid var(--border-accent);
+    }
+    .action-badge.danger { background: rgba(197,48,48,0.08); color: var(--danger); border-color: rgba(197,48,48,0.3); }
+    .action-badge.success { background: rgba(47,133,90,0.08); color: var(--success); border-color: rgba(47,133,90,0.3); }
+    .empty-row td { text-align: center; color: var(--text-muted); padding: 32px; }
+    .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; }
+    .page-info { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); }
+    .page-btns { display: flex; gap: 8px; }
+    .page-btn {
+        padding: 6px 14px; background: var(--bg-elevated); border: 1px solid var(--border);
+        border-radius: 6px; font-size: 13px; text-decoration: none; color: var(--text-primary);
+    }
+    .page-btn:hover { background: var(--bg-hover); }
+    .mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filter -->
+<form class="filter-form" method="get">
+    <div class="filter-row">
+        <div class="filter-field">
+            <label>Admin</label>
+            <input type="text" name="admin_username" value="{{ admin_username }}" placeholder="Username...">
+        </div>
+        <div class="filter-field">
+            <label>Action</label>
+            <input type="text" name="action" value="{{ action }}" placeholder="e.g. lock_user">
+        </div>
+        <div class="filter-field">
+            <label>Resource Type</label>
+            <input type="text" name="resource_type" value="{{ resource_type }}" placeholder="e.g. credentials">
+        </div>
+        <button type="submit" class="btn-filter">Search</button>
+    </div>
+</form>
+
+<!-- Table -->
+<div class="table-panel">
+    <div class="panel-header">
+        <span class="panel-title">Admin Audit Log</span>
+        <span class="panel-count">{{ total }} entries</span>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Admin</th>
+                <th>Action</th>
+                <th>Resource</th>
+                <th>Resource ID</th>
+                <th>IP</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td class="mono">{{ log.timestamp | humanize_timestamp }}</td>
+                <td>{{ log.admin_username }}</td>
+                <td>
+                    {% if 'delete' in log.action or 'deactivate' in log.action %}
+                    <span class="action-badge danger">{{ log.action }}</span>
+                    {% elif 'create' in log.action or 'unlock' in log.action or 'activate' in log.action %}
+                    <span class="action-badge success">{{ log.action }}</span>
+                    {% else %}
+                    <span class="action-badge">{{ log.action }}</span>
+                    {% endif %}
+                </td>
+                <td class="mono">{{ log.resource_type }}</td>
+                <td class="mono" style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ log.resource_id }}">{{ log.resource_id or '—' }}</td>
+                <td class="mono">{{ log.ip_address }}</td>
+                <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ log.details }}">{{ log.details or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr class="empty-row"><td colspan="7">No audit log entries found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+<div class="pagination">
+    <div class="page-info">Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong></div>
+    <div class="page-btns">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&admin_username={{ admin_username }}&action={{ action }}&resource_type={{ resource_type }}" class="page-btn">← Prev</a>
+        {% endif %}
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}&admin_username={{ admin_username }}&action={{ action }}&resource_type={{ resource_type }}" class="page-btn">Next →</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

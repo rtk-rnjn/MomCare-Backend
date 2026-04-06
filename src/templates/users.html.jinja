@@ -1,0 +1,458 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+
+{% block head %}
+<style>
+    .filter-form {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.3s ease both;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
+    }
+
+    .field-label {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .field-input {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        padding: 8px 12px;
+
+        font-family: 'Instrument Sans', sans-serif;
+        outline: none;
+        transition: border-color 0.15s ease, color 0.15s ease;
+        width: 100%;
+    }
+
+    .field-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .field-input:focus {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+    }
+
+    .btn-apply {
+        padding: 8px 20px;
+        border: 1px solid var(--accent);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: #fff;
+        background: var(--accent);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .btn-apply:hover {
+        background: #5254e7;
+        border-color: #5254e7;
+    }
+
+    .filter-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .record-count {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+    }
+
+    .record-count strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .btn-reset {
+        padding: 7px 16px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        background: var(--bg-elevated);
+        text-decoration: none;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-reset:hover {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    /* ── TABLE ── */
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeInUp 0.4s ease both;
+        margin-bottom: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+
+    }
+
+    .data-table thead tr {
+        background: var(--bg-elevated);
+    }
+
+    .data-table th {
+        padding: 11px 14px;
+        text-align: left;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .data-table tbody tr {
+        border-top: 1px solid var(--border);
+        transition: background 0.12s ease;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .data-table td {
+        padding: 12px 14px;
+        color: var(--text-secondary);
+        vertical-align: top;
+    }
+
+    .mono {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-muted);
+    }
+
+    .empty-row td {
+        padding: 40px;
+        text-align: center;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    /* ── USER NAME CELL ── */
+    .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+
+    }
+
+    /* ── NUMERIC CELLS ── */
+    .num-val {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-secondary);
+        white-space: nowrap;
+    }
+
+    .num-unit {
+
+        color: var(--text-muted);
+        margin-left: 2px;
+    }
+
+    /* ── DATE CELL ── */
+    .date-val {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    /* ── DUE DATE — highlighted ── */
+    .due-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 9px;
+        border-radius: 6px;
+        font-family: 'DM Mono', monospace;
+
+        background: rgba(99, 102, 241, 0.08);
+        color: #a5b4fc;
+        border: 1px solid rgba(99, 102, 241, 0.15);
+        white-space: nowrap;
+    }
+
+    /* ── TIMEZONE BADGE ── */
+    .tz-badge {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 4px;
+
+        font-family: 'DM Mono', monospace;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        white-space: nowrap;
+    }
+
+    /* ── AVATAR INITIAL ── */
+    .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .user-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--accent-subtle);
+        border: 1px solid var(--border-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+
+        color: #a5b4fc;
+        flex-shrink: 0;
+        text-transform: uppercase;
+    }
+
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    .user-phone {
+        font-family: 'DM Mono', monospace;
+
+        color: var(--text-muted);
+    }
+
+    /* ── PAGINATION ── */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        animation: fadeInUp 0.5s ease both;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .page-info {
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-muted);
+    }
+
+    .page-info strong {
+        color: var(--text-secondary);
+    }
+
+    .page-btns {
+        display: flex;
+        gap: 6px;
+    }
+
+    .page-btn {
+        padding: 6px 16px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+
+        font-family: 'DM Mono', monospace;
+        color: var(--text-secondary);
+        background: var(--bg-surface);
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .page-btn:hover {
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── FILTER FORM ── -->
+<form method="get" class="filter-form">
+    <div class="filter-row">
+        <div class="field-group">
+            <label class="field-label">Search</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="Search users…" class="field-input" />
+        </div>
+        <button type="submit" class="btn-apply">⌕ Apply Filters</button>
+    </div>
+
+    <div class="filter-footer">
+        <div class="record-count">Total records: <strong>{{ total }}</strong></div>
+        <a href="{{ url_for('admin_users') }}" class="btn-reset">↺ Reset</a>
+    </div>
+</form>
+
+<!-- ── TABLE ── -->
+<div class="panel">
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Timezone</th>
+                    <th>Date of Birth</th>
+                    <th>Height</th>
+                    <th>Pre-Preg. Weight</th>
+                    <th>Current Weight</th>
+                    <th>Due Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+
+                    <td class="mono">{{ user._id }}</td>
+
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">
+                                {{ (user.first_name or "?")[0] }}
+                            </div>
+                            <div class="user-info">
+                                <span class="user-name">
+                                    {{ user.first_name or "—" }}
+                                    {% if user.last_name %} {{ user.last_name }}{% endif %}
+                                </span>
+                                {% if user.phone_number %}
+                                <span class="user-phone">{{ user.phone_number }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        {% if user.timezone %}
+                        <span class="tz-badge">{{ user.timezone }}</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <span class="date-val">{{ user.date_of_birth_timestamp | humanize_timestamp or "—" }}</span>
+                    </td>
+
+                    <td>
+                        {% if user.height %}
+                        <span class="num-val">{{ user.height }}<span class="num-unit">cm</span></span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if user.pre_pregnancy_weight %}
+                        <span class="num-val">{{ user.pre_pregnancy_weight }}<span class="num-unit">kg</span></span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if user.current_weight %}
+                        <span class="num-val">{{ user.current_weight }}<span class="num-unit">kg</span></span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if user.due_date_timestamp %}
+                        <span class="due-date">⏱ {{ user.due_date_timestamp | humanize_timestamp }}</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td colspan="8">No users found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── PAGINATION ── -->
+<div class="pagination">
+    <div class="page-info">
+        Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong>
+    </div>
+    <div class="page-btns">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&q={{ q }}" class="page-btn">← Prev</a>
+        {% endif %}
+        {% if page < total_pages %} <a href="?page={{ page + 1 }}&q={{ q }}" class="page-btn">Next →</a>
+            {% endif %}
+    </div>
+</div>
+
+{% endblock %}
