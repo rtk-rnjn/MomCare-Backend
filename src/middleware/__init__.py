@@ -8,7 +8,6 @@ import sys
 import time
 import traceback
 import uuid
-from contextlib import suppress
 from time import perf_counter
 from typing import Awaitable, Callable, NotRequired, TypedDict
 
@@ -22,7 +21,6 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response
 
 from src.app import app
-from src.utils.metrics import collect_runtime_metrics
 
 from .logger import ConsoleLoggingMiddleware
 
@@ -280,40 +278,6 @@ async def websocket_logs(websocket: WebSocket):
     finally:
         await pubsub.unsubscribe(LOGS_CHANNEL_NAME)
         await pubsub.close()
-
-
-async def _stream_metrics(websocket: WebSocket, get_duration: Callable[[], int]) -> None:
-    while True:
-        try:
-            metrics = await collect_runtime_metrics(redis_client, get_duration())
-            await websocket.send_text(orjson.dumps(metrics).decode("utf-8"))
-            await asyncio.sleep(5)
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            break
-
-
-async def websocket_metrics(websocket: WebSocket):
-    await websocket.accept()
-    duration_sec = 300
-
-    sender = asyncio.create_task(_stream_metrics(websocket, lambda: duration_sec))
-
-    try:
-        async for message in websocket.iter_text():
-            try:
-                payload = orjson.loads(message)
-                if isinstance(payload, dict) and "duration_sec" in payload:
-                    duration_sec = int(payload["duration_sec"])
-            except Exception:
-                continue
-    except WebSocketDisconnect:
-        pass
-    finally:
-        sender.cancel()
-        with suppress(asyncio.CancelledError):
-            await sender
 
 
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
