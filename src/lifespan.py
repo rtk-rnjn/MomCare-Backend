@@ -7,10 +7,6 @@ from redis.asyncio import Redis
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from .middleware import setup_stream_logging
-
-    setup_stream_logging(app)
-
     try:
         yield
     finally:
