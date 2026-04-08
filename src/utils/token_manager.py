@@ -167,9 +167,9 @@ class TokenManager:
             raise AuthError(f"Invalid token payload: '{key}' must be '{expected}'")
 
     @overload
-    def decode(self, token: str, expected_type: Literal["access"], /) -> DecodedAccessPayload: ...
+    def decode(self, token: str, expected_type: Literal["access"], /) -> DecodedAccessPayload: ...  # noqa: E704
     @overload
-    def decode(self, token: str, expected_type: Literal["refresh"], /) -> DecodedRefreshPayload: ...
+    def decode(self, token: str, expected_type: Literal["refresh"], /) -> DecodedRefreshPayload: ...  # noqa: E704
 
     def decode(
         self,
