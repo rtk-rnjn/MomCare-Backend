@@ -66,10 +66,6 @@ class GoogleAPIHandler:
             self.__index = (self.__index + 1) % len(self.__keys)
             return key
 
-    @property
-    def client(self) -> genai.Client:
-        return genai.Client(api_key=self._next_key())
-
     async def _generate_response(
         self,
         *,
@@ -77,6 +73,7 @@ class GoogleAPIHandler:
         user_prompt: list[str],
         response_schema: type[ModelT],
     ) -> ModelT:
+        client = genai.Client(api_key=self._next_key())
         content = Content(parts=[Part.from_text(text=part) for part in user_prompt])
         config = GenerateContentConfig(
             system_instruction=system_prompt,
@@ -85,7 +82,7 @@ class GoogleAPIHandler:
             tools=[],
         )
         model = self.model
-        response = await self.client.aio.models.generate_content(
+        response = await client.aio.models.generate_content(
             model=model,
             contents=[content],
             config=config,

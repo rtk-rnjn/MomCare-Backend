@@ -65,7 +65,8 @@ class RNG:
         return start + (end - start) * self.random.random()
 
     def random_string(self, length: int = 16, /, *, include_digits: bool = True) -> str:
-        """Generate a random string of the specified length. By default, the string includes both letters and digits, but you can choose to exclude digits if desired.
+        """Generate a random string of the specified length. By default, the string includes both letters and digits,
+        but you can choose to exclude digits if desired.
 
         >>> rng = RNG()
         >>> random_str = rng.random_string(10, include_digits=False)
