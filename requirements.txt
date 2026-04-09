@@ -18,7 +18,7 @@ cffi==2.0.0
 charset-normalizer==3.4.4
 click==8.3.1
 colorama==0.4.6
-cryptography==46.0.6
+cryptography==46.0.7
 distro==1.9.0
 dnspython==2.8.0
 email-validator==2.3.0
