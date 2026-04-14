@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, Depends, Query
 
 from pymongo.asynchronous.collection import AsyncCollection
@@ -163,7 +165,7 @@ async def log_drilldown(
     if method is not None:
         query["method"] = method.upper()
     if path_prefix is not None:
-        query["path"] = {"$regex": f"^{path_prefix}"}
+        query["path"] = {"$regex": f"^{re.escape(path_prefix)}"}
     if start_time is not None or end_time is not None:
         time_filter: dict = {}
         if start_time is not None:

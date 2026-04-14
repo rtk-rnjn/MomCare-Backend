@@ -20,3 +20,4 @@ config.json
 app.log*
 node_modules/
 test.py
+src/UNKNOWN.egg-info/

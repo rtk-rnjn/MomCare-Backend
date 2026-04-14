@@ -205,8 +205,7 @@ class ConsoleLoggingMiddleware:
                 "query_string": query_string if query_string else None,
             }
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(http_logs.insert_one(doc))
+            loop = asyncio.get_running_loop()
+            loop.create_task(http_logs.insert_one(doc))
         except Exception:
             pass

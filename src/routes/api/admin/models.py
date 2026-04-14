@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
@@ -44,7 +45,7 @@ async def list_items(
     collection = _get_collection(collection_name)
     query: dict = {}
     if search:
-        query["name"] = {"$regex": search, "$options": "i"}
+        query["name"] = {"$regex": re.escape(search), "$options": "i"}
 
     total = await collection.count_documents(query)
     skip = (page - 1) * per_page

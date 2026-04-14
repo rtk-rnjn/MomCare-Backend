@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pymongo.asynchronous.collection import AsyncCollection
@@ -35,12 +36,13 @@ async def list_users(
         cred_query["account_status"] = status
 
     if search:
+        escaped_search = re.escape(search)
         query["$or"] = [
-            {"first_name": {"$regex": search, "$options": "i"}},
-            {"last_name": {"$regex": search, "$options": "i"}},
+            {"first_name": {"$regex": escaped_search, "$options": "i"}},
+            {"last_name": {"$regex": escaped_search, "$options": "i"}},
         ]
         # Also search credentials by email
-        cred_query_search = {"email_address": {"$regex": search, "$options": "i"}}
+        cred_query_search = {"email_address": {"$regex": escaped_search, "$options": "i"}}
         if cred_query:
             cred_query = {"$and": [cred_query, cred_query_search]}
         else:
@@ -52,11 +54,14 @@ async def list_users(
         cred_cursor = credentials_collection.find(cred_query, {"_id": 1})
         cred_docs = await cred_cursor.to_list(length=10000)
         user_ids = [str(doc["_id"]) for doc in cred_docs]
-        if user_ids is not None:
+        if user_ids:
             if query:
                 query = {"$and": [query, {"_id": {"$in": user_ids}}]}
             else:
                 query["_id"] = {"$in": user_ids}
+        else:
+            # No matching credentials found, return empty results
+            query["_id"] = {"$in": []}
 
     total = await users_collection.count_documents(query)
     skip = (page - 1) * per_page

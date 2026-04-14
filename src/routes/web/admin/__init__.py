@@ -14,9 +14,10 @@ ADMIN_DASHBOARD_DIR = Path(__file__).parent.parent.parent.parent / "admin-dashbo
 @app.get("/admin-dashboard/{path:path}", include_in_schema=False)
 async def admin_dashboard(request: Request, path: str = ""):
     if ADMIN_DASHBOARD_DIR.exists():
-        # Try to serve the requested file
-        requested_file = ADMIN_DASHBOARD_DIR / path
-        if requested_file.is_file():
+        # Resolve and validate path to prevent directory traversal
+        requested_file = (ADMIN_DASHBOARD_DIR / path).resolve()
+        resolved_base = ADMIN_DASHBOARD_DIR.resolve()
+        if str(requested_file).startswith(str(resolved_base)) and requested_file.is_file():
             return FileResponse(requested_file)
         # For SPA routing, always serve index.html
         index_file = ADMIN_DASHBOARD_DIR / "index.html"

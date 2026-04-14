@@ -61,8 +61,8 @@ async def redis_info(admin: AdminAccessPayload = Depends(require_admin)):
             "uptime_in_seconds": info.get("uptime_in_seconds", 0),
             "db_size": await redis_client.dbsize(),
         }
-    except Exception as e:
-        return {"connected": False, "error": str(e)}
+    except Exception:
+        return {"connected": False, "error": "Failed to connect to Redis"}
 
 
 # ---- MongoDB Tools ----
@@ -161,5 +161,5 @@ async def mongo_stats(admin: AdminAccessPayload = Depends(require_admin)):
             "indexes": stats.get("indexes", 0),
             "objects": stats.get("objects", 0),
         }
-    except Exception as e:
-        return {"connected": False, "error": str(e)}
+    except Exception:
+        return {"connected": False, "error": "Failed to connect to MongoDB"}
