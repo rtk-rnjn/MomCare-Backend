@@ -164,3 +164,49 @@ class ConsoleLoggingMiddleware:
         duration_ms = (time.perf_counter() - start_time) * 1000
         log_message = self._build_log_message(scope, status_code, duration_ms)
         self._log_message(log_message)
+
+        # Store HTTP log to MongoDB for analytics (fire-and-forget)
+        self._store_http_log(scope, status_code, duration_ms)
+
+    @staticmethod
+    def _store_http_log(scope: Scope, status_code: int, duration_ms: float) -> None:
+        import asyncio
+        import uuid
+
+        try:
+            from src.app import app as _app
+
+            if not hasattr(_app.state, "mongo_database"):
+                return
+
+            path = scope.get("path", "/")
+            # Skip logging for static/assets
+            if path.startswith(("/static/", "/assets/")):
+                return
+
+            mongo_db = _app.state.mongo_database
+            http_logs = mongo_db["http_logs"]
+
+            client_ip = "unknown"
+            client = scope.get("client")
+            if client:
+                client_ip = client[0]
+
+            query_string = scope.get("query_string", b"").decode()
+
+            doc = {
+                "_id": str(uuid.uuid4()),
+                "timestamp": time.time(),
+                "method": scope.get("method", "GET"),
+                "path": path,
+                "status_code": status_code,
+                "process_time_ms": round(duration_ms, 2),
+                "client_ip": client_ip,
+                "query_string": query_string if query_string else None,
+            }
+
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(http_logs.insert_one(doc))
+        except Exception:
+            pass

@@ -9,6 +9,7 @@ from .api import (
     v2_auth_router,
     v2_devices_router,
 )
+from .api.admin import admin_router
 from .web import read_root  # noqa: F401, F403
 
 api_router = APIRouter(prefix="/api")
@@ -29,6 +30,7 @@ v2_router.include_router(v2_devices_router)
 
 api_router.include_router(v1_router)
 api_router.include_router(v2_router)
+api_router.include_router(admin_router)
 
 
 __all__ = ("api_router", "web_router")
