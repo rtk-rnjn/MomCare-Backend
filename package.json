@@ -21,7 +21,7 @@
     "homepage": "https://github.com/rtk-rnjn/MomCare-Backend#readme",
     "devDependencies": {
         "autoprefixer": "^10.4.24",
-        "postcss": "^8.5.6",
+        "postcss": "^8.5.14",
         "tailwindcss": "^3.4.17"
     }
 }
