@@ -4,9 +4,15 @@ from fastapi import FastAPI
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from redis.asyncio import Redis
 
+from src.utils import (
+    EmailNormalizer,
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.email_normalizer = EmailNormalizer()
+
     try:
         yield
     finally:

@@ -13,6 +13,7 @@ fastapi
 google-genai
 httpx
 import_expression
+itsdangerous
 Jinja2
 orjson
 psutil
@@ -21,6 +22,7 @@ PyJWT
 pymongo
 python-dotenv
 redis
+rich
 types-aiobotocore-s3
 typing_extensions
 tzdata

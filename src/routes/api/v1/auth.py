@@ -44,7 +44,6 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 auth_manager: TokenManager = app.state.auth_manager
 database: Database = app.state.mongo_database
 redis_client: Redis = app.state.redis_client
-email_normalizer: EmailNormalizer = app.state.email_normalizer
 rng: RNG = app.state.rng
 
 credentials_collection: Collection[CredentialsDict] = database["credentials"]
@@ -65,6 +64,7 @@ def _verify_password(*, password: str, hashed: str) -> bool:
 
 
 async def _get_credential_by_email(email_address: str, /) -> CredentialsDict:
+    email_normalizer: EmailNormalizer = app.state.email_normalizer
     normalization_result = await email_normalizer.normalize(email_address)
     cred = await credentials_collection.find_one(
         {
@@ -123,6 +123,7 @@ async def register(data: CredentialsModel = Body(...)):
     if not data.email_address or not data.password:
         raise HTTPException(status_code=400, detail="Email address and password are required.")
 
+    email_normalizer: EmailNormalizer = app.state.email_normalizer
     normalization_result = await email_normalizer.normalize(data.email_address)
     if await credentials_collection.find_one(
         {
@@ -437,6 +438,8 @@ async def change_email(
     if not cred:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found.")
 
+    email_normalizer: EmailNormalizer = app.state.email_normalizer
+
     normalised_email_result = await email_normalizer.normalize(new_email_address)
 
     existing_user = await credentials_collection.find_one(
@@ -660,6 +663,7 @@ async def forget_password(
         alias="email_address",
     ),
 ) -> JSONResponse:
+    email_normalizer: EmailNormalizer = app.state.email_normalizer
     normalized_email_result = await email_normalizer.normalize(email_address)
     normalized_email_address = normalized_email_result.cleaned_email
 
@@ -733,6 +737,7 @@ async def reset_password(
         alias="new_password",
     ),
 ) -> JSONResponse:
+    email_normalizer: EmailNormalizer = app.state.email_normalizer
     normalized_email_result = await email_normalizer.normalize(email_address)
     normalized_email_address = normalized_email_result.cleaned_email
 

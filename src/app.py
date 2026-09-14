@@ -13,7 +13,6 @@ from redis.asyncio import Redis
 from src.utils import (
     RNG,
     S3,
-    EmailNormalizer,
     GoogleAPIHandler,
     TokenManager,
     humanize_timestamp,
@@ -41,15 +40,15 @@ app = FastAPI(
     tags_metadata=[
         {
             "name": "Authentication",
-            "description": "User registration, login, and profile management operations. Handle user accounts, authentication tokens, and personal information updates.",  # noqa: E501
+            "description": "User registration, login, and profile management operations. Handle user accounts, authentication tokens, and personal information updates.",
         },
         {
             "name": "Update Management",
-            "description": "Operations for updating user medical data, preferences, and account settings. Manage user-specific information and configurations.",  # noqa: E501
+            "description": "Operations for updating user medical data, preferences, and account settings. Manage user-specific information and configurations.",
         },
         {
             "name": "AI Content",
-            "description": "AI-generated content and recommendations for maternal health, including personalized meal plans, exercise routines, and wellness tips.",  # noqa: E501
+            "description": "AI-generated content and recommendations for maternal health, including personalized meal plans, exercise routines, and wellness tips.",
         },
         {
             "name": "Content Utils",
@@ -57,7 +56,7 @@ app = FastAPI(
         },
         {
             "name": "System & Meta",
-            "description": "System health checks, API metadata, versioning information, and service status endpoints for monitoring and integration.",  # noqa: E501
+            "description": "System health checks, API metadata, versioning information, and service status endpoints for monitoring and integration.",
         },
     ],
     lifespan=lifespan,
@@ -66,9 +65,9 @@ app = FastAPI(
 MONGODB_URI = os.environ["MONGODB_URI"]
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_PORT = int(os.getenv("REDIS_PORT") or 6379)
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
-REDIS_DB = int(os.getenv("REDIS_DB", 5))
+REDIS_DB = int(os.getenv("REDIS_DB") or 0)
 
 auth_manager = TokenManager()
 google_api_handler = GoogleAPIHandler()
@@ -84,14 +83,12 @@ redis_client = Redis(
 )
 
 mongo_client = AsyncMongoClient(MONGODB_URI, tz_aware=True)
-email_normalizer = EmailNormalizer()
 
 app.state.auth_manager = auth_manager
 app.state.google_api_handler = google_api_handler
 app.state.s3 = s3
 app.state.rng = rng
 app.state.redis_client = redis_client
-app.state.email_normalizer = email_normalizer
 app.state.start_time = arrow.utcnow()
 
 app.state.mongo_client = mongo_client
@@ -108,8 +105,8 @@ templates = Jinja2Templates(directory="src/templates")
 templates.env.filters["humanize_timestamp"] = humanize_timestamp
 app.state.templates = templates
 
-from . import middleware  # noqa: E402, F401
-from .routes import api_router, web_router  # noqa: E402
+from . import middleware  # noqa: F401
+from .routes import api_router, web_router
 
 app.include_router(api_router)
 app.include_router(web_router)

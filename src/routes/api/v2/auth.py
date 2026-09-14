@@ -41,7 +41,6 @@ router: APIRouter = APIRouter(prefix="/auth", tags=["Authentication"])
 auth_manager: TokenManager = app.state.auth_manager
 database: Database = app.state.mongo_database
 redis_client: Redis = app.state.redis_client
-email_normalizer: EmailNormalizer = app.state.email_normalizer
 
 credentials_collection: Collection[CredentialsDict] = database["credentials"]
 users_collection: Collection[UserDict] = database["users"]
@@ -136,6 +135,7 @@ async def link_apple_to_existing_account(
     existing_email_address: str,
 ) -> str:
     now: float = arrow.utcnow().timestamp()
+    email_normalizer: EmailNormalizer = app.state.email_normalizer
     normalized_email_result = await email_normalizer.normalize(existing_email_address)
 
     filter_query = {
@@ -250,6 +250,7 @@ async def apple_login(
     apple_id: str = id_info["sub"]
     email_address = id_info.get("email")
 
+    email_normalizer: EmailNormalizer = app.state.email_normalizer
     normalized_email_result = await email_normalizer.normalize(email_address) if email_address else None
     if normalized_email_result and normalized_email_result.cleaned_email:
         normalized_email_address = normalized_email_result.cleaned_email
