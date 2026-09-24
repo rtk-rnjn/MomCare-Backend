@@ -3,12 +3,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from typing import Any, Awaitable, Callable, ParamSpec, TypedDict, TypeVar, cast
+from collections.abc import Awaitable, Callable
+from typing import Any, ParamSpec, TypedDict, TypeVar, cast
 
 import arrow
 from fastapi import APIRouter, BackgroundTasks, Depends
 from fastapi.exceptions import HTTPException
-from fastapi.responses import ORJSONResponse as JSONResponse
+from fastapi.responses import JSONResponse
 from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.database import AsyncDatabase as Database
 from redis.asyncio import Redis
@@ -46,7 +47,7 @@ database: Database = app.state.mongo_database
 s3: S3 = app.state.s3
 redis_client: Redis = app.state.redis_client
 
-tips_collection: Collection["DailyInsightDict"] = database["tips"]
+tips_collection: Collection[DailyInsightDict] = database["tips"]
 users_collection: Collection[UserDict] = database["users"]
 credentials_collection: Collection[CredentialsDict] = database["credentials"]
 exercises_collection: Collection[ExerciseDict] = database["exercises"]

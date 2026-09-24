@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from dotenv import load_dotenv
 from fastapi import APIRouter, Body, Depends
 from fastapi.exceptions import HTTPException
-from fastapi.responses import ORJSONResponse as JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from pymongo.asynchronous.collection import AsyncCollection as Collection
 from pymongo.asynchronous.database import AsyncDatabase as Database
