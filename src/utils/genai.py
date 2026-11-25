@@ -9,6 +9,7 @@ from typing import Any, TypedDict, TypeVar
 
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 from google.genai.types import Content, GenerateContentConfig, Part
 from pydantic import BaseModel, Field
 
@@ -73,7 +74,10 @@ class GoogleAPIHandler:
         user_prompt: list[str],
         response_schema: type[ModelT],
     ) -> ModelT:
-        client = genai.Client(api_key=self._next_key())
+        client = genai.Client(
+            api_key=self._next_key(),
+            http_options=types.HttpOptions(api_version="v1beta"),
+        )
         content = Content(parts=[Part.from_text(text=part) for part in user_prompt])
         config = GenerateContentConfig(
             system_instruction=system_prompt,
