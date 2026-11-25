@@ -59,7 +59,7 @@ class GoogleAPIHandler:
         self.__index = 0
         self.__lock = threading.Lock()
 
-        self.model = "gemini-2.5-flash"
+        self.model = "gemini-3.8-flash"
 
     def _next_key(self) -> str:
         with self.__lock:
