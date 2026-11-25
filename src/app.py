@@ -37,7 +37,7 @@ app = FastAPI(
         "name": "GPL-2.0 License",
         "url": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
     },
-    tags_metadata=[
+    openapi_tags=[
         {
             "name": "Authentication",
             "description": "User registration, login, and profile management operations. Handle user accounts, authentication tokens, and personal information updates.",
@@ -99,7 +99,10 @@ if not FRONTEND_DIR.exists():
     raise FileNotFoundError(f"Frontend directory not found at {FRONTEND_DIR}")
 
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
-app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "dist" / "assets"), name="assets")
+
+if (FRONTEND_DIR / "dist").exists():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR / "dist", html=True), name="frontend")
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "dist" / "assets"), name="assets")
 
 templates = Jinja2Templates(directory="src/templates")
 templates.env.filters["humanize_timestamp"] = humanize_timestamp
